@@ -36,7 +36,7 @@ inputs:
   dry_run:
     description: Run metrics CLI without uploading to API.
     required: true
-  
+
 runs:
   using: composite
   steps:
@@ -48,7 +48,7 @@ runs:
         JUNIT_PATHS: ${{ inputs.junit_paths }}
         ORG_URL_SLUG: ${{ inputs.org_url_slug }}
         INPUT_TOKEN: ${{ inputs.token }}
-        INPUT_API_ADDRESS: ${{ inputs.api_address }}
+        API_ADDRESS: ${{ inputs.api_address }}
         REPO_ROOT: ${{ inputs.repo_root }}
         REPO_URL: ${{ inputs.repo_url }}
         REPO_HEAD_SHA: ${{ inputs.repo_head_sha }}
