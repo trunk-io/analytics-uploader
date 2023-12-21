@@ -25,6 +25,6 @@ DRY_RUN=${INPUT_DRY_RUN:-false} # Defaults to false.
 API_ADDRESS=${INPUT_API_ADDRESS:-"https://api.trunk.io:5022"}
 API_URL=${API_ADDRESS}/ # TODO: add binary
 
-curl -fsSL --retry 1 --retry-connrefused --connect-timeout 5 "${API_URL}" > ./trunk-analytics-uploader
+set -x; curl -fsSL --retry 3 "${API_URL}" -o ./trunk-analytics-uploader
 
 ./trunk-analytics-uploader upload --junit-paths ${JUNIT_PATHS} --org-url-slug ${ORG_URL_SLUG} --token ${TOKEN} --api-address ${API_ADDRESS} --repo-root ${REPO_ROOT} --repo-url ${REPO_URL} --repo-head-sha ${REPO_HEAD_SHA} --repo-head-branch ${REPO_HEAD_BRANCH} --repo-head-commit-epoch ${REPO_HEAD_COMMIT_EPOCH} --custom-tags ${CUSTOM_TAGS} --dry-run ${DRY_RUN}
