@@ -44,5 +44,5 @@ set +x
 	--repo-head-sha "${REPO_HEAD_SHA}" \
 	--repo-head-branch "${REPO_HEAD_BRANCH}" \
 	--repo-head-commit-epoch "${REPO_HEAD_COMMIT_EPOCH}" \
-	--custom-tags "${CUSTOM_TAGS}" \
+	--tags "${TAGS}" \
 	--dry-run "${DRY_RUN}"
