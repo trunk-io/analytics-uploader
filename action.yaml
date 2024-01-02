@@ -30,7 +30,7 @@ inputs:
   repo_head_commit_epoch:
     description: Optional value to override commit epoch of repository head.
     required: false
-  custom_tags:
+  tags:
     description: Comma separated list of custom tag=value pairs.
     required: false
   dry_run:
@@ -54,5 +54,5 @@ runs:
         REPO_HEAD_SHA: ${{ inputs.repo_head_sha }}
         REPO_HEAD_BRANCH: ${{ inputs.repo_head_branch }}
         REPO_HEAD_COMMIT_EPOCH: ${{ inputs.repo_head_commit_epoch }}
-        CUSTOM_TAGS: ${{ inputs.custom_tags }}
+        TAGS: ${{ inputs.tags }}
         INPUT_DRY_RUN: ${{ inputs.dry_run }}
