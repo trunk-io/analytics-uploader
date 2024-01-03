@@ -1,10 +1,8 @@
 # trunk-analytics-uploader
 
-Find tests that are flaky, understand the impact of each flaky test on developer productivity, and validate fixes to those tests.
-
 ## Usage
 
-Running this action will upload `junit.xml` files to a public endpoint using a provided binary (also available [here](https://trunk.io/releases/analytics-cli/latest)).
+Running this action will upload `junit.xml` files to Trunk CI Analytics.
 
 ### Example
 
@@ -26,7 +24,8 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Run tests
-        run: # Execute your tests.
+        # Execute your tests.
+        run: mkdir -p test_results/path && touch test_results/path/my_junit_report_test.xml
 
       - name: Upload results
         uses: trunk-io/trunk-analytics-uploader@v0.1.0
