@@ -1,4 +1,4 @@
-# trunk-analytics-uploader
+# trunk.io | analytics-uploader
 
 ## Usage
 
@@ -28,7 +28,7 @@ jobs:
         run: mkdir -p test_results/path && touch test_results/path/my_junit_report_test.xml
 
       - name: Upload results
-        uses: trunk-io/trunk-analytics-uploader@v0.1.0
+        uses: trunk-io/analytics-uploader@v0.1.0
         with:
           # Path to your test results.
           junit_paths: test_results/**/*_test.xml
