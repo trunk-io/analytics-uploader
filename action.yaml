@@ -35,7 +35,7 @@ inputs:
     required: false
   dry_run:
     description: Run metrics CLI without uploading to API.
-    required: true
+    required: false
 
 runs:
   using: composite
