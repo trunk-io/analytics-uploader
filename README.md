@@ -5,22 +5,23 @@ Find tests that are flaky, understand the impact of each flaky test on developer
 Running this action will upload `junit.xml` files to a public endpoint using a provided binary (also available [here](https://trunk.io/releases/analytics-cli/latest)).
 
 ### Inputs
-| Parameter | Description | Required |
-|---|---|---|
-| `junit_paths` | Comma-separated list of glob paths to junit files. | Required. |
-| `org_url_slug` | Organization url slug. | Required. |
-| `token` | Organization token. | Optional. Defaults to `TRUNK_API_TOKEN` env var. |
-| `api_address` | Custom API address. | Optional. |
-| `repo_root` | Path to repository root. | Optional. Defaults to current directory. |
-| `repo_url` | Override URL of repository. | Optional. |
-| `repo_head_sha` | Override SHA of repository head. | Optional. |
-| `repo_head_branch` | Override branch of repository head. | Optional. |
-| `repo_head_commit_epoch` | Override commit epoch of repository head. | Optional. |
-| `custom_tags` | Comma separated list of custom `tag=value` pairs. | Optional. |
-| `dry_run` | Run metrics CLI without uploading to API. | Optional. Defaults to `false`. |
+| Parameter | Description |
+|---|---|
+| `junit_paths` | **Required.** Comma-separated list of glob paths to junit files. |
+| `org_url_slug` | **Required.** Organization url slug. |
+| `token` | **Optional.** Organization token. Defaults to `TRUNK_API_TOKEN` env var. |
+| `api_address` | **Optional.** Custom API address. |
+| `repo_root` | **Optional.** Path to repository root. Defaults to current directory. |
+| `repo_url` | **Optional.** Override URL of repository. |
+| `repo_head_sha` | **Optional.** Override SHA of repository head. |
+| `repo_head_branch` | **Optional.** Override branch of repository head. |
+| `repo_head_commit_epoch` | **Optional.** Override commit epoch of repository head. |
+| `custom_tags` | **Optional.** Comma separated list of custom `tag=value` pairs. |
+| `dry_run` | **Optional.** Run metrics CLI without uploading to API. Defaults to `false`. |
 
-### Example TODO
-```
+
+### Example
+```yaml
 name: Upload Test Results to Trunk (Hourly)
 
 on:
@@ -63,6 +64,8 @@ jobs:
         with:
           junit_paths: target/junit/**/*_test.xml
           org_url_slug: trunk-staging-org
+          # Provide your Trunk API token as a GitHub secret.
+          # See https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions.
           token: ${{ secrets.TRUNK_API_TOKEN }}
         continue-on-error: true
 ```
