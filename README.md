@@ -23,15 +23,15 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Run tests
-        run: # Execute your tests
+        run: # Execute your tests.
 
       - name: Upload results
         uses: trunk-io/trunk-analytics-uploader@v0.1.0
         with:
-          # Path for your test results
-          junit_paths: target/junit/**/*_test.xml
+          # Path to your test results.
+          junit_paths: test_results/**/*_test.xml
           # Provide your Trunk organization url slug.
-          org_url_slug: my-trunk-org
+          org_url_slug: my-trunk-org 
           # Provide your Trunk API token as a GitHub secret.
           # See https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions.
           token: ${{ secrets.TRUNK_API_TOKEN }}
