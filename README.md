@@ -22,47 +22,31 @@ Running this action will upload `junit.xml` files to a public endpoint using a p
 
 ### Example
 ```yaml
-name: Upload Test Results to Trunk (Hourly)
-
-on:
-  schedule:
-    - cron: "0 1 * * *"
-  workflow_dispatch: {}
+name: Upload Test Results to Trunk
+on: push
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref && github.ref || github.run_id }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  CLJ_KONDO_VERSION: "2023.09.07"
-
 jobs:
-  be-tests:
-    runs-on: ubuntu-22.04
-    name: be-tests-java-${{ matrix.java-version }}-${{ matrix.edition }}
+  upload-test-results:
+    runs-on: ubuntu-latest
+    name: Run tests and upload results
     timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix:
-        edition: [oss, ee]
-        java-version: [11, 17, 21]
     steps:
       - name: Checkout
         uses: actions/checkout@v3
 
       - name: Run tests
-        if: matrix.java-version != 21
-        run: clojure -X:dev:ci:test:${{ matrix.edition }}:${{ matrix.edition }}-dev
-
-      - name: Run tests using Java 21 on `master` only
-        if: matrix.java-version == 21 && github.ref_name == 'master'
-        run: clojure -X:dev:ci:test:${{ matrix.edition }}:${{ matrix.edition }}-dev
-        continue-on-error: true
+        run: # Execute your tests
 
       - name: Upload results
-        uses: trunk-io/trunk-analytics-uploader@main # TODO: create v1 release tag
+        uses: trunk-io/trunk-analytics-uploader@main
         with:
+          # Path for your test results
           junit_paths: target/junit/**/*_test.xml
+          # Provide your GitHub organization url slug.
           org_url_slug: trunk-staging-org
           # Provide your Trunk API token as a GitHub secret.
           # See https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions.
