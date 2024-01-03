@@ -12,30 +12,9 @@ inputs:
   token:
     description: Organization token. Defaults to TRUNK_API_TOKEN env var.
     required: false
-  api_address:
-    description: Optional custom API address.
-    required: false
-  repo_root:
-    description: Optional path to repository root. Defaults to current directory.
-    required: false
-  repo_url:
-    description: Optional value to override URL of repository.
-    required: false
-  repo_head_sha:
-    description: Optional value to override SHA of repository head.
-    required: false
-  repo_head_branch:
-    description: Optional value to override branch of repository head.
-    required: false
-  repo_head_commit_epoch:
-    description: Optional value to override commit epoch of repository head.
-    required: false
   tags:
     description: Comma separated list of custom tag=value pairs.
     required: false
-  dry_run:
-    description: Run metrics CLI without uploading to API.
-    required: true
 
 runs:
   using: composite
@@ -48,11 +27,4 @@ runs:
         JUNIT_PATHS: ${{ inputs.junit_paths }}
         ORG_URL_SLUG: ${{ inputs.org_url_slug }}
         INPUT_TOKEN: ${{ inputs.token }}
-        API_ADDRESS: ${{ inputs.api_address }}
-        REPO_ROOT: ${{ inputs.repo_root }}
-        REPO_URL: ${{ inputs.repo_url }}
-        REPO_HEAD_SHA: ${{ inputs.repo_head_sha }}
-        REPO_HEAD_BRANCH: ${{ inputs.repo_head_branch }}
-        REPO_HEAD_COMMIT_EPOCH: ${{ inputs.repo_head_commit_epoch }}
         TAGS: ${{ inputs.tags }}
-        INPUT_DRY_RUN: ${{ inputs.dry_run }}
