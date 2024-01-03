@@ -1,4 +1,4 @@
-# trunk.io | analytics-uploader
+![GH (2)](https://github.com/trunk-io/analytics-uploader/assets/1265982/5475373b-937c-4455-bcde-5629d51c9f95)
 
 ## Usage
 
