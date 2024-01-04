@@ -1,6 +1,6 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
-set -eo pipefail
+set -euo pipefail
 
 # OS.
 kernel=$(uname -s)
