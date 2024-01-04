@@ -30,6 +30,7 @@ TOKEN=${INPUT_TOKEN:-${TRUNK_API_TOKEN}} # Defaults to TRUNK_API_TOKEN env var.
 # CLI.
 set -x
 curl -fsSL --retry 3 "https://trunk.io/releases/analytics-cli/latest" -o ./trunk-analytics-uploader
+chmod +x ./trunk-analytics-uploader
 set +x
 
 ./trunk-analytics-uploader upload \
