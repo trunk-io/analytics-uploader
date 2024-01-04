@@ -30,7 +30,7 @@ jobs:
           # Path to your test results.
           junit_paths: target/path/**/*_test.xml
           # Provide your Trunk organization url slug.
-          org_url_slug: my-trunk-go
+          org_url_slug: my-trunk-org
           # Provide your Trunk API token as a GitHub secret.
           # You can find Trunk token by navigating to Settings → Manage Organization → Organization API Token and clicking "View"
           # See https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions.
