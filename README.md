@@ -8,15 +8,12 @@ Running this action will upload `junit.xml` files to Trunk CI Analytics.
 
 ```yaml
 name: Upload Test Results to Trunk
-on: push
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+on: 
+  workflow_dispatch:
 
 jobs:
   upload-test-results:
-    runs-on: [linux, x64]
+    runs-on: ubuntu-latest
     name: Run tests and upload results
     timeout-minutes: 60
     steps:
@@ -25,16 +22,17 @@ jobs:
 
       - name: Run tests
         # Execute your tests.
-        run: mkdir -p test_results/path && touch test_results/path/my_junit_report_test.xml
+        run: mkdir -p target/path && touch target/path/junit_report.xml
 
       - name: Upload results
-        uses: trunk-io/analytics-uploader@v0.1.0
+        uses: trunk-io/analytics-uploader@main
         with:
           # Path to your test results.
-          junit_paths: test_results/**/*_test.xml
+          junit_paths: target/path/**/*_test.xml
           # Provide your Trunk organization url slug.
-          org_url_slug: my-trunk-org
+          org_url_slug: my-trunk-go
           # Provide your Trunk API token as a GitHub secret.
+          # You can find Trunk token by navigating to Settings → Manage Organization → Organization API Token and clicking "View"
           # See https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions.
           token: ${{ secrets.TRUNK_API_TOKEN }}
         continue-on-error: true
