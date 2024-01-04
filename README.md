@@ -1,5 +1,7 @@
 ![GH (2)](https://github.com/trunk-io/analytics-uploader/assets/1265982/5475373b-937c-4455-bcde-5629d51c9f95)
 
+Github Action enabling integration between Junit runners and Trunk Analytics.
+
 ## Usage
 
 Running this action will upload `junit.xml` files to Trunk CI Analytics.
@@ -8,7 +10,7 @@ Running this action will upload `junit.xml` files to Trunk CI Analytics.
 
 ```yaml
 name: Upload Test Results to Trunk
-on: 
+on:
   workflow_dispatch:
 
 jobs:
@@ -30,10 +32,12 @@ jobs:
           # Path to your test results.
           junit_paths: target/path/**/*_test.xml
           # Provide your Trunk organization url slug.
-          org_url_slug: my-trunk-org
+          # To find your org url slug, log into app.trunk.io and you should be redirected to a URL like:
+          # https://app.trunk.io/my-trunk-org-slug/repo-owner/repo-name/ci-analytics
+          org_url_slug: my-trunk-org-slug
           # Provide your Trunk API token as a GitHub secret.
-          # You can find Trunk token by navigating to Settings → Manage Organization → Organization API Token and clicking "View"
-          # See https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions.
+          # You can find Trunk token by navigating to app.trunk.io → Settings → Manage Organization → Organization API Token → View.
+          # To add it as a GitHub secret, see https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions.
           token: ${{ secrets.TRUNK_API_TOKEN }}
         continue-on-error: true
 ```
@@ -49,4 +53,6 @@ jobs:
 
 ## Questions
 
-For any questions, contact us on [Slack](https://slack.trunk.io/).
+For any questions, contact us on [Slack](https://slack.trunk.io/) or refer to our [docs](https://docs.trunk.io/ci-analytics).
+
+<sub>Usage of the Trunk Analytics Uploader is currently invite-only. If you are interested in learning more, please reach out at beta@trunk.io.</sub>
