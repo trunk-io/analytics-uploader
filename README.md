@@ -30,11 +30,11 @@ jobs:
         uses: trunk-io/analytics-uploader@main
         with:
           # Path to your test results.
-          junit_paths: target/path/**/*_test.xml
+          junit-paths: target/path/**/*_test.xml
           # Provide your Trunk organization url slug.
-          # To find your org url slug, log into app.trunk.io and you should be redirected to a URL like:
+          # To find your org slug, log into app.trunk.io and you should be redirected to a URL like:
           # https://app.trunk.io/my-trunk-org-slug/repo-owner/repo-name/ci-analytics
-          org_url_slug: my-trunk-org-slug
+          org-slug: my-trunk-org-slug
           # Provide your Trunk API token as a GitHub secret.
           # You can find Trunk token by navigating to app.trunk.io → Settings → Manage Organization → Organization API Token → View.
           # To add it as a GitHub secret, see https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions.

@@ -3,11 +3,11 @@ author: trunk.io
 description: Uploads test results to trunk.io
 
 inputs:
-  junit_paths:
+  junit-paths:
     description: Comma-separated list of glob paths to junit files.
     required: true
-  org_url_slug:
-    description: Organization url slug.
+  org-slug:
+    description: Organization slug.
     required: true
   token:
     description: Organization token. Defaults to TRUNK_API_TOKEN env var.
@@ -24,7 +24,7 @@ runs:
       shell: bash
       continue-on-error: true
       env:
-        JUNIT_PATHS: ${{ inputs.junit_paths }}
-        ORG_URL_SLUG: ${{ inputs.org_url_slug }}
+        JUNIT_PATHS: ${{ inputs.junit-paths }}
+        ORG_URL_SLUG: ${{ inputs.org-slug }}
         INPUT_TOKEN: ${{ inputs.token }}
         TAGS: ${{ inputs.tags }}
