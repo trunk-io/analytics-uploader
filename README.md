@@ -46,8 +46,8 @@ jobs:
 
 | Parameter      | Description                                                              |
 | -------------- | ------------------------------------------------------------------------ |
-| `junit_paths`  | **Required.** Comma-separated list of glob paths to junit files.         |
-| `org_url_slug` | **Required.** Organization url slug.                                     |
+| `junit-paths`  | **Required.** Comma-separated list of glob paths to junit files.         |
+| `org-slug` | **Required.** Organization slug.                                     |
 | `token`        | **Optional.** Organization token. Defaults to `TRUNK_API_TOKEN` env var. |
 | `tags`         | **Optional.** Comma separated list of custom `tag=value` pairs.          |
 
