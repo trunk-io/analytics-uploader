@@ -27,6 +27,7 @@ jobs:
         run: mkdir -p target/path && touch target/path/junit_report.xml
 
       - name: Upload results
+        if: "!cancelled()"
         uses: trunk-io/analytics-uploader@main
         with:
           # Path to your test results.
@@ -44,12 +45,12 @@ jobs:
 
 ### Inputs
 
-| Parameter      | Description                                                              |
-| -------------- | ------------------------------------------------------------------------ |
-| `junit-paths`  | **Required.** Comma-separated list of glob paths to junit files.         |
-| `org-slug` | **Required.** Organization slug.                                     |
-| `token`        | **Optional.** Organization token. Defaults to `TRUNK_API_TOKEN` env var. |
-| `tags`         | **Optional.** Comma separated list of custom `tag=value` pairs.          |
+| Parameter     | Description                                                              |
+| ------------- | ------------------------------------------------------------------------ |
+| `junit-paths` | **Required.** Comma-separated list of glob paths to junit files.         |
+| `org-slug`    | **Required.** Organization slug.                                         |
+| `token`       | **Optional.** Organization token. Defaults to `TRUNK_API_TOKEN` env var. |
+| `tags`        | **Optional.** Comma separated list of custom `tag=value` pairs.          |
 
 ## Questions
 
