@@ -38,3 +38,5 @@ set +x
     --org-url-slug "${ORG_URL_SLUG}" \
     --token "${TOKEN}" \
     --tags "${TAGS}"
+
+rm -rf ./trunk-analytics-uploader
