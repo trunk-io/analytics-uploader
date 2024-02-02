@@ -19,6 +19,11 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        ref: ${{ github.head_ref }}
+
     - name: Upload test results
       run: ${GITHUB_ACTION_PATH}/script.sh
       shell: bash
