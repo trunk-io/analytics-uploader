@@ -25,8 +25,7 @@ if [[ (-z ${INPUT_TOKEN}) && (-z ${TRUNK_API_TOKEN}) ]]; then
     echo "Missing trunk api token"
     exit 2
 fi
-TOKEN=${INPUT_TOKEN:-${TRUNK_API_TOKEN}}       # Defaults to TRUNK_API_TOKEN env var.
-HEAD_REF=${INPUT_HEAD_REF:-${GITHUB_HEAD_REF}} # Defaults to GITHUB_HEAD_REF env var.
+TOKEN=${INPUT_TOKEN:-${TRUNK_API_TOKEN}} # Defaults to TRUNK_API_TOKEN env var.
 
 # CLI.
 set -x
@@ -40,7 +39,7 @@ set +x
     --junit-paths "${JUNIT_PATHS}" \
     --org-url-slug "${ORG_URL_SLUG}" \
     --token "${TOKEN}" \
-    --repo-head-branch "${HEAD_REF}" \
+    --repo-head-branch "${REPO_HEAD_BRANCH}" \
     --tags "${TAGS}"
 
 rm -rf ./trunk-analytics-uploader

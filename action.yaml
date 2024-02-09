@@ -13,7 +13,7 @@ inputs:
     description: Organization token. Defaults to TRUNK_API_TOKEN env var.
     required: false
   repo-head-branch:
-    description: Value to override branch of repository head. Defaults to GITHUB_HEAD_REF env var.
+    description: Value to override branch of repository head.
     required: false
   tags:
     description: Comma separated list of custom tag=value pairs.
@@ -30,5 +30,5 @@ runs:
         JUNIT_PATHS: ${{ inputs.junit-paths }}
         ORG_URL_SLUG: ${{ inputs.org-slug }}
         INPUT_TOKEN: ${{ inputs.token }}
-        INPUT_HEAD_REF: ${{ inputs.repo-head-branch }}
+        REPO_HEAD_BRANCH: ${{ inputs.repo-head-branch }}
         TAGS: ${{ inputs.tags }}

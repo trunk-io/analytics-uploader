@@ -45,13 +45,13 @@ jobs:
 
 ### Inputs
 
-| Parameter          | Description                                                                     |
-| ------------------ | ------------------------------------------------------------------------------- |
-| `junit-paths`      | **Required.** Comma-separated list of glob paths to junit files.                |
-| `org-slug`         | **Required.** Organization slug.                                                |
-| `token`            | **Optional.** Organization token. Defaults to `TRUNK_API_TOKEN` env var.        |
-| `repo-head-branch` | **Optional.** Branch of repository head. Defaults to `GITHUB_HEAD_REF` env var. |
-| `tags`             | **Optional.** Comma separated list of custom `tag=value` pairs.                 |
+| Parameter          | Description                                                              |
+| ------------------ | ------------------------------------------------------------------------ |
+| `junit-paths`      | **Required.** Comma-separated list of glob paths to junit files.         |
+| `org-slug`         | **Required.** Organization slug.                                         |
+| `token`            | **Optional.** Organization token. Defaults to `TRUNK_API_TOKEN` env var. |
+| `repo-head-branch` | **Optional.** Branch of repository head.                                 |
+| `tags`             | **Optional.** Comma separated list of custom `tag=value` pairs.          |
 
 ## Questions
 
