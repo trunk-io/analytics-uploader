@@ -12,6 +12,9 @@ inputs:
   token:
     description: Organization token. Defaults to TRUNK_API_TOKEN env var.
     required: false
+  repo-head-branch:
+    description: Value to override branch of repository head. Defaults to GITHUB_HEAD_REF env var.
+    required: false
   tags:
     description: Comma separated list of custom tag=value pairs.
     required: false
@@ -19,11 +22,6 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Checkout
-      uses: actions/checkout@v3
-      with:
-        ref: ${{ github.head_ref }}
-
     - name: Upload test results
       run: ${GITHUB_ACTION_PATH}/script.sh
       shell: bash
@@ -32,4 +30,5 @@ runs:
         JUNIT_PATHS: ${{ inputs.junit-paths }}
         ORG_URL_SLUG: ${{ inputs.org-slug }}
         INPUT_TOKEN: ${{ inputs.token }}
+        INPUT_HEAD_REF: ${{ inputs.repo-head-branch }}
         TAGS: ${{ inputs.tags }}
