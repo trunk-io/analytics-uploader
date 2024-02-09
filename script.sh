@@ -40,7 +40,7 @@ set +x
     --junit-paths "${JUNIT_PATHS}" \
     --org-url-slug "${ORG_URL_SLUG}" \
     --token "${TOKEN}" \
-    --tags "${TAGS}" \
-    --repo-head-branch "${HEAD_REF}"
+    --repo-head-branch "${HEAD_REF}" \
+    --tags "${TAGS}"
 
 rm -rf ./trunk-analytics-uploader
