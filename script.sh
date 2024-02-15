@@ -21,7 +21,7 @@ if [[ -z ${ORG_URL_SLUG} ]]; then
     exit 2
 fi
 
-if [[ (-z ${INPUT_TOKEN}) && (-z ${TRUNK_API_TOKEN}) ]]; then
+if [[ (-z ${INPUT_TOKEN}) && (-z ${TRUNK_API_TOKEN-}) ]]; then
     echo "Missing trunk api token"
     exit 2
 fi
