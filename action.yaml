@@ -21,7 +21,7 @@ inputs:
   tags:
     description: Comma separated list of custom tag=value pairs.
     required: false
-  version:
+  cli_version:
     description: The version of the uploader to use.
     required: false
     default: 0.4.0
@@ -40,4 +40,4 @@ runs:
         REPO_HEAD_BRANCH: ${{ inputs.repo-head-branch }}
         TAGS: ${{ inputs.tags }}
         RUN: ${{ inputs.run }}
-        VERSION: ${{ inputs.version }}
+        CLI_VERSION: ${{ inputs.cli_version }}
