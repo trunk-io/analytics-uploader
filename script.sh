@@ -41,7 +41,6 @@ if [[ ! (-f ./trunk-analytics-cli) ]]; then
     curl -fsSL --retry 3 "https://github.com/trunk-io/analytics-cli/releases/download/${VERSION}/trunk-analytics-cli-${VERSION}-x86_64-unknown-linux-gnu.tar.gz" -o ./trunk-analytics-cli.tar.gz
 fi
 tar -xvzf trunk-analytics-cli.tar.gz
-ls
 chmod +x ./trunk-analytics-cli
 set +x
 
