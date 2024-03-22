@@ -35,11 +35,21 @@ fi
 chmod +x ./trunk-analytics-uploader
 set +x
 
-./trunk-analytics-uploader upload \
-    --junit-paths "${JUNIT_PATHS}" \
-    --org-url-slug "${ORG_URL_SLUG}" \
-    --token "${TOKEN}" \
-    --repo-head-branch "${REPO_HEAD_BRANCH}" \
-    --tags "${TAGS}"
+if [[ -z ${RUN} ]]; then
+  ./trunk-analytics-uploader upload \
+      --junit-paths "${JUNIT_PATHS}" \
+      --org-url-slug "${ORG_URL_SLUG}" \
+      --token "${TOKEN}" \
+      --repo-head-branch "${REPO_HEAD_BRANCH}" \
+      --tags "${TAGS}"
+else
+  ./trunk-analytics-uploader test \
+      --junit-paths "${JUNIT_PATHS}" \
+      --org-url-slug "${ORG_URL_SLUG}" \
+      --token "${TOKEN}" \
+      --repo-head-branch "${REPO_HEAD_BRANCH}" \
+      --tags "${TAGS}"
+      -- "${RUN}"
+fi
 
 rm -rf ./trunk-analytics-uploader
