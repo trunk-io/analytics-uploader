@@ -21,7 +21,7 @@ inputs:
   tags:
     description: Comma separated list of custom tag=value pairs.
     required: false
-  cli_version:
+  cli-version:
     description: The version of the uploader to use.
     required: false
     default: 0.4.0
