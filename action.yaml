@@ -40,4 +40,4 @@ runs:
         REPO_HEAD_BRANCH: ${{ inputs.repo-head-branch }}
         TAGS: ${{ inputs.tags }}
         RUN: ${{ inputs.run }}
-        CLI_VERSION: ${{ inputs.cli_version }}
+        CLI_VERSION: ${{ inputs.cli-version }}
