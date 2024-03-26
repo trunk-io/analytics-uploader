@@ -15,9 +15,16 @@ inputs:
   repo-head-branch:
     description: Value to override branch of repository head.
     required: false
+  run:
+    description: The command to run before uploading test results.
+    required: false
   tags:
     description: Comma separated list of custom tag=value pairs.
     required: false
+  cli-version:
+    description: The version of the uploader to use.
+    required: false
+    default: 0.4.0
 
 runs:
   using: composite
@@ -32,3 +39,5 @@ runs:
         INPUT_TOKEN: ${{ inputs.token }}
         REPO_HEAD_BRANCH: ${{ inputs.repo-head-branch }}
         TAGS: ${{ inputs.tags }}
+        RUN: ${{ inputs.run }}
+        CLI_VERSION: ${{ inputs.cli-version }}
