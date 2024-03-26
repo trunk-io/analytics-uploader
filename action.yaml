@@ -30,7 +30,7 @@ runs:
   using: composite
   steps:
     - name: Upload test results
-      run: ${GITHUB_ACTION_PATH}/script.sh -- ${{ inputs.run }}
+      run: ${GITHUB_ACTION_PATH}/script.sh ${{ inputs.run }}
       shell: bash
       continue-on-error: ${{ inputs.run == '' }}
       env:
