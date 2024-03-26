@@ -34,7 +34,7 @@ runs:
   using: composite
   steps:
     - name: Upload test results
-      run: ${GITHUB_ACTION_PATH}/script.sh
+      run: ${GITHUB_ACTION_PATH}/script.sh -- ${{ inputs.run }}
       shell: bash
       continue-on-error: ${{ inputs.continue-on-error }}
       env:
@@ -43,5 +43,4 @@ runs:
         INPUT_TOKEN: ${{ inputs.token }}
         REPO_HEAD_BRANCH: ${{ inputs.repo-head-branch }}
         TAGS: ${{ inputs.tags }}
-        RUN: ${{ inputs.run }}
         CLI_VERSION: ${{ inputs.cli-version }}
