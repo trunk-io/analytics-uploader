@@ -25,6 +25,10 @@ inputs:
     description: The version of the uploader to use.
     required: false
     default: 0.5.1
+  continue-on-error:
+    description: Continue on error.
+    required: false
+    default: true
 
 runs:
   using: composite
@@ -32,7 +36,7 @@ runs:
     - name: Upload test results
       run: ${GITHUB_ACTION_PATH}/script.sh
       shell: bash
-      continue-on-error: true
+      continue-on-error: ${{ inputs.continue-on-error }}
       env:
         JUNIT_PATHS: ${{ inputs.junit-paths }}
         ORG_URL_SLUG: ${{ inputs.org-slug }}
