@@ -2,6 +2,13 @@
 
 set -euo pipefail
 
+# This ensures we call the cleanup function anytime we exit, even in the case of failures
+trap "cleanup" EXIT
+
+cleanup() {
+    rm -rf ./trunk-analytics-cli ./trunk-analytics-cli.tar.gz
+}
+
 # OS.
 kernel=$(uname -s)
 machine=$(uname -m)
@@ -60,5 +67,3 @@ else
         --tags "${TAGS}" \
         -- "${RUN}"
 fi
-
-rm -rf ./trunk-analytics-cli ./trunk-analytics-cli.tar.gz
