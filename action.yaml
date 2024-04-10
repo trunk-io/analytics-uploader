@@ -27,7 +27,7 @@ inputs:
   cli-version:
     description: The version of the uploader to use.
     required: false
-    default: 0.5.3
+    default: 0.5.4
 
 runs:
   using: composite
