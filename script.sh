@@ -38,6 +38,7 @@ if [[ (-z ${INPUT_TOKEN}) && (-z ${TRUNK_API_TOKEN-}) ]]; then
     exit 2
 fi
 REPO_HEAD_BRANCH="${REPO_HEAD_BRANCH-}"
+REPO_ROOT="${REPO_ROOT-}"
 TAGS="${TAGS-}"
 TOKEN=${INPUT_TOKEN:-${TRUNK_API_TOKEN}} # Defaults to TRUNK_API_TOKEN env var.
 
@@ -56,6 +57,7 @@ if [[ $# -eq 0 ]]; then
         --org-url-slug "${ORG_URL_SLUG}" \
         --token "${TOKEN}" \
         --repo-head-branch "${REPO_HEAD_BRANCH}" \
+        --repo-root "${REPO_ROOT}" \
         --tags "${TAGS}"
 else
     ./trunk-analytics-cli test \
@@ -63,5 +65,6 @@ else
         --org-url-slug "${ORG_URL_SLUG}" \
         --token "${TOKEN}" \
         --repo-head-branch "${REPO_HEAD_BRANCH}" \
+        --repo-root "${REPO_ROOT}" \
         --tags "${TAGS}" "$@"
 fi
