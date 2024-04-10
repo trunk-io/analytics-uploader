@@ -21,6 +21,9 @@ inputs:
   tags:
     description: Comma separated list of custom tag=value pairs.
     required: false
+  repo-root:
+    description: The root directory of the repository.
+    required: false
   cli-version:
     description: The version of the uploader to use.
     required: false
@@ -38,5 +41,6 @@ runs:
         ORG_URL_SLUG: ${{ inputs.org-slug }}
         INPUT_TOKEN: ${{ inputs.token }}
         REPO_HEAD_BRANCH: ${{ inputs.repo-head-branch }}
+        REPO_ROOT: ${{ inputs.repo-root }}
         TAGS: ${{ inputs.tags }}
         CLI_VERSION: ${{ inputs.cli-version }}
