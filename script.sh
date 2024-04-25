@@ -41,6 +41,7 @@ REPO_HEAD_BRANCH="${REPO_HEAD_BRANCH-}"
 REPO_ROOT="${REPO_ROOT-}"
 TAGS="${TAGS-}"
 TOKEN=${INPUT_TOKEN:-${TRUNK_API_TOKEN}} # Defaults to TRUNK_API_TOKEN env var.
+TEAM="${TEAM-}"
 
 # CLI.
 set -x
@@ -58,6 +59,7 @@ if [[ $# -eq 0 ]]; then
         --token "${TOKEN}" \
         --repo-head-branch "${REPO_HEAD_BRANCH}" \
         --repo-root "${REPO_ROOT}" \
+        --team "${TEAM}" \
         --tags "${TAGS}"
 else
     ./trunk-analytics-cli test \
@@ -66,5 +68,6 @@ else
         --token "${TOKEN}" \
         --repo-head-branch "${REPO_HEAD_BRANCH}" \
         --repo-root "${REPO_ROOT}" \
+        --team "${TEAM}" \
         --tags "${TAGS}" "$@"
 fi

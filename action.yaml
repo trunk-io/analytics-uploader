@@ -28,6 +28,9 @@ inputs:
     description: The version of the uploader to use.
     required: false
     default: 0.5.4
+  team:
+    description: Value to tag team owner of upload.
+    required: false
 
 runs:
   using: composite
@@ -44,3 +47,4 @@ runs:
         REPO_ROOT: ${{ inputs.repo-root }}
         TAGS: ${{ inputs.tags }}
         CLI_VERSION: ${{ inputs.cli-version }}
+        TEAM: ${{ inputs.team }}
