@@ -51,7 +51,11 @@ jobs:
 | `org-slug`         | **Required.** Organization slug.                                         |
 | `token`            | **Optional.** Organization token. Defaults to `TRUNK_API_TOKEN` env var. |
 | `repo-head-branch` | **Optional.** Branch of repository head.                                 |
+| `repo-root`        | **Optional.** Root directory of the repository.                          |
+| `team`             | **Optional.** Team that owns the upload.                                 |
+| `run`              | **Optional.** Command to run before uploading test results.              |
 | `tags`             | **Optional.** Comma separated list of custom `tag=value` pairs.          |
+| `cli-version`      | **Optional.** Version of the uploader to use.                            |
 
 ## Questions
 
