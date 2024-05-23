@@ -45,6 +45,7 @@ TEAM="${TEAM-}"
 
 echo "From the action"
 echo "${GITHUB_REF}"
+echo "${GITHUB_REF_NAME}"
 # echo "${{ github.event.number }}"
 # echo "${{ github.event.pull_request.number }}"
 echo "updated_github_ref" >>"${GITHUB_REF}"
