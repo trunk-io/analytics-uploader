@@ -43,6 +43,9 @@ TAGS="${TAGS-}"
 TOKEN=${INPUT_TOKEN:-${TRUNK_API_TOKEN}} # Defaults to TRUNK_API_TOKEN env var.
 TEAM="${TEAM-}"
 
+echo "From the action"
+echo "${GITHUB_REF}"
+
 # CLI.
 set -x
 if [[ ! (-f ./trunk-analytics-cli) ]]; then
