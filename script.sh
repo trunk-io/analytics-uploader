@@ -12,9 +12,20 @@ cleanup() {
 # OS.
 kernel=$(uname -s)
 machine=$(uname -m)
-if [[ ! ((${kernel} == "Linux") && (${machine} == "x86_64")) ]]; then
-    echo "Only Linux x86_64 is currently supported"
-    exit 1
+
+if [[ ${kernel} == "Darwin" ]]; then
+    if [[ ${machine} == "arm64" ]]; then
+        bin="aarch64-apple-darwin"
+    elif [[ ${machine} == "x86_64" ]]; then
+        bin="x86_64-apple-darwin"
+    fi
+elif [[ ${kernel} == "Linux" ]]; then
+    if [[ ${machine} == "x86_64" ]]; then
+        bin="x86_64-unknown-linux-gnu"
+    elif [[ ${machine} == "x86_64" ]]; then
+        echo "Linux arm is currently supported"
+        exit 1
+    fi
 fi
 
 # Required inputs.
@@ -46,7 +57,8 @@ TEAM="${TEAM-}"
 # CLI.
 set -x
 if [[ ! (-f ./trunk-analytics-cli) ]]; then
-    curl -fsSL --retry 3 "https://github.com/trunk-io/analytics-cli/releases/download/${CLI_VERSION}/trunk-analytics-cli-${CLI_VERSION}-x86_64-unknown-linux-gnu.tar.gz" -o ./trunk-analytics-cli.tar.gz
+    echo "URL: https://github.com/trunk-io/analytics-cli/releases/download/${CLI_VERSION}/trunk-analytics-cli-${CLI_VERSION}-${bin}.tar.gz"
+    curl -fsSL --retry 3 "https://github.com/trunk-io/analytics-cli/releases/download/${CLI_VERSION}/trunk-analytics-cli-${CLI_VERSION}-${bin}.tar.gz" -o ./trunk-analytics-cli.tar.gz
 fi
 tar -xvzf trunk-analytics-cli.tar.gz
 chmod +x ./trunk-analytics-cli
