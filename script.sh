@@ -21,7 +21,7 @@ if [[ ${kernel} == "Darwin" ]]; then
     fi
 elif [[ ${kernel} == "Linux" ]]; then
     if [[ ${machine} == "x86_64" ]]; then
-        bin="x86_64-unknown-linux-gnu"
+        bin="x86_64-unknown-linux-musl"
     elif [[ ${machine} == "x86_64" ]]; then
         echo "Linux arm is currently supported"
         exit 1
