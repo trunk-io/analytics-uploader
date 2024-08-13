@@ -20,12 +20,16 @@ if [[ ${kernel} == "Darwin" ]]; then
         bin="x86_64-apple-darwin"
     fi
 elif [[ ${kernel} == "Linux" ]]; then
-    if [[ ${machine} == "x86_64" ]]; then
-        bin="x86_64-unknown-linux-musl"
+    if [[ ${machine} == "arm64" ]]; then
+        bin="aarch64-unknown-linux"
     elif [[ ${machine} == "x86_64" ]]; then
-        echo "Linux arm is currently supported"
-        exit 1
+        bin="x86_64-unknown-linux"
     fi
+fi
+
+if [[ -z ${bin} ]]; then
+    echo "Unsupported OS (${kernel}, ${machine})"
+    exit 1
 fi
 
 # Required inputs.
@@ -48,6 +52,7 @@ if [[ (-z ${INPUT_TOKEN}) && (-z ${TRUNK_API_TOKEN-}) ]]; then
     echo "Missing trunk api token"
     exit 2
 fi
+
 REPO_HEAD_BRANCH="${REPO_HEAD_BRANCH-}"
 REPO_ROOT="${REPO_ROOT-}"
 TAGS="${TAGS-}"
