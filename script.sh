@@ -76,7 +76,8 @@ if [[ $# -eq 0 ]]; then
         --repo-head-branch "${REPO_HEAD_BRANCH}" \
         --repo-root "${REPO_ROOT}" \
         --team "${TEAM}" \
-        --tags "${TAGS}"
+        --tags "${TAGS}" \
+        ${QUARANTINE:+--use-quarantining}
 else
     ./trunk-analytics-cli test \
         --junit-paths "${JUNIT_PATHS}" \
@@ -85,5 +86,6 @@ else
         --repo-head-branch "${REPO_HEAD_BRANCH}" \
         --repo-root "${REPO_ROOT}" \
         --team "${TEAM}" \
-        --tags "${TAGS}" "$@"
+        --tags "${TAGS}" \
+        ${QUARANTINE:+--use-quarantining} "$@"
 fi
