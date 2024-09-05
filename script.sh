@@ -58,6 +58,7 @@ REPO_ROOT="${REPO_ROOT-}"
 TAGS="${TAGS-}"
 TOKEN=${INPUT_TOKEN:-${TRUNK_API_TOKEN}} # Defaults to TRUNK_API_TOKEN env var.
 TEAM="${TEAM-}"
+QUARANTINE="${QUARANTINE-false}"
 
 # CLI.
 set -x
