@@ -31,6 +31,10 @@ inputs:
   team:
     description: Value to tag team owner of upload.
     required: false
+  quarantine:
+    description: Whether or not to allow quarantining of failing tests.
+    required: false
+    default: "false"
 
 runs:
   using: composite
@@ -48,3 +52,4 @@ runs:
         TAGS: ${{ inputs.tags }}
         CLI_VERSION: ${{ inputs.cli-version }}
         TEAM: ${{ inputs.team }}
+        QUARANTINE: ${{ inputs.quarantine }}
