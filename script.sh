@@ -58,7 +58,6 @@ REPO_ROOT="${REPO_ROOT-}"
 TAGS="${TAGS-}"
 TOKEN=${INPUT_TOKEN:-${TRUNK_API_TOKEN}} # Defaults to TRUNK_API_TOKEN env var.
 TEAM="${TEAM-}"
-QUARANTINE="${QUARANTINE-false}"
 
 # CLI.
 set -x
@@ -78,7 +77,7 @@ if [[ $# -eq 0 ]]; then
         --repo-root "${REPO_ROOT}" \
         --team "${TEAM}" \
         --tags "${TAGS}" \
-        --use-quarantining="${QUARANTINE}"
+        ${QUARANTINE:+--use-quarantining}
 else
     ./trunk-analytics-cli test \
         --junit-paths "${JUNIT_PATHS}" \
@@ -88,5 +87,5 @@ else
         --repo-root "${REPO_ROOT}" \
         --team "${TEAM}" \
         --tags "${TAGS}" \
-        --use-quarantining="${QUARANTINE}" "$@"
+        ${QUARANTINE:+--use-quarantining} "$@"
 fi

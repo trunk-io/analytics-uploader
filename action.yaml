@@ -34,7 +34,6 @@ inputs:
   quarantine:
     description: Whether or not to allow quarantining of failing tests.
     required: false
-    default: "false"
 
 runs:
   using: composite
