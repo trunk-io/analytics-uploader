@@ -58,6 +58,7 @@ REPO_ROOT="${REPO_ROOT-}"
 TAGS="${TAGS-}"
 TOKEN=${INPUT_TOKEN:-${TRUNK_API_TOKEN}} # Defaults to TRUNK_API_TOKEN env var.
 TEAM="${TEAM-}"
+XCRESULT_PATH="${XCRESULT_PATH-}"
 
 # CLI.
 set -x
@@ -70,7 +71,7 @@ set +x
 
 if [[ $# -eq 0 ]]; then
     ./trunk-analytics-cli upload \
-        ${!XCRESULT_PATH:+--junit-paths "${JUNIT_PATHS}"} \
+        ${JUNIT_PATHS:+--junit-paths "${JUNIT_PATHS}"} \
         ${XCRESULT_PATH:+--xcresult-path "${XCRESULT_PATH}"} \
         --org-url-slug "${ORG_URL_SLUG}" \
         --token "${TOKEN}" \
@@ -81,7 +82,7 @@ if [[ $# -eq 0 ]]; then
         ${QUARANTINE:+--use-quarantining}
 else
     ./trunk-analytics-cli test \
-        ${!XCRESULT_PATH:+--junit-paths "${JUNIT_PATHS}"} \
+        ${JUNIT_PATHS:+--junit-paths "${JUNIT_PATHS}"} \
         ${XCRESULT_PATH:+--xcresult-path "${XCRESULT_PATH}"} \
         --org-url-slug "${ORG_URL_SLUG}" \
         --token "${TOKEN}" \
