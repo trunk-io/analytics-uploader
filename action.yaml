@@ -41,7 +41,7 @@ runs:
     - name: Upload test results
       run: ${GITHUB_ACTION_PATH}/script.sh ${{ inputs.run }}
       shell: bash
-      continue-on-error: ${{ inputs.run == '' }}
+      continue-on-error: ${{ inputs.run == '' && inputs.quarantine == '' }}
       env:
         JUNIT_PATHS: ${{ inputs.junit-paths }}
         ORG_URL_SLUG: ${{ inputs.org-slug }}
