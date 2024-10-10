@@ -33,8 +33,8 @@ if [[ -z ${bin} ]]; then
 fi
 
 # Required inputs.
-if [[ -z ${JUNIT_PATHS} ]]; then
-    echo "Missing junit files"
+if [[ (-z ${JUNIT_PATHS}) && (-z ${XCRESULT_PATH}) ]]; then
+    echo "Missing input files"
     exit 2
 fi
 
@@ -58,6 +58,7 @@ REPO_ROOT="${REPO_ROOT-}"
 TAGS="${TAGS-}"
 TOKEN=${INPUT_TOKEN:-${TRUNK_API_TOKEN}} # Defaults to TRUNK_API_TOKEN env var.
 TEAM="${TEAM-}"
+XCRESULT_PATH="${XCRESULT_PATH-}"
 
 # CLI.
 set -x
@@ -70,7 +71,8 @@ set +x
 
 if [[ $# -eq 0 ]]; then
     ./trunk-analytics-cli upload \
-        --junit-paths "${JUNIT_PATHS}" \
+        ${JUNIT_PATHS:+--junit-paths "${JUNIT_PATHS}"} \
+        ${XCRESULT_PATH:+--xcresult-path "${XCRESULT_PATH}"} \
         --org-url-slug "${ORG_URL_SLUG}" \
         --token "${TOKEN}" \
         --repo-head-branch "${REPO_HEAD_BRANCH}" \
@@ -80,7 +82,8 @@ if [[ $# -eq 0 ]]; then
         ${QUARANTINE:+--use-quarantining}
 else
     ./trunk-analytics-cli test \
-        --junit-paths "${JUNIT_PATHS}" \
+        ${JUNIT_PATHS:+--junit-paths "${JUNIT_PATHS}"} \
+        ${XCRESULT_PATH:+--xcresult-path "${XCRESULT_PATH}"} \
         --org-url-slug "${ORG_URL_SLUG}" \
         --token "${TOKEN}" \
         --repo-head-branch "${REPO_HEAD_BRANCH}" \

@@ -5,7 +5,7 @@ description: Uploads test results to trunk.io
 inputs:
   junit-paths:
     description: Comma-separated list of glob paths to junit files.
-    required: true
+    required: false
   org-slug:
     description: Organization slug.
     required: true
@@ -27,9 +27,12 @@ inputs:
   cli-version:
     description: The version of the uploader to use.
     required: false
-    default: 0.5.29
+    default: 0.5.30
   team:
     description: Value to tag team owner of upload.
+    required: false
+  xcresult-path:
+    description: Path to the xcresult directory.
     required: false
   quarantine:
     description: Whether or not to allow quarantining of failing tests.
@@ -52,3 +55,4 @@ runs:
         CLI_VERSION: ${{ inputs.cli-version }}
         TEAM: ${{ inputs.team }}
         QUARANTINE: ${{ inputs.quarantine }}
+        XCRESULT_PATH: ${{ inputs.xcresult-path }}
