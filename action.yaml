@@ -37,6 +37,10 @@ inputs:
   quarantine:
     description: Whether or not to allow quarantining of failing tests.
     required: false
+  allow-missing-junit-files:
+    description: Whether or not to allow missing junit files in the upload invocation
+    required: false
+    default: true
 
 runs:
   using: composite
@@ -56,3 +60,4 @@ runs:
         TEAM: ${{ inputs.team }}
         QUARANTINE: ${{ inputs.quarantine }}
         XCRESULT_PATH: ${{ inputs.xcresult-path }}
+        ALLOW_MISSING_JUNIT_FILES: ${{ inputs.allow-missing-junit-files }}
