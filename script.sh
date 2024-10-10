@@ -59,6 +59,10 @@ TAGS="${TAGS-}"
 TOKEN=${INPUT_TOKEN:-${TRUNK_API_TOKEN}} # Defaults to TRUNK_API_TOKEN env var.
 TEAM="${TEAM-}"
 XCRESULT_PATH="${XCRESULT_PATH-}"
+# clear ALLOW_MISSING_JUNIT_FILES if it is not equal to true
+if [[ ${ALLOW_MISSING_JUNIT_FILES} != "true" && ${ALLOW_MISSING_JUNIT_FILES} != "True" ]]; then
+    ALLOW_MISSING_JUNIT_FILES=""
+fi
 
 # CLI.
 set -x
@@ -79,7 +83,7 @@ if [[ $# -eq 0 ]]; then
         --repo-root "${REPO_ROOT}" \
         --team "${TEAM}" \
         --tags "${TAGS}" \
-        --allow-missing-junit-files "${ALLOW_MISSING_JUNIT_FILES}" \
+        ${ALLOW_MISSING_JUNIT_FILES:+--allow-missing-junit-files} \
         ${QUARANTINE:+--use-quarantining}
 else
     ./trunk-analytics-cli test \
@@ -91,6 +95,6 @@ else
         --repo-root "${REPO_ROOT}" \
         --team "${TEAM}" \
         --tags "${TAGS}" \
-        --allow-missing-junit-files "${ALLOW_MISSING_JUNIT_FILES}" \
+        ${ALLOW_MISSING_JUNIT_FILES:+--allow-missing-junit-files} \
         ${QUARANTINE:+--use-quarantining} "$@"
 fi
