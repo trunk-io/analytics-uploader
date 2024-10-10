@@ -79,6 +79,7 @@ if [[ $# -eq 0 ]]; then
         --repo-root "${REPO_ROOT}" \
         --team "${TEAM}" \
         --tags "${TAGS}" \
+        --allow-missing-junit-files "${ALLOW_MISSING_JUNIT_FILES}" \
         ${QUARANTINE:+--use-quarantining}
 else
     ./trunk-analytics-cli test \
@@ -90,5 +91,6 @@ else
         --repo-root "${REPO_ROOT}" \
         --team "${TEAM}" \
         --tags "${TAGS}" \
+        --allow-missing-junit-files "${ALLOW_MISSING_JUNIT_FILES}" \
         ${QUARANTINE:+--use-quarantining} "$@"
 fi
