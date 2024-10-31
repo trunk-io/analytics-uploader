@@ -27,7 +27,7 @@ inputs:
   cli-version:
     description: The version of the uploader to use.
     required: false
-    default: 0.5.35
+    default: 0.5.36
   team:
     description: Value to tag team owner of upload.
     required: false
