@@ -15,7 +15,6 @@ inputs:
   repo-head-branch:
     description: Value to override branch of repository head.
     required: false
-    default: $GITHUB_REF
   run:
     description: The command to run before uploading test results.
     required: false
