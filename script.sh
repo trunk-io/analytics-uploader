@@ -79,7 +79,7 @@ if [[ $# -eq 0 ]]; then
         ${XCRESULT_PATH:+--xcresult-path "${XCRESULT_PATH}"} \
         --org-url-slug "${ORG_URL_SLUG}" \
         --token "${TOKEN}" \
-        --repo-head-branch "${REPO_HEAD_BRANCH}" \
+        ${REPO_HEAD_BRANCH:+--repo-head-branch "${REPO_HEAD_BRANCH}"} \
         --repo-root "${REPO_ROOT}" \
         --team "${TEAM}" \
         --tags "${TAGS}" \
@@ -91,7 +91,7 @@ else
         ${XCRESULT_PATH:+--xcresult-path "${XCRESULT_PATH}"} \
         --org-url-slug "${ORG_URL_SLUG}" \
         --token "${TOKEN}" \
-        --repo-head-branch "${REPO_HEAD_BRANCH}" \
+        ${REPO_HEAD_BRANCH:+--repo-head-branch "${REPO_HEAD_BRANCH}"} \
         --repo-root "${REPO_ROOT}" \
         --team "${TEAM}" \
         --tags "${TAGS}" \
