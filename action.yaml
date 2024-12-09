@@ -34,11 +34,14 @@ inputs:
   xcresult-path:
     description: Path to the xcresult directory.
     required: false
+  bazel-bep-path:
+    description: Path to the bazel BEP file to parse in place of junits.
+    required: false
   quarantine:
     description: Whether or not to allow quarantining of failing tests.
     required: false
   allow-missing-junit-files:
-    description: Whether or not to allow missing junit files in the upload invocation
+    description: Whether or not to allow missing junit files in the upload invocation.
     required: false
     default: true
 
@@ -61,3 +64,4 @@ runs:
         QUARANTINE: ${{ inputs.quarantine }}
         XCRESULT_PATH: ${{ inputs.xcresult-path }}
         ALLOW_MISSING_JUNIT_FILES: ${{ inputs.allow-missing-junit-files }}
+        BAZEL_BEP_PATH: ${{ inputs.bazel-bep-path }}
