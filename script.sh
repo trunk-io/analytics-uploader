@@ -33,7 +33,7 @@ if [[ -z ${bin} ]]; then
 fi
 
 # Required inputs.
-if [[ (-z ${JUNIT_PATHS}) && (-z ${XCRESULT_PATH}) ]]; then
+if [[ (-z ${JUNIT_PATHS}) && (-z ${XCRESULT_PATH}) && (-z ${BAZEL_BEP_PATH}) ]]; then
     echo "Missing input files"
     exit 2
 fi
@@ -58,7 +58,9 @@ REPO_ROOT="${REPO_ROOT-}"
 TAGS="${TAGS-}"
 TOKEN=${INPUT_TOKEN:-${TRUNK_API_TOKEN}} # Defaults to TRUNK_API_TOKEN env var.
 TEAM="${TEAM-}"
+JUNIT_PATHS="${JUNIT_PATHS-}"
 XCRESULT_PATH="${XCRESULT_PATH-}"
+BAZEL_BEP_PATH="${BAZEL_BEP_PATH-}"
 # clear ALLOW_MISSING_JUNIT_FILES if it is not equal to true
 if [[ ${ALLOW_MISSING_JUNIT_FILES} != "true" && ${ALLOW_MISSING_JUNIT_FILES} != "True" ]]; then
     ALLOW_MISSING_JUNIT_FILES=""
@@ -77,6 +79,7 @@ if [[ $# -eq 0 ]]; then
     ./trunk-analytics-cli upload \
         ${JUNIT_PATHS:+--junit-paths "${JUNIT_PATHS}"} \
         ${XCRESULT_PATH:+--xcresult-path "${XCRESULT_PATH}"} \
+        ${BAZEL_BEP_PATH:+--bazel-bep-path "${BAZEL_BEP_PATH}"} \
         --org-url-slug "${ORG_URL_SLUG}" \
         --token "${TOKEN}" \
         ${REPO_HEAD_BRANCH:+--repo-head-branch "${REPO_HEAD_BRANCH}"} \
@@ -89,6 +92,7 @@ else
     ./trunk-analytics-cli test \
         ${JUNIT_PATHS:+--junit-paths "${JUNIT_PATHS}"} \
         ${XCRESULT_PATH:+--xcresult-path "${XCRESULT_PATH}"} \
+        ${BAZEL_BEP_PATH:+--bazel-bep-path "${BAZEL_BEP_PATH}"} \
         --org-url-slug "${ORG_URL_SLUG}" \
         --token "${TOKEN}" \
         ${REPO_HEAD_BRANCH:+--repo-head-branch "${REPO_HEAD_BRANCH}"} \
