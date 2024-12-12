@@ -18,6 +18,7 @@ const createEchoCli = async (tmpdir: string) => {
 };
 
 // This is a sanity check test that validates the CLI is called correctly.
+// TODO(Tyler) that we may want to have these tests in python instead for simplicity
 test("Forwards inputs", async () => {
   const tmpdir = await fs.mkdtemp(
     path.resolve(os.tmpdir(), "trunk-analytics-uploader-test-"),
