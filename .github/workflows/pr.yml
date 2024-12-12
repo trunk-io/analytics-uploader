@@ -1,0 +1,45 @@
+name: Pull Request
+run-name: Pull Request for ${{ github.ref_name }} by ${{ github.actor }}
+
+concurrency:
+  group: ${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+permissions: read-all
+
+on:
+  pull_request: {}
+
+jobs:
+  trunk_code_quality_runner:
+    name: Trunk Code Quality runner [linux]
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Trunk Check
+        uses: trunk-io/trunk-action@v1
+  test_and_upload:
+    name: Test and Upload
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Trunk Analytics Uploader
+        uses: ./
+        with:
+          # junit-paths: 'test-results/**/*.xml'
+          # org-slug: 'my-org'
+          # token: ${{ secrets.TRUNK_API_TOKEN }}
+          # repo-head-branch: ${{ github.head_ref }}
+          # repo-root: ${{ github.workspace }}
+          # run: 'npm install'
+          # tags: 'branch=${{ github.head_ref }},commit=${{ github.sha }}'
+          # cli-version: '0.6.8'
+          # team: 'my-team'
+          # allow-missing-junit-files: 'false'
