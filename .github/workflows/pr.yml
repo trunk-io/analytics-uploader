@@ -21,6 +21,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install pnpm
+        uses: trunk-io/trunk-action/install@v1
+        with:
+          tools: pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
       - name: Trunk Check
         uses: trunk-io/trunk-action@v1
 
@@ -47,6 +60,7 @@ jobs:
           pnpm install
           pnpm test
 
+      # Do NOT continue-on-error for these uploads
       - name: Trunk Analytics Uploader (Prod)
         uses: ./
         with:
@@ -54,13 +68,17 @@ jobs:
           org-slug: trunk
           token: ${{ secrets.TRUNK_PROD_ORG_API_TOKEN }}
           allow-missing-junit-files: "false"
+          # Forces the uploader to not continue-on-error and use the CLI exit code
+          quarantine: "true"
 
       - name: Trunk Analytics Uploader (Staging)
         uses: ./
         with:
           junit-paths: junit.xml
-          org-slug: trunk
+          org-slug: trunk-staging-org
           token: ${{ secrets.TRUNK_STAGING_ORG_API_TOKEN }}
           allow-missing-junit-files: "false"
+          # Forces the uploader to not continue-on-error and use the CLI exit code
+          quarantine: "true"
         env:
           TRUNK_PUBLIC_API_ADDRESS: https://api.trunk-staging.io
