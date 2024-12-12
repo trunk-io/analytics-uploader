@@ -33,9 +33,17 @@ lint:
     - trunk-toolbox@0.5.4
     - yamllint@1.35.1
 actions:
-  disabled:
-    - trunk-announce
+  definitions:
+    - id: test-pre-push
+      display_name: Arg Tests
+      runtime: node
+      packages_file: package.json
+      run: npm test
+      triggers:
+        - git_hooks: [pre-push]
   enabled:
+    - test-pre-push
+    - trunk-announce
     - trunk-check-pre-push
     - trunk-fmt-pre-commit
     - trunk-upgrade-available
