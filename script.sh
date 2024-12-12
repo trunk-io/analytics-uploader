@@ -9,6 +9,16 @@ cleanup() {
     rm -rf ./trunk-analytics-cli ./trunk-analytics-cli.tar.gz
 }
 
+parse_bool() {
+    if [[ ${1,,} == "true" ]]; then
+        echo "${2}=true"
+    elif [[ ${1,,} == "false" ]]; then
+        echo "${2}=false"
+    else
+        echo ""
+    fi
+}
+
 # OS.
 kernel=$(uname -s)
 machine=$(uname -m)
@@ -61,10 +71,8 @@ TEAM="${TEAM-}"
 JUNIT_PATHS="${JUNIT_PATHS-}"
 XCRESULT_PATH="${XCRESULT_PATH-}"
 BAZEL_BEP_PATH="${BAZEL_BEP_PATH-}"
-# clear ALLOW_MISSING_JUNIT_FILES if it is not equal to true
-if [[ ${ALLOW_MISSING_JUNIT_FILES} != "true" && ${ALLOW_MISSING_JUNIT_FILES} != "True" ]]; then
-    ALLOW_MISSING_JUNIT_FILES=""
-fi
+ALLOW_MISSING_JUNIT_FILES_ARG=$(parse_bool "${ALLOW_MISSING_JUNIT_FILES}" "--allow-missing-junit-files")
+QUARANTINE_ARG=$(parse_bool "${QUARANTINE}" "--use-quarantining")
 
 # CLI.
 set -x
@@ -75,6 +83,7 @@ fi
 chmod +x ./trunk-analytics-cli
 set +x
 
+# trunk-ignore-begin(shellcheck/SC2086)
 if [[ $# -eq 0 ]]; then
     ./trunk-analytics-cli upload \
         ${JUNIT_PATHS:+--junit-paths "${JUNIT_PATHS}"} \
@@ -86,8 +95,8 @@ if [[ $# -eq 0 ]]; then
         --repo-root "${REPO_ROOT}" \
         --team "${TEAM}" \
         --tags "${TAGS}" \
-        ${ALLOW_MISSING_JUNIT_FILES:+--allow-missing-junit-files} \
-        ${QUARANTINE:+--use-quarantining}
+        ${ALLOW_MISSING_JUNIT_FILES_ARG} \
+        ${QUARANTINE_ARG}
 else
     ./trunk-analytics-cli test \
         ${JUNIT_PATHS:+--junit-paths "${JUNIT_PATHS}"} \
@@ -99,6 +108,7 @@ else
         --repo-root "${REPO_ROOT}" \
         --team "${TEAM}" \
         --tags "${TAGS}" \
-        ${ALLOW_MISSING_JUNIT_FILES:+--allow-missing-junit-files} \
-        ${QUARANTINE:+--use-quarantining} "$@"
+        ${ALLOW_MISSING_JUNIT_FILES_ARG} \
+        ${QUARANTINE_ARG} "$@"
 fi
+# trunk-ignore-end(shellcheck/SC2086)
