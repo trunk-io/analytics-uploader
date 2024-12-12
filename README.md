@@ -4,7 +4,7 @@ Github Action enabling integration between Junit runners and Trunk Analytics.
 
 ## Usage
 
-Running this action will upload `junit.xml` files to Trunk CI Analytics.
+Running this action will upload `junit.xml` files to [Trunk Flaky Tests](https://docs.trunk.io/flaky-tests).
 
 ### Example
 
@@ -60,5 +60,3 @@ jobs:
 ## Questions
 
 For any questions, contact us on [Slack](https://slack.trunk.io/) or refer to our [docs](https://docs.trunk.io/flaky-tests/github-actions-quickstart).
-
-<sub>Usage of the Trunk Analytics Uploader is currently invite-only. If you are interested in learning more, please reach out at beta@trunk.io.</sub>
