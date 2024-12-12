@@ -31,16 +31,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install pnpm
+        uses: trunk-io/trunk-action/install@v1
+        with:
+          tools: pnpm
+
+      - name: Run tests
+        shell: bash
+        run: |
+          pnpm install
+          pnpm test
+
       - name: Trunk Analytics Uploader
         uses: ./
         with:
-          # junit-paths: 'test-results/**/*.xml'
-          # org-slug: 'my-org'
-          # token: ${{ secrets.TRUNK_API_TOKEN }}
-          # repo-head-branch: ${{ github.head_ref }}
-          # repo-root: ${{ github.workspace }}
-          # run: 'npm install'
-          # tags: 'branch=${{ github.head_ref }},commit=${{ github.sha }}'
-          # cli-version: '0.6.8'
-          # team: 'my-team'
-          # allow-missing-junit-files: 'false'
+          junit-paths: junit.xml
+          org-slug: trunk
+          token: ${{ secrets.TRUNK_API_TOKEN }}
+          allow-missing-junit-files: "false"

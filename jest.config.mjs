@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-undef
 process.env.JEST_JUNIT_ADD_FILE_ATTRIBUTE = "true";
 
 const config = {
