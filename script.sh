@@ -10,9 +10,10 @@ cleanup() {
 }
 
 parse_bool() {
-    if [[ ${1,,} == "true" ]]; then
+    lower_input=$(echo "$1" | tr '[:upper:]' '[:lower:]')
+    if [[ ${lower_input} == "true" ]]; then
         echo "${2}=true"
-    elif [[ ${1,,} == "false" ]]; then
+    elif [[ ${lower_input} == "false" ]]; then
         echo "${2}=false"
     else
         echo ""
