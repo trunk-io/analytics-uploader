@@ -75,6 +75,8 @@ BAZEL_BEP_PATH="${BAZEL_BEP_PATH-}"
 ALLOW_MISSING_JUNIT_FILES_ARG=$(parse_bool "${ALLOW_MISSING_JUNIT_FILES}" "--allow-missing-junit-files")
 QUARANTINE_ARG=$(parse_bool "${QUARANTINE}" "--use-quarantining")
 
+export TRUNK_LOG=debug
+
 # CLI.
 set -x
 if [[ ! (-f ./trunk-analytics-cli) ]]; then
@@ -96,7 +98,6 @@ if [[ $# -eq 0 ]]; then
         --repo-root "${REPO_ROOT}" \
         --team "${TEAM}" \
         --tags "${TAGS}" \
-        --verbose --verbose --verbose --verbose \
         ${ALLOW_MISSING_JUNIT_FILES_ARG} \
         ${QUARANTINE_ARG}
 else
@@ -110,7 +111,6 @@ else
         --repo-root "${REPO_ROOT}" \
         --team "${TEAM}" \
         --tags "${TAGS}" \
-        --verbose --verbose --verbose --verbose \
         ${ALLOW_MISSING_JUNIT_FILES_ARG} \
         ${QUARANTINE_ARG} "$@"
 fi
