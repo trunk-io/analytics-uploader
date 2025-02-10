@@ -97,7 +97,7 @@ if [[ $# -eq 0 ]]; then
         --team "${TEAM}" \
         --tags "${TAGS}" \
         ${ALLOW_MISSING_JUNIT_FILES_ARG} \
-        ${QUARANTINE_ARG}
+        ${QUARANTINE_ARG} -vvvv
 else
     ./trunk-analytics-cli test \
         ${JUNIT_PATHS:+--junit-paths "${JUNIT_PATHS}"} \
@@ -110,6 +110,6 @@ else
         --team "${TEAM}" \
         --tags "${TAGS}" \
         ${ALLOW_MISSING_JUNIT_FILES_ARG} \
-        ${QUARANTINE_ARG} "$@"
+        ${QUARANTINE_ARG} -vvvv "$@"
 fi
 # trunk-ignore-end(shellcheck/SC2086)
