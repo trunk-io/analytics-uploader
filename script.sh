@@ -96,7 +96,7 @@ if [[ $# -eq 0 ]]; then
         --repo-root "${REPO_ROOT}" \
         --team "${TEAM}" \
         --tags "${TAGS}" \
-        -vvvv \
+        --verbose --verbose --verbose --verbose \
         ${ALLOW_MISSING_JUNIT_FILES_ARG} \
         ${QUARANTINE_ARG}
 else
@@ -110,7 +110,7 @@ else
         --repo-root "${REPO_ROOT}" \
         --team "${TEAM}" \
         --tags "${TAGS}" \
-        -vvvv \
+        --verbose --verbose --verbose --verbose \
         ${ALLOW_MISSING_JUNIT_FILES_ARG} \
         ${QUARANTINE_ARG} "$@"
 fi
