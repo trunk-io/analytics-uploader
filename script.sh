@@ -96,8 +96,8 @@ if [[ $# -eq 0 ]]; then
         --repo-root "${REPO_ROOT}" \
         --team "${TEAM}" \
         --tags "${TAGS}" \
-        ${ALLOW_MISSING_JUNIT_FILES_ARG} \
         -vvvv \
+        ${ALLOW_MISSING_JUNIT_FILES_ARG} \
         ${QUARANTINE_ARG}
 else
     ./trunk-analytics-cli test \
@@ -110,8 +110,8 @@ else
         --repo-root "${REPO_ROOT}" \
         --team "${TEAM}" \
         --tags "${TAGS}" \
-        ${ALLOW_MISSING_JUNIT_FILES_ARG} \
         -vvvv \
+        ${ALLOW_MISSING_JUNIT_FILES_ARG} \
         ${QUARANTINE_ARG} "$@"
 fi
 # trunk-ignore-end(shellcheck/SC2086)
