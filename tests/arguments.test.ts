@@ -58,7 +58,8 @@ test("Forwards inputs", async () => {
   expect({ stdout, stderr, exit_code }).toMatchObject({
     stdout:
       "upload --junit-paths junit.xml --org-url-slug org --token token --repo-root --team --tags",
-    stderr: `+ [[ -f ./trunk-analytics-cli ]]
+    stderr: `+ [[ 0.0.0 == \\l\\a\\t\\e\\s\\t ]]
++ [[ -f ./trunk-analytics-cli ]]
 + chmod +x ./trunk-analytics-cli
 + set +x
 `,
