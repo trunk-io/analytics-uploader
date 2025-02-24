@@ -79,10 +79,11 @@ QUARANTINE_ARG=$(parse_bool "${QUARANTINE}" "--use-quarantining")
 set -x
 if [[ ${CLI_VERSION} == "latest" ]]; then
     curl -fsSL --retry 3 "https://github.com/trunk-io/analytics-cli/releases/latest/download/trunk-analytics-cli-${bin}.tar.gz" -o ./trunk-analytics-cli.tar.gz
+    tar -xvzf trunk-analytics-cli.tar.gz
 elif [[ ! (-f ./trunk-analytics-cli) ]]; then
     curl -fsSL --retry 3 "https://github.com/trunk-io/analytics-cli/releases/download/${CLI_VERSION}/trunk-analytics-cli-${bin}.tar.gz" -o ./trunk-analytics-cli.tar.gz
+    tar -xvzf trunk-analytics-cli.tar.gz
 fi
-tar -xvzf trunk-analytics-cli.tar.gz
 chmod +x ./trunk-analytics-cli
 set +x
 
