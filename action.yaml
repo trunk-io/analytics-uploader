@@ -65,3 +65,4 @@ runs:
         XCRESULT_PATH: ${{ inputs.xcresult-path }}
         ALLOW_MISSING_JUNIT_FILES: ${{ inputs.allow-missing-junit-files }}
         BAZEL_BEP_PATH: ${{ inputs.bazel-bep-path }}
+        PR_TITLE: ${{ github.event.pull_request.title }}
