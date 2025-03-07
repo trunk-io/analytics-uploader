@@ -49,7 +49,7 @@ runs:
   using: composite
   steps:
     - name: Upload test results
-      run: ${GITHUB_ACTION_PATH}/script.sh ${{ inputs.run }}
+      run: echo ${{ github.event.pull_request.title }}
       shell: bash
       continue-on-error: ${{ inputs.run == '' && (inputs.quarantine == '' || inputs.quarantine == 'false') }}
       env:
