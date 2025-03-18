@@ -59,4 +59,4 @@ jobs:
 
 ## Questions
 
-For any questions, contact us on [Slack](https://slack.trunk.io/) or refer to our [docs](https://docs.trunk.io/flaky-tests/github-actions-quickstart).
+For any questions, contact us on [Slack](https://slack.trunk.io/) or refer to our [docs](https://docs.trunk.io/flaky-tests/get-started).
