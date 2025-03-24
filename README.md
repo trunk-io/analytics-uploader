@@ -46,30 +46,27 @@ jobs:
 ## Arguments
 
 ### Input Sources (At least one required)
-
-| Parameter        | Description                                             | Required                       | Default |
-| ---------------- | ------------------------------------------------------- | ------------------------------ | ------- |
-| `junit-paths`    | Comma-separated list of glob paths to junit files.      | One of these three is required |         |
-| `xcresult-path`  | Path to the xcresult directory.                         | One of these three is required |         |
-| `bazel-bep-path` | Path to the bazel BEP file to parse in place of junits. | One of these three is required |         |
+| Parameter        | Description                                             |
+| ---------------- | ------------------------------------------------------- |
+| `junit-paths`    | Comma-separated list of glob paths to junit files.      |
+| `xcresult-path`  | Path to the xcresult directory.                         |
+| `bazel-bep-path` | Path to the bazel BEP file to parse in place of junits. |
 
 ## Required Parameters
-
-| Parameter  | Description                                                                                                     | Required | Default                   |
-| ---------- | --------------------------------------------------------------------------------------------------------------- | -------- | ------------------------- |
-| `org-slug` | Organization slug.                                                                                              | Yes      |                           |
-| `token`    | Organization token. Must be explicitly passed in or defined as an environment variable named `TRUNK_API_TOKEN`. | Yes      | `TRUNK_API_TOKEN` env var |
+| Parameter  | Description                                                                                                     | Default                   |
+| ---------- | --------------------------------------------------------------------------------------------------------------- | ------------------------- |
+| `org-slug` | Organization slug.                                                                                              |                           |
+| `token`    | Organization token. Must be explicitly passed in or defined as an environment variable named `TRUNK_API_TOKEN`. | `TRUNK_API_TOKEN` env var |
 
 ## Optional Parameters
-
-| Parameter                   | Description                                                           | Required | Default  |
-| --------------------------- | --------------------------------------------------------------------- | -------- | -------- |
-| `repo-head-branch`          | Value to override branch of repository head.                          | No       |          |
-| `repo-root`                 | The root directory of the repository.                                 | No       |          |
-| `run`                       | The command to run before uploading test results.                     | No       |          |
-| `cli-version`               | The version of the uploader to use.                                   | No       | `latest` |
-| `quarantine`                | Whether or not to allow quarantining of failing tests.                | No       |          |
-| `allow-missing-junit-files` | Whether or not to allow missing junit files in the upload invocation. | No       | `true`   |
+| Parameter                   | Description                                                           | Default  |
+| --------------------------- | --------------------------------------------------------------------- | -------- |
+| `repo-head-branch`          | Value to override branch of repository head.                          |          |
+| `repo-root`                 | The root directory of the repository.                                 |          |
+| `run`                       | The command to run before uploading test results.                     |          |
+| `cli-version`               | The version of the uploader to use.                                   | `latest` |
+| `quarantine`                | Whether or not to allow quarantining of failing tests.                |          |
+| `allow-missing-junit-files` | Whether or not to allow missing junit files in the upload invocation. | `true`   |
 
 ## Questions
 
