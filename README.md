@@ -53,10 +53,10 @@ jobs:
 | `bazel-bep-path` | Path to the bazel BEP file to parse in place of junits. |
 
 ## Required Parameters
-| Parameter  | Description                                                                                                     | Default                   |
-| ---------- | --------------------------------------------------------------------------------------------------------------- | ------------------------- |
-| `org-slug` | Organization slug.                                                                                              |                           |
-| `token`    | Organization token. Must be explicitly passed in or defined as an environment variable named `TRUNK_API_TOKEN`. | `TRUNK_API_TOKEN` env var |
+| Parameter  | Description                                                                                                     |
+| ---------- | --------------------------------------------------------------------------------------------------------------- |
+| `org-slug` | Organization slug.                                                                                              |
+| `token`    | Organization token. Must be explicitly passed in or defined as an environment variable named `TRUNK_API_TOKEN`. Defaults to the `TRUNK_API_TOKEN` when left empty. |
 
 ## Optional Parameters
 | Parameter                   | Description                                                           | Default  |
