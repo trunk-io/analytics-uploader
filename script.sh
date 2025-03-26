@@ -73,6 +73,7 @@ JUNIT_PATHS="${JUNIT_PATHS-}"
 XCRESULT_PATH="${XCRESULT_PATH-}"
 BAZEL_BEP_PATH="${BAZEL_BEP_PATH-}"
 ALLOW_MISSING_JUNIT_FILES_ARG=$(parse_bool "${ALLOW_MISSING_JUNIT_FILES}" "--allow-missing-junit-files")
+HIDE_BANNER=$(parse_bool "${HIDE_BANNER}" "--hide-banner")
 QUARANTINE_ARG=$(parse_bool "${QUARANTINE}" "--use-quarantining")
 
 # CLI.
@@ -100,6 +101,7 @@ if [[ $# -eq 0 ]]; then
         --team "${TEAM}" \
         --tags "${TAGS}" \
         ${ALLOW_MISSING_JUNIT_FILES_ARG} \
+        ${HIDE_BANNER} \
         ${QUARANTINE_ARG}
 else
     ./trunk-analytics-cli test \
@@ -113,6 +115,7 @@ else
         --team "${TEAM}" \
         --tags "${TAGS}" \
         ${ALLOW_MISSING_JUNIT_FILES_ARG} \
+        ${HIDE_BANNER} \
         ${QUARANTINE_ARG} "$@"
 fi
 # trunk-ignore-end(shellcheck/SC2086)

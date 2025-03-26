@@ -44,6 +44,9 @@ inputs:
     description: Whether or not to allow missing junit files in the upload invocation.
     required: false
     default: true
+  hide-banner:
+    description: Whether to hide the top level flaky tests banner
+    required: false
 
 runs:
   using: composite
@@ -66,3 +69,4 @@ runs:
         ALLOW_MISSING_JUNIT_FILES: ${{ inputs.allow-missing-junit-files }}
         BAZEL_BEP_PATH: ${{ inputs.bazel-bep-path }}
         PR_TITLE: ${{ github.event.pull_request.title }}
+        HIDE_BANNER: ${{ inputs.hide-banner }}
