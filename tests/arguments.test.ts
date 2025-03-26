@@ -38,6 +38,7 @@ test("Forwards inputs", async () => {
     XCRESULT_PATH: "",
     ALLOW_MISSING_JUNIT_FILES: "",
     BAZEL_BEP_PATH: "",
+    HIDE_BANNER: "",
   };
 
   const scriptPath = path.resolve(repoRoot, "script.sh");
