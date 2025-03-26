@@ -46,6 +46,7 @@ jobs:
 ## Arguments
 
 ### Input Sources (At least one required)
+
 | Parameter        | Description                                             |
 | ---------------- | ------------------------------------------------------- |
 | `junit-paths`    | Comma-separated list of glob paths to junit files.      |
@@ -53,12 +54,14 @@ jobs:
 | `bazel-bep-path` | Path to the bazel BEP file to parse in place of junits. |
 
 ## Required Parameters
-| Parameter  | Description                                                                                                     |
-| ---------- | --------------------------------------------------------------------------------------------------------------- |
-| `org-slug` | Organization slug.                                                                                              |
+
+| Parameter  | Description                                                                                                                                                        |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `org-slug` | Organization slug.                                                                                                                                                 |
 | `token`    | Organization token. Must be explicitly passed in or defined as an environment variable named `TRUNK_API_TOKEN`. Defaults to the `TRUNK_API_TOKEN` when left empty. |
 
 ## Optional Parameters
+
 | Parameter                   | Description                                                           | Default  |
 | --------------------------- | --------------------------------------------------------------------- | -------- |
 | `repo-head-branch`          | Value to override branch of repository head.                          |          |
