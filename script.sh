@@ -66,7 +66,6 @@ fi
 
 REPO_HEAD_BRANCH="${REPO_HEAD_BRANCH-}"
 REPO_ROOT="${REPO_ROOT-}"
-TAGS="${TAGS-}"
 TOKEN=${INPUT_TOKEN:-${TRUNK_API_TOKEN}} # Defaults to TRUNK_API_TOKEN env var.
 TEAM="${TEAM-}"
 JUNIT_PATHS="${JUNIT_PATHS-}"
@@ -99,7 +98,6 @@ if [[ $# -eq 0 ]]; then
         ${REPO_HEAD_BRANCH:+--repo-head-branch "${REPO_HEAD_BRANCH}"} \
         --repo-root "${REPO_ROOT}" \
         --team "${TEAM}" \
-        --tags "${TAGS}" \
         ${ALLOW_MISSING_JUNIT_FILES_ARG} \
         ${HIDE_BANNER} \
         ${QUARANTINE_ARG}
@@ -113,7 +111,6 @@ else
         ${REPO_HEAD_BRANCH:+--repo-head-branch "${REPO_HEAD_BRANCH}"} \
         --repo-root "${REPO_ROOT}" \
         --team "${TEAM}" \
-        --tags "${TAGS}" \
         ${ALLOW_MISSING_JUNIT_FILES_ARG} \
         ${HIDE_BANNER} \
         ${QUARANTINE_ARG} "$@"
