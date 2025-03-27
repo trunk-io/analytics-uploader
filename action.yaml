@@ -19,7 +19,7 @@ inputs:
     description: The command to run before uploading test results.
     required: false
   tags:
-    description: Comma separated list of custom tag=value pairs.
+    description: Comma separated list of custom tag=value pairs. This is deprecated and will be removed in a future release.
     required: false
   repo-root:
     description: The root directory of the repository.

@@ -54,7 +54,6 @@ jobs:
 | `repo-root`        | **Optional.** Root directory of the repository.                          |
 | `team`             | **Optional.** Team that owns the upload.                                 |
 | `run`              | **Optional.** Command to run before uploading test results.              |
-| `tags`             | **Optional.** Comma separated list of custom `tag=value` pairs.          |
 | `cli-version`      | **Optional.** Version of the uploader to use.                            |
 
 ## Questions
