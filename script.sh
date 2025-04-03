@@ -66,13 +66,13 @@ fi
 
 REPO_HEAD_BRANCH="${REPO_HEAD_BRANCH-}"
 REPO_ROOT="${REPO_ROOT-}"
-TAGS="${TAGS-}"
 TOKEN=${INPUT_TOKEN:-${TRUNK_API_TOKEN}} # Defaults to TRUNK_API_TOKEN env var.
 TEAM="${TEAM-}"
 JUNIT_PATHS="${JUNIT_PATHS-}"
 XCRESULT_PATH="${XCRESULT_PATH-}"
 BAZEL_BEP_PATH="${BAZEL_BEP_PATH-}"
 ALLOW_MISSING_JUNIT_FILES_ARG=$(parse_bool "${ALLOW_MISSING_JUNIT_FILES}" "--allow-missing-junit-files")
+HIDE_BANNER=$(parse_bool "${HIDE_BANNER}" "--hide-banner")
 QUARANTINE_ARG=$(parse_bool "${QUARANTINE}" "--use-quarantining")
 
 # CLI.
@@ -98,8 +98,8 @@ if [[ $# -eq 0 ]]; then
         ${REPO_HEAD_BRANCH:+--repo-head-branch "${REPO_HEAD_BRANCH}"} \
         --repo-root "${REPO_ROOT}" \
         --team "${TEAM}" \
-        --tags "${TAGS}" \
         ${ALLOW_MISSING_JUNIT_FILES_ARG} \
+        ${HIDE_BANNER} \
         ${QUARANTINE_ARG}
 else
     ./trunk-analytics-cli test \
@@ -111,8 +111,8 @@ else
         ${REPO_HEAD_BRANCH:+--repo-head-branch "${REPO_HEAD_BRANCH}"} \
         --repo-root "${REPO_ROOT}" \
         --team "${TEAM}" \
-        --tags "${TAGS}" \
         ${ALLOW_MISSING_JUNIT_FILES_ARG} \
+        ${HIDE_BANNER} \
         ${QUARANTINE_ARG} "$@"
 fi
 # trunk-ignore-end(shellcheck/SC2086)

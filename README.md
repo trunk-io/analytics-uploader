@@ -53,14 +53,14 @@ jobs:
 | `xcresult-path`  | Path to the xcresult directory.                         |
 | `bazel-bep-path` | Path to the bazel BEP file to parse in place of junits. |
 
-## Required Parameters
+### Required Parameters
 
 | Parameter  | Description                                                                                                                                                        |
 | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `org-slug` | Organization slug.                                                                                                                                                 |
 | `token`    | Organization token. Must be explicitly passed in or defined as an environment variable named `TRUNK_API_TOKEN`. Defaults to the `TRUNK_API_TOKEN` when left empty. |
 
-## Optional Parameters
+### Optional Parameters
 
 | Parameter                   | Description                                                           | Default  |
 | --------------------------- | --------------------------------------------------------------------- | -------- |

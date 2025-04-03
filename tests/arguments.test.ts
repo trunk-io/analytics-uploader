@@ -31,13 +31,13 @@ test("Forwards inputs", async () => {
     INPUT_TOKEN: "token",
     REPO_HEAD_BRANCH: "",
     REPO_ROOT: "",
-    TAGS: "",
     CLI_VERSION: "0.0.0",
     TEAM: "",
     QUARANTINE: "",
     XCRESULT_PATH: "",
     ALLOW_MISSING_JUNIT_FILES: "",
     BAZEL_BEP_PATH: "",
+    HIDE_BANNER: "",
   };
 
   const scriptPath = path.resolve(repoRoot, "script.sh");
@@ -57,7 +57,7 @@ test("Forwards inputs", async () => {
   }
   expect({ stdout, stderr, exit_code }).toMatchObject({
     stdout:
-      "upload --junit-paths junit.xml --org-url-slug org --token token --repo-root --team --tags",
+      "upload --junit-paths junit.xml --org-url-slug org --token token --repo-root --team",
     stderr: `+ [[ 0.0.0 == \\l\\a\\t\\e\\s\\t ]]
 + [[ -f ./trunk-analytics-cli ]]
 + chmod +x ./trunk-analytics-cli
