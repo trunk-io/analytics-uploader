@@ -31,7 +31,7 @@ jobs:
         uses: trunk-io/analytics-uploader@main
         with:
           # Path to your test results.
-          junit-paths: target/path/**/*_test.xml
+          junit-paths: "target/path/**/*_test.xml"
           # Provide your Trunk organization url slug.
           # To find your org slug, log into app.trunk.io and you should be redirected to a URL like:
           # https://app.trunk.io/my-trunk-org-slug/repo-owner/repo-name/ci-analytics
@@ -43,18 +43,33 @@ jobs:
         continue-on-error: true
 ```
 
-### Inputs
+## Arguments
 
-| Parameter          | Description                                                              |
-| ------------------ | ------------------------------------------------------------------------ |
-| `junit-paths`      | **Required.** Comma-separated list of glob paths to junit files.         |
-| `org-slug`         | **Required.** Organization slug.                                         |
-| `token`            | **Optional.** Organization token. Defaults to `TRUNK_API_TOKEN` env var. |
-| `repo-head-branch` | **Optional.** Branch of repository head.                                 |
-| `repo-root`        | **Optional.** Root directory of the repository.                          |
-| `team`             | **Optional.** Team that owns the upload.                                 |
-| `run`              | **Optional.** Command to run before uploading test results.              |
-| `cli-version`      | **Optional.** Version of the uploader to use.                            |
+### Input Sources (At least one required)
+
+| Parameter        | Description                                             |
+| ---------------- | ------------------------------------------------------- |
+| `junit-paths`    | Comma-separated list of glob paths to junit files.      |
+| `xcresult-path`  | Path to the xcresult directory.                         |
+| `bazel-bep-path` | Path to the bazel BEP file to parse in place of junits. |
+
+### Required Parameters
+
+| Parameter  | Description                                                                                                                                                        |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `org-slug` | Organization slug.                                                                                                                                                 |
+| `token`    | Organization token. Must be explicitly passed in or defined as an environment variable named `TRUNK_API_TOKEN`. Defaults to the `TRUNK_API_TOKEN` when left empty. |
+
+### Optional Parameters
+
+| Parameter                   | Description                                                           | Default  |
+| --------------------------- | --------------------------------------------------------------------- | -------- |
+| `repo-head-branch`          | Value to override branch of repository head.                          |          |
+| `repo-root`                 | The root directory of the repository.                                 |          |
+| `run`                       | The command to run before uploading test results.                     |          |
+| `cli-version`               | The version of the uploader to use.                                   | `latest` |
+| `quarantine`                | Whether or not to allow quarantining of failing tests.                |          |
+| `allow-missing-junit-files` | Whether or not to allow missing junit files in the upload invocation. | `true`   |
 
 ## Questions
 
