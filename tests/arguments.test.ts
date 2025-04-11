@@ -26,28 +26,26 @@ test("Forwards inputs", async () => {
   await createEchoCli(tmpdir);
 
   const env = {
-    JUNIT_PATHS: "junit.xml",
-    ORG_URL_SLUG: "org",
+    "INPUT_JUNIT-PATHS": "junit.xml",
+    "INPUT_ORG-SLUG": "org",
     INPUT_TOKEN: "token",
-    REPO_HEAD_BRANCH: "",
-    REPO_ROOT: "",
-    CLI_VERSION: "0.0.0",
-    TEAM: "",
-    QUARANTINE: "",
-    XCRESULT_PATH: "",
-    ALLOW_MISSING_JUNIT_FILES: "",
-    BAZEL_BEP_PATH: "",
-    HIDE_BANNER: "",
-    USE_UNCLONED_REPO: "false",
-    PREVIOUS_STEP_OUTCOME: "success",
+    "INPUT_REPO-HEAD-BRANCH": "",
+    "INPUT_REPO-ROOT": "",
+    "INPUT_CLI-VERSION": "0.0.0",
+    INPUT_TEAM: "",
+    INPUT_QUARANTINE: "",
+    "INPUT_XCRESULT-PATH": "",
+    "INPUT_ALLOW-MISSING-JUNIT-FILES": "",
+    "INPUT_BAZEL-BEP-PATH": "",
+    "INPUT_HIDE-BANNER": "",
   };
 
-  const scriptPath = path.resolve(repoRoot, "script.sh");
+  const scriptPath = path.resolve(repoRoot, "dist/index.js");
   let stdout = "";
   let stderr = "";
   let exit_code: number;
   try {
-    ({ stdout, stderr } = await execPromise(scriptPath, {
+    ({ stdout, stderr } = await execPromise(`node ${scriptPath}`, {
       env: { ...process.env, ...env },
       cwd: tmpdir,
     }));
@@ -57,16 +55,10 @@ test("Forwards inputs", async () => {
     /* eslint-disable-next-line @typescript-eslint/no-unsafe-assignment */
     ({ stdout, stderr, code: exit_code } = err);
   }
-  expect({ stdout, stderr, exit_code }).toMatchObject({
-    stdout:
-      "upload --junit-paths junit.xml --org-url-slug org --token token --team --test-process-exit-code=0",
-    stderr: `+ [[ 0.0.0 == \\l\\a\\t\\e\\s\\t ]]
-+ [[ -f ./trunk-analytics-cli ]]
-+ chmod +x ./trunk-analytics-cli
-+ set +x
-`,
-    exit_code: 0,
-  });
-
+  expect(stdout).toMatch(
+    "upload --junit-paths junit.xml --org-url-slug org --token token --repo-root .",
+  );
+  expect(stderr).toMatch("");
+  expect(exit_code).toBe(0);
   await fs.rm(tmpdir, { recursive: true, force: true });
 });

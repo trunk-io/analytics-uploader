@@ -57,33 +57,10 @@ inputs:
   previous-step-outcome:
     description: The outcome of the previous step in the workflow. Set this equal to steps.[id].outcome where `[id]` is the id of the corresponding test run.
     required: false
+  github-token:
+    description: The GitHub token used to create an authenticated client
+    default: ${{ github.token }}
 
 runs:
-  using: composite
-  steps:
-    - name: Upload test results
-      run: ${GITHUB_ACTION_PATH}/script.sh ${{ inputs.run }}
-      shell: bash
-      env:
-        JUNIT_PATHS: ${{ inputs.junit-paths }}
-        ORG_URL_SLUG: ${{ inputs.org-slug }}
-        INPUT_TOKEN: ${{ inputs.token }}
-        REPO_HEAD_BRANCH: ${{ inputs.repo-head-branch }}
-        REPO_ROOT: ${{ inputs.repo-root }}
-        TAGS: ${{ inputs.tags }}
-        CLI_VERSION: ${{ inputs.cli-version }}
-        TEAM: ${{ inputs.team }}
-        QUARANTINE: ${{ inputs.quarantine }}
-        XCRESULT_PATH: ${{ inputs.xcresult-path }}
-        ALLOW_MISSING_JUNIT_FILES: ${{ inputs.allow-missing-junit-files }}
-        BAZEL_BEP_PATH: ${{ inputs.bazel-bep-path }}
-        PR_TITLE: ${{ github.event.pull_request.title }}
-        HIDE_BANNER: ${{ inputs.hide-banner }}
-        VARIANT: ${{ inputs.variant }}
-        USE_UNCLONED_REPO: ${{ inputs.use-uncloned-repo }}
-        GH_REPO_URL: ${{ github.event.pull_request.head.repo.html_url }}
-        GH_REPO_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        GH_REPO_HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
-        GH_REPO_HEAD_COMMIT_EPOCH: ${{ github.event.pull_request.updated_at }}
-        GH_REPO_HEAD_AUTHOR_NAME: ${{ github.actor }}
-        PREVIOUS_STEP_OUTCOME: ${{ inputs.previous-step-outcome }}
+  using: node20
+  main: dist/index.js
