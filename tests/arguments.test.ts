@@ -26,26 +26,26 @@ test("Forwards inputs", async () => {
   await createEchoCli(tmpdir);
 
   const env = {
-    JUNIT_PATHS: "junit.xml",
-    ORG_URL_SLUG: "org",
+    INPUT_JUNIT_PATHS: "junit.xml",
+    INPUT_ORG_SLUG: "org",
     INPUT_TOKEN: "token",
-    REPO_HEAD_BRANCH: "",
-    REPO_ROOT: "",
-    CLI_VERSION: "0.0.0",
-    TEAM: "",
-    QUARANTINE: "",
-    XCRESULT_PATH: "",
-    ALLOW_MISSING_JUNIT_FILES: "",
-    BAZEL_BEP_PATH: "",
-    HIDE_BANNER: "",
+    INPUT_REPO_HEAD_BRANCH: "",
+    INPUT_REPO_ROOT: "",
+    INPUT_CLI_VERSION: "0.0.0",
+    INPUT_TEAM: "",
+    INPUT_QUARANTINE: "",
+    INPUT_XCRESULT_PATH: "",
+    INPUT_ALLOW_MISSING_JUNIT_FILES: "",
+    INPUT_BAZEL_BEP_PATH: "",
+    INPUT_HIDE_BANNER: "",
   };
 
-  const scriptPath = path.resolve(repoRoot, "script.sh");
+  const scriptPath = path.resolve(repoRoot, "dist/index.js");
   let stdout = "";
   let stderr = "";
   let exit_code: number;
   try {
-    ({ stdout, stderr } = await execPromise(scriptPath, {
+    ({ stdout, stderr } = await execPromise(`node ${scriptPath}`, {
       env: { ...process.env, ...env },
       cwd: tmpdir,
     }));
@@ -57,12 +57,8 @@ test("Forwards inputs", async () => {
   }
   expect({ stdout, stderr, exit_code }).toMatchObject({
     stdout:
-      "upload --junit-paths junit.xml --org-url-slug org --token token --repo-root --team",
-    stderr: `+ [[ 0.0.0 == \\l\\a\\t\\e\\s\\t ]]
-+ [[ -f ./trunk-analytics-cli ]]
-+ chmod +x ./trunk-analytics-cli
-+ set +x
-`,
+      "upload --junit-paths junit.xml --org-url-slug org --token token --repo-root .",
+    stderr: "",
     exit_code: 0,
   });
 
