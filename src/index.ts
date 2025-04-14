@@ -36,6 +36,7 @@ function parseBool(input: string | undefined, flag: string): string {
 export function main(): void {
   try {
     // Get all inputs
+    core.info(`Listing environment variables ${process.env}`);
     const junitPaths = core.getInput("junit-paths");
     const orgSlug = core.getInput("org-slug");
     const token = core.getInput("token") || process.env.TRUNK_API_TOKEN;
