@@ -42,7 +42,7 @@ describe("Arguments", () => {
     await createEchoCli(tmpdir);
     const command = await main(tmpdir);
     expect(command).toMatch(
-      `${tmpdir}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token" --repo-root "."`,
+      `${tmpdir}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token"`,
     );
     await fs.rm(tmpdir, { recursive: true, force: true });
   });
@@ -70,7 +70,7 @@ describe("Arguments", () => {
     await createEchoCli(tmpdir);
     const command = await main(tmpdir);
     expect(command).toMatch(
-      `${tmpdir}/trunk-analytics-cli test --junit-paths "junit.xml" --org-url-slug "org" --token "token" --repo-root "." -- exit 0`,
+      `${tmpdir}/trunk-analytics-cli test --junit-paths "junit.xml" --org-url-slug "org" --token "token" -- exit 0`,
     );
     await fs.rm(tmpdir, { recursive: true, force: true });
   });
