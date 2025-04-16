@@ -32,6 +32,10 @@ lint:
     - trufflehog@3.86.0
     - trunk-toolbox@0.5.4
     - yamllint@1.35.1
+  ignore:
+    - linters: [ALL]
+      paths:
+        - dist
 actions:
   definitions:
     - id: test-pre-push
