@@ -34,7 +34,6 @@ test("Forwards inputs - upload", async () => {
   let stdout = "";
   let stderr = "";
   let exit_code: number;
-  console.log(process.env);
   try {
     ({ stdout, stderr } = await execPromise(`node ${scriptPath}`, {
       env: { ...process.env, ...env },
