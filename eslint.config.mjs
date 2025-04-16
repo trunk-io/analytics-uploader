@@ -24,7 +24,7 @@ export default tseslint.config(
   },
   {
     // update this to match your test files
-    files: ["**/*.test.ts", "src/**/*.ts"],
+    files: ["**/*.test.ts", "src/**/*.ts", "fixtures/**/*.ts"],
     plugins: { jest: pluginJest },
     languageOptions: {
       globals: pluginJest.environments.globals.globals,

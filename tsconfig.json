@@ -111,7 +111,8 @@
   "include": [
     "eslint.config.mjs",
     "jest.config.mjs",
-    "tests/**/*.ts",
-    "src/**/*.ts"
+    "__tests__/**/*.ts",
+    "src/**/*.ts",
+    "__fixtures__/**/*.ts"
   ]
 }
