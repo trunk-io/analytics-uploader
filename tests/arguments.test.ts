@@ -17,9 +17,44 @@ const createEchoCli = async (tmpdir: string) => {
   );
 };
 
-// This is a sanity check test that validates the CLI is called correctly.
-// TODO(Tyler) that we may want to have these tests in python instead for simplicity
-test("Forwards inputs", async () => {
+test("Forwards inputs - upload", async () => {
+  const tmpdir = await fs.mkdtemp(
+    path.resolve(os.tmpdir(), "trunk-analytics-uploader-test-"),
+  );
+  await createEchoCli(tmpdir);
+
+  const env: Record<string, string> = {
+    "INPUT_JUNIT-PATHS": "junit.xml",
+    "INPUT_ORG-SLUG": "org",
+    INPUT_TOKEN: "token",
+    "INPUT_CLI-VERSION": "0.0.0",
+  };
+
+  const scriptPath = path.resolve(repoRoot, "dist/index.js");
+  let stdout = "";
+  let stderr = "";
+  let exit_code: number;
+  console.log(process.env);
+  try {
+    ({ stdout, stderr } = await execPromise(`node ${scriptPath}`, {
+      env: { ...process.env, ...env },
+      cwd: tmpdir,
+    }));
+    exit_code = 0;
+    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+  } catch (err: any) {
+    /* eslint-disable-next-line @typescript-eslint/no-unsafe-assignment */
+    ({ stdout, stderr, code: exit_code } = err);
+  }
+  expect(stdout).toMatch(
+    "upload --junit-paths junit.xml --org-url-slug org --token token --repo-root .",
+  );
+  expect(stderr).toMatch("");
+  expect(exit_code).toBe(0);
+  await fs.rm(tmpdir, { recursive: true, force: true });
+});
+
+test("Forwards inputs - test", async () => {
   const tmpdir = await fs.mkdtemp(
     path.resolve(os.tmpdir(), "trunk-analytics-uploader-test-"),
   );
@@ -29,15 +64,8 @@ test("Forwards inputs", async () => {
     "INPUT_JUNIT-PATHS": "junit.xml",
     "INPUT_ORG-SLUG": "org",
     INPUT_TOKEN: "token",
-    "INPUT_REPO-HEAD-BRANCH": "",
-    "INPUT_REPO-ROOT": "",
     "INPUT_CLI-VERSION": "0.0.0",
-    INPUT_TEAM: "",
-    INPUT_QUARANTINE: "",
-    "INPUT_XCRESULT-PATH": "",
-    "INPUT_ALLOW-MISSING-JUNIT-FILES": "",
-    "INPUT_BAZEL-BEP-PATH": "",
-    "INPUT_HIDE-BANNER": "",
+    INPUT_RUN: "exit 0",
   };
 
   const scriptPath = path.resolve(repoRoot, "dist/index.js");
@@ -56,7 +84,7 @@ test("Forwards inputs", async () => {
     ({ stdout, stderr, code: exit_code } = err);
   }
   expect(stdout).toMatch(
-    "upload --junit-paths junit.xml --org-url-slug org --token token --repo-root .",
+    "test --junit-paths junit.xml --org-url-slug org --token token --repo-root . -- exit 0",
   );
   expect(stderr).toMatch("");
   expect(exit_code).toBe(0);

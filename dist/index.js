@@ -25610,7 +25610,7 @@ function parseBool(input, flag) {
 }
 async function downloadRelease(owner, repo, version, bin) {
     // Get the GitHub token from the environment
-    const token = process.env.GITHUB_TOKEN;
+    const token = _actions_core__WEBPACK_IMPORTED_MODULE_0__.getInput("github-token");
     if (!token) {
         throw new Error("GITHUB_TOKEN is not set. Please ensure the job has the necessary permissions.");
     }
