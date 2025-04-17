@@ -53,6 +53,7 @@ inputs:
   previous-step-outcome:
     description: The outcome of the previous step in the workflow
     required: false
+    default: ${{ toJson(steps) }}
 
 runs:
   using: node20

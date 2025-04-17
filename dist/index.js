@@ -29660,6 +29660,8 @@ async function main(tmpdir) {
     let bin = "";
     try {
         const { junitPaths, orgSlug, token, repoHeadBranch, repoRoot, team, xcresultPath, bazelBepPath, cliVersion, allowMissingJunitFiles, hideBanner, quarantine, run, previousStepOutcome, } = getInputs();
+        core.info("previous step outcome: " + previousStepOutcome);
+        core.info(`${process.env["STEPS"]} ${process.env["GITHUB_STEP_SUMMARY"]}`);
         // Validate required inputs
         if (!junitPaths && !xcresultPath && !bazelBepPath) {
             throw new Error("Missing input files");
@@ -29710,7 +29712,7 @@ async function main(tmpdir) {
             hideBanner,
             quarantine,
             previousStepOutcome
-                ? `--test-process-exit-code=${previousStepOutcome === "failure" ? 1 : 0}`
+                ? `--test-process-exit-code=${previousStepOutcome === "failure" ? 1 : 0}` // trunk-ignore(eslint/@typescript-eslint/restrict-template-expressions)
                 : "",
             run ? `-- ${run}` : "",
         ].filter(Boolean);

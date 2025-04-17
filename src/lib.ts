@@ -134,6 +134,8 @@ export async function main(tmpdir?: string): Promise<string | null> {
       run,
       previousStepOutcome,
     } = getInputs();
+    core.info("previous step outcome: " + previousStepOutcome);
+    core.info(`${process.env.STEPS} ${process.env.GITHUB_STEP_SUMMARY}`);
 
     // Validate required inputs
     if (!junitPaths && !xcresultPath && !bazelBepPath) {
@@ -193,7 +195,7 @@ export async function main(tmpdir?: string): Promise<string | null> {
       hideBanner,
       quarantine,
       previousStepOutcome
-        ? `--test-process-exit-code=${previousStepOutcome === "failure" ? 1 : 0}`
+        ? `--test-process-exit-code=${previousStepOutcome === "failure" ? 1 : 0}` // trunk-ignore(eslint/@typescript-eslint/restrict-template-expressions)
         : "",
       run ? `-- ${run}` : "",
     ].filter(Boolean);
