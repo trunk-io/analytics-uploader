@@ -111,6 +111,7 @@ function getInputs(): Record<string, string> {
     hideBanner: parseBool(core.getInput("hide-banner"), "--hide-banner"),
     quarantine: parseBool(core.getInput("quarantine"), "--use-quarantining"),
     run: core.getInput("run"),
+    previousStepOutcome: core.getInput("previous-step-outcome"),
   };
 }
 
@@ -131,6 +132,7 @@ export async function main(tmpdir?: string): Promise<string | null> {
       hideBanner,
       quarantine,
       run,
+      previousStepOutcome,
     } = getInputs();
 
     // Validate required inputs
@@ -190,6 +192,9 @@ export async function main(tmpdir?: string): Promise<string | null> {
       allowMissingJunitFiles,
       hideBanner,
       quarantine,
+      previousStepOutcome
+        ? `--test-process-exit-code=${previousStepOutcome === "failure" ? 1 : 0}`
+        : "",
       run ? `-- ${run}` : "",
     ].filter(Boolean);
 
