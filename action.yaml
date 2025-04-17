@@ -47,6 +47,9 @@ inputs:
   hide-banner:
     description: Whether to hide the top level flaky tests banner
     required: false
+  variant:
+    description: User specified variant of a set of tests being uploaded.
+    required: false
 
 runs:
   using: composite
@@ -69,3 +72,4 @@ runs:
         BAZEL_BEP_PATH: ${{ inputs.bazel-bep-path }}
         PR_TITLE: ${{ github.event.pull_request.title }}
         HIDE_BANNER: ${{ inputs.hide-banner }}
+        VARIANT: ${{ inputs.variant }}
