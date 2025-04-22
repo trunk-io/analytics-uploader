@@ -111,7 +111,17 @@ function getInputs(): Record<string, string> {
     hideBanner: parseBool(core.getInput("hide-banner"), "--hide-banner"),
     quarantine: parseBool(core.getInput("quarantine"), "--use-quarantining"),
     run: core.getInput("run"),
+    previousStepOutcome: core.getInput("previous-step-outcome"),
   };
+}
+
+function parsePreviousStepOutcome(previousStepOutcome: string): number {
+  if (previousStepOutcome === "success") {
+    return 0;
+  } else if (previousStepOutcome === "failure") {
+    return 1;
+  }
+  return 0;
 }
 
 export async function main(tmpdir?: string): Promise<string | null> {
@@ -131,6 +141,7 @@ export async function main(tmpdir?: string): Promise<string | null> {
       hideBanner,
       quarantine,
       run,
+      previousStepOutcome,
     } = getInputs();
 
     // Validate required inputs
@@ -190,6 +201,9 @@ export async function main(tmpdir?: string): Promise<string | null> {
       allowMissingJunitFiles,
       hideBanner,
       quarantine,
+      previousStepOutcome
+        ? `--test-process-exit-code=${parsePreviousStepOutcome(previousStepOutcome)}` // trunk-ignore(eslint/@typescript-eslint/restrict-template-expressions)
+        : "",
       run ? `-- ${run}` : "",
     ].filter(Boolean);
 
