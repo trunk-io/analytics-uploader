@@ -115,6 +115,15 @@ function getInputs(): Record<string, string> {
   };
 }
 
+function parsePreviousStepOutcome(previousStepOutcome: string): number {
+  if (previousStepOutcome === "success") {
+    return 0;
+  } else if (previousStepOutcome === "failure") {
+    return 1;
+  }
+  return 0;
+}
+
 export async function main(tmpdir?: string): Promise<string | null> {
   let bin = "";
   try {
@@ -193,7 +202,7 @@ export async function main(tmpdir?: string): Promise<string | null> {
       hideBanner,
       quarantine,
       previousStepOutcome
-        ? `--test-process-exit-code=${previousStepOutcome === "failure" ? 1 : 0}`
+        ? `--test-process-exit-code=${parsePreviousStepOutcome(previousStepOutcome)}` // trunk-ignore(eslint/@typescript-eslint/restrict-template-expressions)
         : "",
       run ? `-- ${run}` : "",
     ].filter(Boolean);
