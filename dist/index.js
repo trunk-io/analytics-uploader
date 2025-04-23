@@ -29656,6 +29656,15 @@ function getInputs() {
         previousStepOutcome: core.getInput("previous-step-outcome"),
     };
 }
+function parsePreviousStepOutcome(previousStepOutcome) {
+    if (previousStepOutcome === "success") {
+        return 0;
+    }
+    else if (previousStepOutcome === "failure") {
+        return 1;
+    }
+    return 0;
+}
 async function main(tmpdir) {
     let bin = "";
     try {
@@ -29694,6 +29703,7 @@ async function main(tmpdir) {
             core.info("Extraction complete");
         }
         external_fs_.chmodSync(downloadPath, "755");
+        core.info("PREVIOUS_STEPS env variable: " + process.env.PREVIOUS_STEPS);
         // Build command arguments
         const args = [
             downloadPath,
@@ -29710,7 +29720,7 @@ async function main(tmpdir) {
             hideBanner,
             quarantine,
             previousStepOutcome
-                ? `--test-process-exit-code=${previousStepOutcome === "failure" ? 1 : 0}`
+                ? `--test-process-exit-code=${parsePreviousStepOutcome(previousStepOutcome)}` // trunk-ignore(eslint/@typescript-eslint/restrict-template-expressions)
                 : "",
             run ? `-- ${run}` : "",
         ].filter(Boolean);

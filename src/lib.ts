@@ -185,6 +185,7 @@ export async function main(tmpdir?: string): Promise<string | null> {
       core.info("Extraction complete");
     }
     fs.chmodSync(downloadPath, "755");
+    core.info("PREVIOUS_STEPS env variable: " + process.env.PREVIOUS_STEPS);
 
     // Build command arguments
     const args = [

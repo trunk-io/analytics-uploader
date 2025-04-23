@@ -55,5 +55,14 @@ inputs:
     required: false
 
 runs:
-  using: node20
-  main: dist/index.js
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 20
+
+    - name: Analytics Uploader Action
+      run: node ${GITHUB_ACTION_PATH}/dist/index.js
+      shell: bash
+      env:
+        PREVIOUS_STEPS: ${{ toJson(steps) }}
