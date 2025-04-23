@@ -111,6 +111,7 @@ function getInputs(): Record<string, string> {
     hideBanner: parseBool(core.getInput("hide-banner"), "--hide-banner"),
     quarantine: parseBool(core.getInput("quarantine"), "--use-quarantining"),
     run: core.getInput("run"),
+    variant: core.getInput("variant"),
   };
 }
 
@@ -122,6 +123,7 @@ export async function main(tmpdir?: string): Promise<string | null> {
       orgSlug,
       token,
       repoHeadBranch,
+      variant,
       repoRoot,
       team,
       xcresultPath,
@@ -190,6 +192,7 @@ export async function main(tmpdir?: string): Promise<string | null> {
       allowMissingJunitFiles,
       hideBanner,
       quarantine,
+      variant ? `--variant "${variant}"` : "",
       run ? `-- ${run}` : "",
     ].filter(Boolean);
 

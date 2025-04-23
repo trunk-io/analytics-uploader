@@ -29653,12 +29653,13 @@ function getInputs() {
         hideBanner: parseBool(core.getInput("hide-banner"), "--hide-banner"),
         quarantine: parseBool(core.getInput("quarantine"), "--use-quarantining"),
         run: core.getInput("run"),
+        variant: core.getInput("variant"),
     };
 }
 async function main(tmpdir) {
     let bin = "";
     try {
-        const { junitPaths, orgSlug, token, repoHeadBranch, repoRoot, team, xcresultPath, bazelBepPath, cliVersion, allowMissingJunitFiles, hideBanner, quarantine, run, } = getInputs();
+        const { junitPaths, orgSlug, token, repoHeadBranch, variant, repoRoot, team, xcresultPath, bazelBepPath, cliVersion, allowMissingJunitFiles, hideBanner, quarantine, run, } = getInputs();
         // Validate required inputs
         if (!junitPaths && !xcresultPath && !bazelBepPath) {
             throw new Error("Missing input files");
@@ -29708,6 +29709,7 @@ async function main(tmpdir) {
             allowMissingJunitFiles,
             hideBanner,
             quarantine,
+            variant ? `--variant "${variant}"` : "",
             run ? `-- ${run}` : "",
         ].filter(Boolean);
         // Execute the command

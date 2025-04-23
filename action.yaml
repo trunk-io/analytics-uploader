@@ -50,6 +50,9 @@ inputs:
   github-token:
     description: The GitHub token used to create an authenticated client
     default: ${{ github.token }}
+  variant:
+    description: User specified variant of a set of tests being uploaded.
+    required: false
 
 runs:
   using: node20
