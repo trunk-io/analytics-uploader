@@ -75,6 +75,12 @@ ALLOW_MISSING_JUNIT_FILES_ARG=$(parse_bool "${ALLOW_MISSING_JUNIT_FILES}" "--all
 HIDE_BANNER=$(parse_bool "${HIDE_BANNER}" "--hide-banner")
 QUARANTINE_ARG=$(parse_bool "${QUARANTINE}" "--use-quarantining")
 VARIANT="${VARIANT-}"
+USE_UNCLONED_REPO_FLAG=""
+REPO_URL=""
+REPO_HEAD_SHA=""
+REPO_HEAD_COMMIT_EPOCH=""
+REPO_HEAD_AUTHOR_NAME=""
+REPO_HEAD_AUTHOR_EMAIL=""
 
 # CLI.
 set -x
@@ -87,6 +93,17 @@ elif [[ ! (-f ./trunk-analytics-cli) ]]; then
 fi
 chmod +x ./trunk-analytics-cli
 set +x
+
+# Uncloned repo rules
+if [[ ${USE_UNCLONED_REPO} == "true" ]]; then
+    USE_UNCLONED_REPO_FLAG="--use-uncloned-repo"
+    REPO_URL="--repo-url ${GH_REPO_URL}"
+    REPO_HEAD_SHA="--repo-head-sha ${GH_REPO_HEAD_BRANCH}"
+    REPO_HEAD_BRANCH="${GH_REPO_HEAD_BRANCH}"
+    REPO_HEAD_COMMIT_EPOCH="--repo-head-commit-epoch ${GH_REPO_HEAD_BRANCH}"
+    REPO_HEAD_AUTHOR_NAME="--repo-head-author-name ${GH_REPO_HEAD_BRANCH}"
+    REPO_HEAD_AUTHOR_EMAIL="--repo-head-author-email ${GH_REPO_HEAD_BRANCH}"
+fi
 
 # trunk-ignore-begin(shellcheck/SC2086)
 if [[ $# -eq 0 ]]; then
@@ -102,7 +119,14 @@ if [[ $# -eq 0 ]]; then
         ${ALLOW_MISSING_JUNIT_FILES_ARG} \
         ${HIDE_BANNER} \
         ${VARIANT:+--variant "${VARIANT}"} \
-        ${QUARANTINE_ARG}
+        ${QUARANTINE_ARG} \
+        "${USE_UNCLONED_REPO_FLAG}" \
+        ${REPO_URL} \
+        ${REPO_HEAD_SHA} \
+        ${REPO_HEAD_COMMIT_EPOCH} \
+        ${REPO_HEAD_AUTHOR_NAME} \
+        ${REPO_HEAD_AUTHOR_EMAIL}
+
 else
     ./trunk-analytics-cli test \
         ${JUNIT_PATHS:+--junit-paths "${JUNIT_PATHS}"} \
@@ -116,6 +140,12 @@ else
         ${ALLOW_MISSING_JUNIT_FILES_ARG} \
         ${HIDE_BANNER} \
         ${VARIANT:+--variant "${VARIANT}"} \
-        ${QUARANTINE_ARG} "$@"
+        ${QUARANTINE_ARG} \
+        "${USE_UNCLONED_REPO_FLAG}" \
+        ${REPO_URL} \
+        ${REPO_HEAD_SHA} \
+        ${REPO_HEAD_COMMIT_EPOCH} \
+        ${REPO_HEAD_AUTHOR_NAME} \
+        ${REPO_HEAD_AUTHOR_EMAIL} "$@"
 fi
 # trunk-ignore-end(shellcheck/SC2086)
