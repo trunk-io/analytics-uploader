@@ -75,7 +75,7 @@ ALLOW_MISSING_JUNIT_FILES_ARG=$(parse_bool "${ALLOW_MISSING_JUNIT_FILES}" "--all
 HIDE_BANNER=$(parse_bool "${HIDE_BANNER}" "--hide-banner")
 QUARANTINE_ARG=$(parse_bool "${QUARANTINE}" "--use-quarantining")
 VARIANT="${VARIANT-}"
-USE_UNCLONED_REPO_FLAG=""
+USE_UNCLONED_REPO="${USE_UNCLONED_REPO-}"
 REPO_URL=""
 REPO_HEAD_SHA=""
 REPO_HEAD_COMMIT_EPOCH=""
@@ -96,16 +96,19 @@ set +x
 
 # Uncloned repo rules
 if [[ ${USE_UNCLONED_REPO} == "true" ]]; then
-    USE_UNCLONED_REPO_FLAG="--use-uncloned-repo"
+    USE_UNCLONED_REPO="--use-uncloned-repo"
     REPO_URL="--repo-url ${GH_REPO_URL}"
     REPO_HEAD_SHA="--repo-head-sha ${GH_REPO_HEAD_BRANCH}"
     REPO_HEAD_BRANCH="${GH_REPO_HEAD_BRANCH}"
     REPO_HEAD_COMMIT_EPOCH="--repo-head-commit-epoch ${GH_REPO_HEAD_BRANCH}"
     REPO_HEAD_AUTHOR_NAME="--repo-head-author-name ${GH_REPO_HEAD_BRANCH}"
     REPO_HEAD_AUTHOR_EMAIL="--repo-head-author-email ${GH_REPO_HEAD_BRANCH}"
+else
+    USE_UNCLONED_REPO=""
 fi
 
 # trunk-ignore-begin(shellcheck/SC2086)
+# trunk-ignore-begin(shellcheck/SC2248)
 if [[ $# -eq 0 ]]; then
     ./trunk-analytics-cli upload \
         ${JUNIT_PATHS:+--junit-paths "${JUNIT_PATHS}"} \
@@ -120,7 +123,7 @@ if [[ $# -eq 0 ]]; then
         ${HIDE_BANNER} \
         ${VARIANT:+--variant "${VARIANT}"} \
         ${QUARANTINE_ARG} \
-        ${USE_UNCLONED_REPO_FLAG} \
+        ${USE_UNCLONED_REPO} \
         ${REPO_URL} \
         ${REPO_HEAD_SHA} \
         ${REPO_HEAD_COMMIT_EPOCH} \
@@ -141,7 +144,7 @@ else
         ${HIDE_BANNER} \
         ${VARIANT:+--variant "${VARIANT}"} \
         ${QUARANTINE_ARG} \
-        ${USE_UNCLONED_REPO_FLAG} \
+        ${USE_UNCLONED_REPO} \
         ${REPO_URL} \
         ${REPO_HEAD_SHA} \
         ${REPO_HEAD_COMMIT_EPOCH} \
@@ -149,3 +152,4 @@ else
         ${REPO_HEAD_AUTHOR_EMAIL} "$@"
 fi
 # trunk-ignore-end(shellcheck/SC2086)
+# trunk-ignore-end(shellcheck/SC2248)
