@@ -120,7 +120,7 @@ if [[ $# -eq 0 ]]; then
         ${HIDE_BANNER} \
         ${VARIANT:+--variant "${VARIANT}"} \
         ${QUARANTINE_ARG} \
-        "${USE_UNCLONED_REPO_FLAG}" \
+        ${USE_UNCLONED_REPO_FLAG} \
         ${REPO_URL} \
         ${REPO_HEAD_SHA} \
         ${REPO_HEAD_COMMIT_EPOCH} \
@@ -141,7 +141,7 @@ else
         ${HIDE_BANNER} \
         ${VARIANT:+--variant "${VARIANT}"} \
         ${QUARANTINE_ARG} \
-        "${USE_UNCLONED_REPO_FLAG}" \
+        ${USE_UNCLONED_REPO_FLAG} \
         ${REPO_URL} \
         ${REPO_HEAD_SHA} \
         ${REPO_HEAD_COMMIT_EPOCH} \
