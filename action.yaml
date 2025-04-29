@@ -47,13 +47,29 @@ inputs:
   hide-banner:
     description: Whether to hide the top level flaky tests banner
     required: false
-  github-token:
-    description: The GitHub token used to create an authenticated client
-    default: ${{ github.token }}
   variant:
     description: User specified variant of a set of tests being uploaded.
     required: false
 
 runs:
-  using: node20
-  main: dist/index.js
+  using: composite
+  steps:
+    - name: Upload test results
+      run: ${GITHUB_ACTION_PATH}/script.sh ${{ inputs.run }}
+      shell: bash
+      env:
+        JUNIT_PATHS: ${{ inputs.junit-paths }}
+        ORG_URL_SLUG: ${{ inputs.org-slug }}
+        INPUT_TOKEN: ${{ inputs.token }}
+        REPO_HEAD_BRANCH: ${{ inputs.repo-head-branch }}
+        REPO_ROOT: ${{ inputs.repo-root }}
+        TAGS: ${{ inputs.tags }}
+        CLI_VERSION: ${{ inputs.cli-version }}
+        TEAM: ${{ inputs.team }}
+        QUARANTINE: ${{ inputs.quarantine }}
+        XCRESULT_PATH: ${{ inputs.xcresult-path }}
+        ALLOW_MISSING_JUNIT_FILES: ${{ inputs.allow-missing-junit-files }}
+        BAZEL_BEP_PATH: ${{ inputs.bazel-bep-path }}
+        PR_TITLE: ${{ github.event.pull_request.title }}
+        HIDE_BANNER: ${{ inputs.hide-banner }}
+        VARIANT: ${{ inputs.variant }}
