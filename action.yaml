@@ -53,7 +53,7 @@ inputs:
   use-uncloned-repo:
     description: Set to 'true' if your tests do not require cloning the repository under test,
     required: false
-    default: "false"
+    default: false
 
 runs:
   using: composite
