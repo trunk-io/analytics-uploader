@@ -79,7 +79,6 @@ USE_UNCLONED_REPO="${USE_UNCLONED_REPO-}"
 REPO_URL=""
 REPO_HEAD_SHA=""
 REPO_HEAD_AUTHOR_NAME=""
-REPO_HEAD_AUTHOR_EMAIL=""
 
 # CLI.
 set -x
@@ -101,7 +100,6 @@ if [[ ${lower_use_uncloned_repo} == "true" ]]; then
     REPO_HEAD_SHA="--repo-head-sha ${GH_REPO_HEAD_SHA}"
     REPO_HEAD_BRANCH="${GH_REPO_HEAD_BRANCH}"
     REPO_HEAD_AUTHOR_NAME="--repo-head-author-name ${GH_REPO_HEAD_AUTHOR_NAME}"
-    REPO_HEAD_AUTHOR_EMAIL="--repo-head-author-email ${GH_REPO_HEAD_AUTHOR_EMAIL}"
 else
     USE_UNCLONED_REPO=""
 fi
@@ -125,8 +123,7 @@ if [[ $# -eq 0 ]]; then
         ${USE_UNCLONED_REPO} \
         ${REPO_URL} \
         ${REPO_HEAD_SHA} \
-        ${REPO_HEAD_AUTHOR_NAME} \
-        ${REPO_HEAD_AUTHOR_EMAIL}
+        ${REPO_HEAD_AUTHOR_NAME}
 
 else
     ./trunk-analytics-cli test \
@@ -145,8 +142,7 @@ else
         ${USE_UNCLONED_REPO} \
         ${REPO_URL} \
         ${REPO_HEAD_SHA} \
-        ${REPO_HEAD_AUTHOR_NAME} \
-        ${REPO_HEAD_AUTHOR_EMAIL} "$@"
+        ${REPO_HEAD_AUTHOR_NAME} "$@"
 fi
 # trunk-ignore-end(shellcheck/SC2086)
 # trunk-ignore-end(shellcheck/SC2248)
