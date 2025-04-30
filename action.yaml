@@ -82,5 +82,5 @@ runs:
         GH_REPO_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         GH_REPO_HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
         GH_REPO_HEAD_COMMIT_EPOCH: ${{ github.event.pull_request.updated_at }}
-        GH_REPO_HEAD_AUTHOR_NAME: ${{ github.event.pull_request.user.name }}
+        GH_REPO_HEAD_AUTHOR_NAME: ${{ github.actor }}
         GH_REPO_HEAD_AUTHOR_EMAIL: ${{ github.event.pull_request.user.email }}
