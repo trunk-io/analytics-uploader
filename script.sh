@@ -65,7 +65,7 @@ if [[ (-z ${INPUT_TOKEN}) && (-z ${TRUNK_API_TOKEN-}) ]]; then
 fi
 
 REPO_HEAD_BRANCH="${REPO_HEAD_BRANCH-}"
-REPO_ROOT="${REPO_ROOT-}"
+REPO_ROOT="--repo-root ${REPO_ROOT-}"
 TOKEN=${INPUT_TOKEN:-${TRUNK_API_TOKEN}} # Defaults to TRUNK_API_TOKEN env var.
 TEAM="${TEAM-}"
 JUNIT_PATHS="${JUNIT_PATHS-}"
@@ -100,6 +100,7 @@ if [[ ${lower_use_uncloned_repo} == "true" ]]; then
     REPO_HEAD_SHA="--repo-head-sha ${GH_REPO_HEAD_SHA}"
     REPO_HEAD_BRANCH="${GH_REPO_HEAD_BRANCH}"
     REPO_HEAD_AUTHOR_NAME="--repo-head-author-name ${GH_REPO_HEAD_AUTHOR_NAME}"
+    REPO_ROOT=""
 else
     USE_UNCLONED_REPO=""
 fi
@@ -114,7 +115,7 @@ if [[ $# -eq 0 ]]; then
         --org-url-slug "${ORG_URL_SLUG}" \
         --token "${TOKEN}" \
         ${REPO_HEAD_BRANCH:+--repo-head-branch "${REPO_HEAD_BRANCH}"} \
-        --repo-root "${REPO_ROOT}" \
+        ${REPO_ROOT} \
         --team "${TEAM}" \
         ${ALLOW_MISSING_JUNIT_FILES_ARG} \
         ${HIDE_BANNER} \
@@ -133,7 +134,7 @@ else
         --org-url-slug "${ORG_URL_SLUG}" \
         --token "${TOKEN}" \
         ${REPO_HEAD_BRANCH:+--repo-head-branch "${REPO_HEAD_BRANCH}"} \
-        --repo-root "${REPO_ROOT}" \
+        ${REPO_ROOT} \
         --team "${TEAM}" \
         ${ALLOW_MISSING_JUNIT_FILES_ARG} \
         ${HIDE_BANNER} \
