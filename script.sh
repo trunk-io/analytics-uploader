@@ -78,7 +78,6 @@ VARIANT="${VARIANT-}"
 USE_UNCLONED_REPO="${USE_UNCLONED_REPO-}"
 REPO_URL=""
 REPO_HEAD_SHA=""
-REPO_HEAD_COMMIT_EPOCH=""
 REPO_HEAD_AUTHOR_NAME=""
 REPO_HEAD_AUTHOR_EMAIL=""
 
@@ -95,12 +94,12 @@ chmod +x ./trunk-analytics-cli
 set +x
 
 # Uncloned repo rules
-if [[ ${USE_UNCLONED_REPO} == "true" ]]; then
+lower_use_uncloned_repo=$(echo "${USE_UNCLONED_REPO}" | tr '[:upper:]' '[:lower:]')
+if [[ ${lower_use_uncloned_repo} == "true" ]]; then
     USE_UNCLONED_REPO="--use-uncloned-repo"
     REPO_URL="--repo-url ${GH_REPO_URL}"
     REPO_HEAD_SHA="--repo-head-sha ${GH_REPO_HEAD_BRANCH}"
     REPO_HEAD_BRANCH="${GH_REPO_HEAD_BRANCH}"
-    REPO_HEAD_COMMIT_EPOCH="--repo-head-commit-epoch ${GH_REPO_HEAD_BRANCH}"
     REPO_HEAD_AUTHOR_NAME="--repo-head-author-name ${GH_REPO_HEAD_BRANCH}"
     REPO_HEAD_AUTHOR_EMAIL="--repo-head-author-email ${GH_REPO_HEAD_BRANCH}"
 else
@@ -126,7 +125,6 @@ if [[ $# -eq 0 ]]; then
         ${USE_UNCLONED_REPO} \
         ${REPO_URL} \
         ${REPO_HEAD_SHA} \
-        ${REPO_HEAD_COMMIT_EPOCH} \
         ${REPO_HEAD_AUTHOR_NAME} \
         ${REPO_HEAD_AUTHOR_EMAIL}
 
@@ -147,7 +145,6 @@ else
         ${USE_UNCLONED_REPO} \
         ${REPO_URL} \
         ${REPO_HEAD_SHA} \
-        ${REPO_HEAD_COMMIT_EPOCH} \
         ${REPO_HEAD_AUTHOR_NAME} \
         ${REPO_HEAD_AUTHOR_EMAIL} "$@"
 fi
