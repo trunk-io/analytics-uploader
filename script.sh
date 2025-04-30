@@ -96,10 +96,10 @@ set +x
 lower_use_uncloned_repo=$(echo "${USE_UNCLONED_REPO}" | tr '[:upper:]' '[:lower:]')
 if [[ ${lower_use_uncloned_repo} == "true" ]]; then
     USE_UNCLONED_REPO="--use-uncloned-repo"
-    REPO_URL="--repo-url ${GH_REPO_URL}"
+    REPO_URL="--repo-url \"${GH_REPO_URL}\""
     REPO_HEAD_SHA="--repo-head-sha ${GH_REPO_HEAD_SHA}"
-    REPO_HEAD_BRANCH="${GH_REPO_HEAD_BRANCH}"
-    REPO_HEAD_AUTHOR_NAME="--repo-head-author-name ${GH_REPO_HEAD_AUTHOR_NAME}"
+    REPO_HEAD_BRANCH="\"${GH_REPO_HEAD_BRANCH}\""
+    REPO_HEAD_AUTHOR_NAME="--repo-head-author-name \"${GH_REPO_HEAD_AUTHOR_NAME}\""
     REPO_ROOT=""
 else
     USE_UNCLONED_REPO=""
