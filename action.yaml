@@ -50,6 +50,9 @@ inputs:
   variant:
     description: User specified variant of a set of tests being uploaded.
     required: false
+  previous-step-outcome:
+    description: The outcome of the previous step in the workflow. Set this equal to steps.[id].outcome where `[id]` is the id of the corresponding test run.
+    required: false
 
 runs:
   using: composite
@@ -73,3 +76,4 @@ runs:
         PR_TITLE: ${{ github.event.pull_request.title }}
         HIDE_BANNER: ${{ inputs.hide-banner }}
         VARIANT: ${{ inputs.variant }}
+        PREVIOUS_STEP_OUTCOME: ${{ inputs.previous-step-outcome }}
