@@ -112,6 +112,8 @@ else
     USE_UNCLONED_REPO=""
 fi
 
+echo ${REPO_ROOT}
+
 # trunk-ignore-begin(shellcheck/SC2086)
 # trunk-ignore-begin(shellcheck/SC2248)
 if [[ $# -eq 0 ]]; then
