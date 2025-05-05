@@ -74,6 +74,13 @@ BAZEL_BEP_PATH="${BAZEL_BEP_PATH-}"
 ALLOW_MISSING_JUNIT_FILES_ARG=$(parse_bool "${ALLOW_MISSING_JUNIT_FILES}" "--allow-missing-junit-files")
 HIDE_BANNER=$(parse_bool "${HIDE_BANNER}" "--hide-banner")
 QUARANTINE_ARG=$(parse_bool "${QUARANTINE}" "--use-quarantining")
+if [[ -n ${PREVIOUS_STEP_OUTCOME} ]]; then
+    if [[ ${PREVIOUS_STEP_OUTCOME} == "success" ]]; then
+        PREVIOUS_STEP_OUTCOME="0"
+    else
+        PREVIOUS_STEP_OUTCOME="1"
+    fi
+fi
 VARIANT="${VARIANT-}"
 USE_UNCLONED_REPO="${USE_UNCLONED_REPO-}"
 REPO_URL=""
@@ -117,6 +124,7 @@ if [[ $# -eq 0 ]]; then
         ${REPO_HEAD_BRANCH:+--repo-head-branch "${REPO_HEAD_BRANCH}"} \
         ${REPO_ROOT} \
         --team "${TEAM}" \
+        ${PREVIOUS_STEP_OUTCOME:+--test-process-exit-code="${PREVIOUS_STEP_OUTCOME}"} \
         ${ALLOW_MISSING_JUNIT_FILES_ARG} \
         ${HIDE_BANNER} \
         ${VARIANT:+--variant "${VARIANT}"} \
@@ -136,6 +144,7 @@ else
         ${REPO_HEAD_BRANCH:+--repo-head-branch "${REPO_HEAD_BRANCH}"} \
         ${REPO_ROOT} \
         --team "${TEAM}" \
+        ${PREVIOUS_STEP_OUTCOME:+--test-process-exit-code="${PREVIOUS_STEP_OUTCOME}"} \
         ${ALLOW_MISSING_JUNIT_FILES_ARG} \
         ${HIDE_BANNER} \
         ${VARIANT:+--variant "${VARIANT}"} \
