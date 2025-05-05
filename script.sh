@@ -65,7 +65,7 @@ if [[ (-z ${INPUT_TOKEN}) && (-z ${TRUNK_API_TOKEN-}) ]]; then
 fi
 
 REPO_HEAD_BRANCH="${REPO_HEAD_BRANCH-}"
-REPO_ROOT="--repo-root ${REPO_ROOT-}"
+REPO_ROOT="--repo-root \"${REPO_ROOT-}\""
 TOKEN=${INPUT_TOKEN:-${TRUNK_API_TOKEN}} # Defaults to TRUNK_API_TOKEN env var.
 TEAM="${TEAM-}"
 JUNIT_PATHS="${JUNIT_PATHS-}"
