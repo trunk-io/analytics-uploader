@@ -65,7 +65,12 @@ if [[ (-z ${INPUT_TOKEN}) && (-z ${TRUNK_API_TOKEN-}) ]]; then
 fi
 
 REPO_HEAD_BRANCH="${REPO_HEAD_BRANCH-}"
-REPO_ROOT="${REPO_ROOT-}"
+REPO_ROOT_ARG="--repo-root ${REPO_ROOT-}"
+
+if [[ -z ${REPO_ROOT-} ]]; then
+    REPO_ROOT_ARG=""
+fi
+
 TOKEN=${INPUT_TOKEN:-${TRUNK_API_TOKEN}} # Defaults to TRUNK_API_TOKEN env var.
 TEAM="${TEAM-}"
 JUNIT_PATHS="${JUNIT_PATHS-}"
@@ -82,6 +87,10 @@ if [[ -n ${PREVIOUS_STEP_OUTCOME} ]]; then
     fi
 fi
 VARIANT="${VARIANT-}"
+USE_UNCLONED_REPO="${USE_UNCLONED_REPO-}"
+REPO_URL=""
+REPO_HEAD_SHA=""
+REPO_HEAD_AUTHOR_NAME=""
 
 # CLI.
 set -x
@@ -95,7 +104,21 @@ fi
 chmod +x ./trunk-analytics-cli
 set +x
 
+# Uncloned repo rules
+lower_use_uncloned_repo=$(echo "${USE_UNCLONED_REPO}" | tr '[:upper:]' '[:lower:]')
+if [[ ${lower_use_uncloned_repo} == "true" ]]; then
+    USE_UNCLONED_REPO="--use-uncloned-repo"
+    REPO_URL="--repo-url ${GH_REPO_URL}"
+    REPO_HEAD_SHA="--repo-head-sha ${GH_REPO_HEAD_SHA}"
+    REPO_HEAD_BRANCH="${GH_REPO_HEAD_BRANCH}"
+    REPO_HEAD_AUTHOR_NAME="--repo-head-author-name ${GH_REPO_HEAD_AUTHOR_NAME}"
+    REPO_ROOT_ARG=""
+else
+    USE_UNCLONED_REPO=""
+fi
+
 # trunk-ignore-begin(shellcheck/SC2086)
+# trunk-ignore-begin(shellcheck/SC2248)
 if [[ $# -eq 0 ]]; then
     ./trunk-analytics-cli upload \
         ${JUNIT_PATHS:+--junit-paths "${JUNIT_PATHS}"} \
@@ -104,13 +127,18 @@ if [[ $# -eq 0 ]]; then
         --org-url-slug "${ORG_URL_SLUG}" \
         --token "${TOKEN}" \
         ${REPO_HEAD_BRANCH:+--repo-head-branch "${REPO_HEAD_BRANCH}"} \
-        --repo-root "${REPO_ROOT}" \
+        ${REPO_ROOT_ARG} \
         --team "${TEAM}" \
         ${PREVIOUS_STEP_OUTCOME:+--test-process-exit-code="${PREVIOUS_STEP_OUTCOME}"} \
         ${ALLOW_MISSING_JUNIT_FILES_ARG} \
         ${HIDE_BANNER} \
         ${VARIANT:+--variant "${VARIANT}"} \
-        ${QUARANTINE_ARG}
+        ${QUARANTINE_ARG} \
+        ${USE_UNCLONED_REPO} \
+        ${REPO_URL} \
+        ${REPO_HEAD_SHA} \
+        ${REPO_HEAD_AUTHOR_NAME}
+
 else
     ./trunk-analytics-cli test \
         ${JUNIT_PATHS:+--junit-paths "${JUNIT_PATHS}"} \
@@ -119,12 +147,17 @@ else
         --org-url-slug "${ORG_URL_SLUG}" \
         --token "${TOKEN}" \
         ${REPO_HEAD_BRANCH:+--repo-head-branch "${REPO_HEAD_BRANCH}"} \
-        --repo-root "${REPO_ROOT}" \
+        ${REPO_ROOT_ARG} \
         --team "${TEAM}" \
         ${PREVIOUS_STEP_OUTCOME:+--test-process-exit-code="${PREVIOUS_STEP_OUTCOME}"} \
         ${ALLOW_MISSING_JUNIT_FILES_ARG} \
         ${HIDE_BANNER} \
         ${VARIANT:+--variant "${VARIANT}"} \
-        ${QUARANTINE_ARG} "$@"
+        ${QUARANTINE_ARG} \
+        ${USE_UNCLONED_REPO} \
+        ${REPO_URL} \
+        ${REPO_HEAD_SHA} \
+        ${REPO_HEAD_AUTHOR_NAME} "$@"
 fi
 # trunk-ignore-end(shellcheck/SC2086)
+# trunk-ignore-end(shellcheck/SC2248)

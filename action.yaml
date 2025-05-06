@@ -50,6 +50,10 @@ inputs:
   variant:
     description: User specified variant of a set of tests being uploaded.
     required: false
+  use-uncloned-repo:
+    description: Set to 'true' if your tests do not require cloning the repository under test,
+    required: false
+    default: false
   previous-step-outcome:
     description: The outcome of the previous step in the workflow. Set this equal to steps.[id].outcome where `[id]` is the id of the corresponding test run.
     required: false
@@ -76,4 +80,10 @@ runs:
         PR_TITLE: ${{ github.event.pull_request.title }}
         HIDE_BANNER: ${{ inputs.hide-banner }}
         VARIANT: ${{ inputs.variant }}
+        USE_UNCLONED_REPO: ${{ inputs.use-uncloned-repo }}
+        GH_REPO_URL: ${{ github.event.pull_request.head.repo.html_url }}
+        GH_REPO_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        GH_REPO_HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+        GH_REPO_HEAD_COMMIT_EPOCH: ${{ github.event.pull_request.updated_at }}
+        GH_REPO_HEAD_AUTHOR_NAME: ${{ github.actor }}
         PREVIOUS_STEP_OUTCOME: ${{ inputs.previous-step-outcome }}

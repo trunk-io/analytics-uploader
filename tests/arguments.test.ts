@@ -38,6 +38,7 @@ test("Forwards inputs", async () => {
     ALLOW_MISSING_JUNIT_FILES: "",
     BAZEL_BEP_PATH: "",
     HIDE_BANNER: "",
+    USE_UNCLONED_REPO: "false",
     PREVIOUS_STEP_OUTCOME: "success",
   };
 
@@ -58,7 +59,7 @@ test("Forwards inputs", async () => {
   }
   expect({ stdout, stderr, exit_code }).toMatchObject({
     stdout:
-      "upload --junit-paths junit.xml --org-url-slug org --token token --repo-root --team --test-process-exit-code=0",
+      "upload --junit-paths junit.xml --org-url-slug org --token token --team --test-process-exit-code=0",
     stderr: `+ [[ 0.0.0 == \\l\\a\\t\\e\\s\\t ]]
 + [[ -f ./trunk-analytics-cli ]]
 + chmod +x ./trunk-analytics-cli
