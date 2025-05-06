@@ -57,7 +57,7 @@ test("Forwards inputs", async () => {
     /* eslint-disable-next-line @typescript-eslint/no-unsafe-assignment */
     ({ stdout, stderr, code: exit_code } = err);
   }
-  /*expect({ stdout, stderr, exit_code }).toMatchObject({
+  expect({ stdout, stderr, exit_code }).toMatchObject({
     stdout:
       "upload --junit-paths junit.xml --org-url-slug org --token token --team --test-process-exit-code=0",
     stderr: `+ [[ 0.0.0 == \\l\\a\\t\\e\\s\\t ]]
@@ -66,7 +66,7 @@ test("Forwards inputs", async () => {
 + set +x
 `,
     exit_code: 0,
-  });*/
+  });
 
   await fs.rm(tmpdir, { recursive: true, force: true });
 });

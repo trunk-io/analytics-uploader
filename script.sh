@@ -65,19 +65,11 @@ if [[ (-z ${INPUT_TOKEN}) && (-z ${TRUNK_API_TOKEN-}) ]]; then
 fi
 
 REPO_HEAD_BRANCH="${REPO_HEAD_BRANCH-}"
-echo "INITIAL RR"
-echo ${REPO_ROOT-}
 REPO_ROOT_ARG="--repo-root ${REPO_ROOT-}"
 
 if [[ -z ${REPO_ROOT-} ]]; then
-    echo "MISSING FLAG"
     REPO_ROOT_ARG=""
 fi
-
-echo "RROOT"
-echo ${REPO_ROOT-}
-echo "RROOTA"
-echo ${REPO_ROOT_ARG}
 
 TOKEN=${INPUT_TOKEN:-${TRUNK_API_TOKEN}} # Defaults to TRUNK_API_TOKEN env var.
 TEAM="${TEAM-}"
