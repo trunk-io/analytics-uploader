@@ -33,12 +33,14 @@ if [[ ${kernel} == "Darwin" ]]; then
 elif [[ ${kernel} == "Linux" ]]; then
     if [[ ${machine} == "arm64" ]]; then
         bin="aarch64-unknown-linux"
+    elif [[ ${machine} == "aarch64" ]]; then
+        bin="aarch64-unknown-linux"
     elif [[ ${machine} == "x86_64" ]]; then
         bin="x86_64-unknown-linux"
     fi
 fi
 
-if [[ -z ${bin} ]]; then
+if [[ -z ${bin-} ]]; then
     echo "Unsupported OS (${kernel}, ${machine})"
     exit 1
 fi
