@@ -28,7 +28,7 @@ jobs:
 
       - name: Upload results
         if: "!cancelled()"
-        uses: trunk-io/analytics-uploader@main
+        uses: trunk-io/analytics-uploader@v1
         with:
           # Path to your test results.
           junit-paths: "target/path/**/*_test.xml"
