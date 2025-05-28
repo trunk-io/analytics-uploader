@@ -82,7 +82,7 @@ ALLOW_MISSING_JUNIT_FILES_ARG=$(parse_bool "${ALLOW_MISSING_JUNIT_FILES}" "--all
 HIDE_BANNER=$(parse_bool "${HIDE_BANNER}" "--hide-banner")
 QUARANTINE_ARG=$(parse_bool "${QUARANTINE}" "--use-quarantining")
 if [[ -n ${PREVIOUS_STEP_OUTCOME} ]]; then
-    if [[ ${PREVIOUS_STEP_OUTCOME} == "success" ]]; then
+    if [[ ${PREVIOUS_STEP_OUTCOME} == "success" || ${PREVIOUS_STEP_OUTCOME} == "skipped" ]]; then
         PREVIOUS_STEP_OUTCOME="0"
     else
         PREVIOUS_STEP_OUTCOME="1"
