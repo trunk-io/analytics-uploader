@@ -38,15 +38,15 @@ lint:
         - dist
 actions:
   definitions:
-    - id: test-pre-push
+    - id: build-pre-commit
       display_name: Arg Tests
       runtime: node
       packages_file: package.json
-      run: npm test
+      run: pnpm build && git add dist/index.js
       triggers:
-        - git_hooks: [pre-push]
+        - git_hooks: [pre-commit]
   enabled:
-    - test-pre-push
+    - build-pre-commit
     - trunk-announce
     - trunk-check-pre-push
     - trunk-fmt-pre-commit

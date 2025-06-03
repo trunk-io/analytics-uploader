@@ -29655,12 +29655,18 @@ function getInputs() {
         variant: core.getInput("variant"),
         useUnclonedRepo: core.getInput("use-uncloned-repo"),
         previousStepOutcome: core.getInput("previous-step-outcome"),
+        prTitle: core.getInput("pr-title"),
+        ghRepoUrl: core.getInput("gh-repo-url"),
+        ghRepoHeadSha: core.getInput("gh-repo-head-sha"),
+        ghRepoHeadBranch: core.getInput("gh-repo-head-branch"),
+        ghRepoHeadCommitEpoch: core.getInput("gh-repo-head-commit-epoch"),
+        ghRepoHeadAuthorName: core.getInput("gh-repo-head-author-name"),
     };
 }
 async function main(tmpdir) {
     let bin = "";
     try {
-        const { junitPaths, orgSlug, token, repoHeadBranch, run, repoRoot, cliVersion, xcresultPath, bazelBepPath, quarantine, allowMissingJunitFiles, hideBanner, variant, useUnclonedRepo, previousStepOutcome, } = getInputs();
+        const { junitPaths, orgSlug, token, repoHeadBranch, run, repoRoot, cliVersion, xcresultPath, bazelBepPath, quarantine, allowMissingJunitFiles, hideBanner, variant, useUnclonedRepo, previousStepOutcome, prTitle, ghRepoUrl, ghRepoHeadSha, ghRepoHeadBranch, ghRepoHeadCommitEpoch, ghRepoHeadAuthorName, } = getInputs();
         // Validate required inputs
         if (!junitPaths && !xcresultPath && !bazelBepPath) {
             throw new Error("Missing input files");
@@ -29699,28 +29705,37 @@ async function main(tmpdir) {
         const args = [
             downloadPath,
             run ? "test" : "upload",
-            junitPaths ? `--junit-paths \"${junitPaths}\"` : "",
-            xcresultPath ? `--xcresult-path \"${xcresultPath}\"` : "",
-            bazelBepPath ? `--bazel-bep-path \"${bazelBepPath}\"` : "",
-            `--org-url-slug \"${orgSlug}\"`,
-            `--token \"${token}\"`,
-            repoHeadBranch ? `--repo-head-branch \"${repoHeadBranch}\"` : "",
-            repoRoot ? `--repo-root \"${repoRoot}\"` : "",
+            junitPaths ? `--junit-paths "${junitPaths}"` : "",
+            xcresultPath ? `--xcresult-path "${xcresultPath}"` : "",
+            bazelBepPath ? `--bazel-bep-path "${bazelBepPath}"` : "",
+            `--org-url-slug "${orgSlug}"`,
+            `--token "${token}"`,
+            repoHeadBranch ? `--repo-head-branch "${repoHeadBranch}"` : "",
+            repoRoot ? `--repo-root "${repoRoot}"` : "",
             allowMissingJunitFiles,
             hideBanner,
             quarantine,
-            variant ? `--variant \"${variant}\"` : "",
+            variant ? `--variant "${variant}"` : "",
             useUnclonedRepo && useUnclonedRepo.toLowerCase() === "true"
                 ? "--use-uncloned-repo"
                 : "",
             previousStepOutcome
-                ? `--test-process-exit-code=\"${previousStepOutcome}\"`
+                ? `--test-process-exit-code="${previousStepOutcome}"`
                 : "",
             run ? `-- ${run}` : "",
         ].filter(Boolean);
         // Execute the command
         const command = args.join(" ");
-        (0,external_child_process_.execSync)(command, { stdio: "inherit" });
+        const env = {
+            ...process.env,
+            PR_TITLE: prTitle,
+            GH_REPO_URL: ghRepoUrl,
+            GH_REPO_HEAD_SHA: ghRepoHeadSha,
+            GH_REPO_HEAD_BRANCH: ghRepoHeadBranch,
+            GH_REPO_HEAD_COMMIT_EPOCH: ghRepoHeadCommitEpoch,
+            GH_REPO_HEAD_AUTHOR_NAME: ghRepoHeadAuthorName,
+        };
+        (0,external_child_process_.execSync)(command, { stdio: "inherit", env });
         return command;
     }
     catch (error) {
