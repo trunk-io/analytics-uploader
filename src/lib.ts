@@ -99,18 +99,26 @@ function getInputs(): Record<string, string> {
     orgSlug: core.getInput("org-slug"),
     token: core.getInput("token"),
     repoHeadBranch: core.getInput("repo-head-branch"),
+    run: core.getInput("run"),
     repoRoot: core.getInput("repo-root"),
-    team: core.getInput("team"),
+    cliVersion: core.getInput("cli-version") || "latest",
     xcresultPath: core.getInput("xcresult-path"),
     bazelBepPath: core.getInput("bazel-bep-path"),
-    cliVersion: core.getInput("cli-version") || "latest",
+    quarantine: parseBool(core.getInput("quarantine"), "--use-quarantining"),
     allowMissingJunitFiles: parseBool(
       core.getInput("allow-missing-junit-files"),
       "--allow-missing-junit-files",
     ),
     hideBanner: parseBool(core.getInput("hide-banner"), "--hide-banner"),
-    quarantine: parseBool(core.getInput("quarantine"), "--use-quarantining"),
-    run: core.getInput("run"),
+    variant: core.getInput("variant"),
+    useUnclonedRepo: core.getInput("use-uncloned-repo"),
+    previousStepOutcome: core.getInput("previous-step-outcome"),
+    prTitle: core.getInput("pr-title"),
+    ghRepoUrl: core.getInput("gh-repo-url"),
+    ghRepoHeadSha: core.getInput("gh-repo-head-sha"),
+    ghRepoHeadBranch: core.getInput("gh-repo-head-branch"),
+    ghRepoHeadCommitEpoch: core.getInput("gh-repo-head-commit-epoch"),
+    ghRepoHeadAuthorName: core.getInput("gh-repo-head-author-name"),
   };
 }
 
@@ -122,15 +130,23 @@ export async function main(tmpdir?: string): Promise<string | null> {
       orgSlug,
       token,
       repoHeadBranch,
+      run,
       repoRoot,
-      team,
+      cliVersion,
       xcresultPath,
       bazelBepPath,
-      cliVersion,
+      quarantine,
       allowMissingJunitFiles,
       hideBanner,
-      quarantine,
-      run,
+      variant,
+      useUnclonedRepo,
+      previousStepOutcome,
+      prTitle,
+      ghRepoUrl,
+      ghRepoHeadSha,
+      ghRepoHeadBranch,
+      ghRepoHeadCommitEpoch,
+      ghRepoHeadAuthorName,
     } = getInputs();
 
     // Validate required inputs
@@ -186,16 +202,31 @@ export async function main(tmpdir?: string): Promise<string | null> {
       `--token "${token}"`,
       repoHeadBranch ? `--repo-head-branch "${repoHeadBranch}"` : "",
       repoRoot ? `--repo-root "${repoRoot}"` : "",
-      team ? `--team "${team}"` : "",
       allowMissingJunitFiles,
       hideBanner,
       quarantine,
+      variant ? `--variant "${variant}"` : "",
+      useUnclonedRepo && useUnclonedRepo.toLowerCase() === "true"
+        ? "--use-uncloned-repo"
+        : "",
+      previousStepOutcome
+        ? `--test-process-exit-code="${previousStepOutcome}"`
+        : "",
       run ? `-- ${run}` : "",
     ].filter(Boolean);
 
     // Execute the command
     const command = args.join(" ");
-    execSync(command, { stdio: "inherit" });
+    const env = {
+      ...process.env,
+      PR_TITLE: prTitle,
+      GH_REPO_URL: ghRepoUrl,
+      GH_REPO_HEAD_SHA: ghRepoHeadSha,
+      GH_REPO_HEAD_BRANCH: ghRepoHeadBranch,
+      GH_REPO_HEAD_COMMIT_EPOCH: ghRepoHeadCommitEpoch,
+      GH_REPO_HEAD_AUTHOR_NAME: ghRepoHeadAuthorName,
+    };
+    execSync(command, { stdio: "inherit", env });
     return command;
   } catch (error: unknown) {
     // check if exec sync error

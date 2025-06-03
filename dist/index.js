@@ -25559,7 +25559,7 @@ module.exports = {
 /***/ ((module, __unused_webpack___webpack_exports__, __nccwpck_require__) => {
 
 __nccwpck_require__.a(module, async (__webpack_handle_async_dependencies__, __webpack_async_result__) => { try {
-/* harmony import */ var _lib__WEBPACK_IMPORTED_MODULE_0__ = __nccwpck_require__(2722);
+/* harmony import */ var _lib__WEBPACK_IMPORTED_MODULE_0__ = __nccwpck_require__(8727);
 
 await (0,_lib__WEBPACK_IMPORTED_MODULE_0__/* .main */ .i)();
 
@@ -25568,7 +25568,7 @@ __webpack_async_result__();
 
 /***/ }),
 
-/***/ 2722:
+/***/ 8727:
 /***/ ((__unused_webpack_module, __webpack_exports__, __nccwpck_require__) => {
 
 
@@ -25587,7 +25587,7 @@ var external_fs_ = __nccwpck_require__(9896);
 var external_path_ = __nccwpck_require__(6928);
 // EXTERNAL MODULE: external "os"
 var external_os_ = __nccwpck_require__(857);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/universal-user-agent@7.0.2/node_modules/universal-user-agent/index.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/universal-user-agent@7.0.3/node_modules/universal-user-agent/index.js
 function getUserAgent() {
   if (typeof navigator === "object" && "userAgent" in navigator) {
     return navigator.userAgent;
@@ -29644,21 +29644,23 @@ function getInputs() {
         orgSlug: core.getInput("org-slug"),
         token: core.getInput("token"),
         repoHeadBranch: core.getInput("repo-head-branch"),
+        run: core.getInput("run"),
         repoRoot: core.getInput("repo-root"),
-        team: core.getInput("team"),
+        cliVersion: core.getInput("cli-version") || "latest",
         xcresultPath: core.getInput("xcresult-path"),
         bazelBepPath: core.getInput("bazel-bep-path"),
-        cliVersion: core.getInput("cli-version") || "latest",
+        quarantine: parseBool(core.getInput("quarantine"), "--use-quarantining"),
         allowMissingJunitFiles: parseBool(core.getInput("allow-missing-junit-files"), "--allow-missing-junit-files"),
         hideBanner: parseBool(core.getInput("hide-banner"), "--hide-banner"),
-        quarantine: parseBool(core.getInput("quarantine"), "--use-quarantining"),
-        run: core.getInput("run"),
+        variant: core.getInput("variant"),
+        useUnclonedRepo: core.getInput("use-uncloned-repo"),
+        previousStepOutcome: core.getInput("previous-step-outcome"),
     };
 }
 async function main(tmpdir) {
     let bin = "";
     try {
-        const { junitPaths, orgSlug, token, repoHeadBranch, repoRoot, team, xcresultPath, bazelBepPath, cliVersion, allowMissingJunitFiles, hideBanner, quarantine, run, } = getInputs();
+        const { junitPaths, orgSlug, token, repoHeadBranch, run, repoRoot, cliVersion, xcresultPath, bazelBepPath, quarantine, allowMissingJunitFiles, hideBanner, variant, useUnclonedRepo, previousStepOutcome, } = getInputs();
         // Validate required inputs
         if (!junitPaths && !xcresultPath && !bazelBepPath) {
             throw new Error("Missing input files");
@@ -29697,17 +29699,23 @@ async function main(tmpdir) {
         const args = [
             downloadPath,
             run ? "test" : "upload",
-            junitPaths ? `--junit-paths "${junitPaths}"` : "",
-            xcresultPath ? `--xcresult-path "${xcresultPath}"` : "",
-            bazelBepPath ? `--bazel-bep-path "${bazelBepPath}"` : "",
-            `--org-url-slug "${orgSlug}"`,
-            `--token "${token}"`,
-            repoHeadBranch ? `--repo-head-branch "${repoHeadBranch}"` : "",
-            repoRoot ? `--repo-root "${repoRoot}"` : "",
-            team ? `--team "${team}"` : "",
+            junitPaths ? `--junit-paths \"${junitPaths}\"` : "",
+            xcresultPath ? `--xcresult-path \"${xcresultPath}\"` : "",
+            bazelBepPath ? `--bazel-bep-path \"${bazelBepPath}\"` : "",
+            `--org-url-slug \"${orgSlug}\"`,
+            `--token \"${token}\"`,
+            repoHeadBranch ? `--repo-head-branch \"${repoHeadBranch}\"` : "",
+            repoRoot ? `--repo-root \"${repoRoot}\"` : "",
             allowMissingJunitFiles,
             hideBanner,
             quarantine,
+            variant ? `--variant \"${variant}\"` : "",
+            useUnclonedRepo && useUnclonedRepo.toLowerCase() === "true"
+                ? "--use-uncloned-repo"
+                : "",
+            previousStepOutcome
+                ? `--test-process-exit-code=\"${previousStepOutcome}\"`
+                : "",
             run ? `-- ${run}` : "",
         ].filter(Boolean);
         // Execute the command
