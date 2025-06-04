@@ -5,20 +5,17 @@ import * as path from "path";
 import * as os from "os";
 import { Octokit } from "@octokit/rest";
 
-// Cleanup function to remove downloaded files
-function cleanup(bin: string, tmpdir?: string): void {
+// Cleanup to remove downloaded files
+const cleanup = (bin: string, dir: string = "."): void => {
   try {
-    if (tmpdir) {
-      fs.rmSync(tmpdir, { recursive: true, force: true });
+    if (fs.existsSync(path.join(dir, "trunk-analytics-cli"))) {
+      fs.unlinkSync(path.join(dir, "trunk-analytics-cli"));
     }
-    if (fs.existsSync("./trunk-analytics-cli")) {
-      fs.unlinkSync("./trunk-analytics-cli");
+    if (fs.existsSync(path.join(dir, "trunk-analytics-cli.tar.gz"))) {
+      fs.unlinkSync(path.join("trunk-analytics-cli.tar.gz"));
     }
-    if (fs.existsSync("./trunk-analytics-cli.tar.gz")) {
-      fs.unlinkSync("./trunk-analytics-cli.tar.gz");
-    }
-    if (fs.existsSync(`./trunk-analytics-cli-${bin}.tar.gz`)) {
-      fs.unlinkSync(`./trunk-analytics-cli-${bin}.tar.gz`);
+    if (fs.existsSync(path.join(dir, `trunk-analytics-cli-${bin}.tar.gz`))) {
+      fs.unlinkSync(path.join(dir, `trunk-analytics-cli-${bin}.tar.gz`));
     }
   } catch (error: unknown) {
     if (error instanceof Error) {
@@ -27,10 +24,10 @@ function cleanup(bin: string, tmpdir?: string): void {
       core.warning("Cleanup failed with unknown error");
     }
   }
-}
+};
 
 // Parse boolean input
-function parseBool(input: string | undefined, flag: string): string {
+export const parseBool = (input: string | undefined, flag: string): string => {
   if (!input) return "";
   const lowerInput = input.toLowerCase();
   if (lowerInput === "true") {
@@ -39,20 +36,20 @@ function parseBool(input: string | undefined, flag: string): string {
     return `${flag}=false`;
   }
   return "";
-}
+};
 
 interface GitHubAsset {
   name: string;
   url: string;
 }
 
-async function downloadRelease(
+const downloadRelease = async (
   owner: string,
   repo: string,
   version: string,
   bin: string,
   tmpdir?: string,
-): Promise<string> {
+): Promise<string> => {
   // Get the GitHub token from the environment
   const token = core.getInput("github-token");
   if (!token) {
@@ -91,9 +88,9 @@ async function downloadRelease(
   );
   core.info(`Downloaded ${assetName} from release ${version}`);
   return path.join(tmpdir ?? ".", assetName);
-}
+};
 
-function getInputs(): Record<string, string> {
+const getInputs = (): Record<string, string> => {
   return {
     junitPaths: core.getInput("junit-paths"),
     orgSlug: core.getInput("org-slug"),
@@ -120,9 +117,25 @@ function getInputs(): Record<string, string> {
     ghRepoHeadCommitEpoch: core.getInput("gh-repo-head-commit-epoch"),
     ghRepoHeadAuthorName: core.getInput("gh-repo-head-author-name"),
   };
-}
+};
 
-export async function main(tmpdir?: string): Promise<string | null> {
+export const parsePreviousStepOutcome = (previousStepOutcome?: string): number => {
+  if (!previousStepOutcome) {
+    return 0; // Default to success if not provided
+  }
+  switch (previousStepOutcome.toLowerCase()) {
+    case "success":
+    case "skipped":
+      return 0;
+    case "failure":
+    case "cancelled":
+      return 1;
+    default:
+      throw new Error(`Invalid previous step outcome: ${previousStepOutcome}`);
+  }
+};
+
+export const main = async (tmpdir?: string): Promise<string | null> => {
   let bin = "";
   try {
     const {
@@ -210,7 +223,7 @@ export async function main(tmpdir?: string): Promise<string | null> {
         ? "--use-uncloned-repo"
         : "",
       previousStepOutcome
-        ? `--test-process-exit-code="${previousStepOutcome}"`
+        ? `--test-process-exit-code="${parsePreviousStepOutcome(previousStepOutcome)}"`
         : "",
       run ? `-- ${run}` : "",
     ].filter(Boolean);
@@ -245,4 +258,4 @@ export async function main(tmpdir?: string): Promise<string | null> {
     cleanup(bin, tmpdir);
     core.debug("Cleanup complete");
   }
-}
+};

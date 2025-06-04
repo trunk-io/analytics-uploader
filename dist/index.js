@@ -25561,7 +25561,7 @@ module.exports = {
 __nccwpck_require__.a(module, async (__webpack_handle_async_dependencies__, __webpack_async_result__) => { try {
 /* harmony import */ var _lib__WEBPACK_IMPORTED_MODULE_0__ = __nccwpck_require__(8727);
 
-await (0,_lib__WEBPACK_IMPORTED_MODULE_0__/* .main */ .i)();
+await (0,_lib__WEBPACK_IMPORTED_MODULE_0__/* .main */ .iW)();
 
 __webpack_async_result__();
 } catch(e) { __webpack_async_result__(e); } }, 1);
@@ -25574,8 +25574,10 @@ __webpack_async_result__();
 
 // EXPORTS
 __nccwpck_require__.d(__webpack_exports__, {
-  i: () => (/* binding */ main)
+  iW: () => (/* binding */ main)
 });
+
+// UNUSED EXPORTS: parseBool, parsePreviousStepOutcome
 
 // EXTERNAL MODULE: ./node_modules/.pnpm/@actions+core@1.11.1/node_modules/@actions/core/lib/core.js
 var core = __nccwpck_require__(9999);
@@ -29574,20 +29576,17 @@ const dist_src_Octokit = Octokit.plugin(requestLog, legacyRestEndpointMethods, p
 
 
 
-// Cleanup function to remove downloaded files
-function cleanup(bin, tmpdir) {
+// Cleanup to remove downloaded files
+const cleanup = (bin, dir = ".") => {
     try {
-        if (tmpdir) {
-            external_fs_.rmSync(tmpdir, { recursive: true, force: true });
+        if (external_fs_.existsSync(external_path_.join(dir, "trunk-analytics-cli"))) {
+            external_fs_.unlinkSync(external_path_.join(dir, "trunk-analytics-cli"));
         }
-        if (external_fs_.existsSync("./trunk-analytics-cli")) {
-            external_fs_.unlinkSync("./trunk-analytics-cli");
+        if (external_fs_.existsSync(external_path_.join(dir, "trunk-analytics-cli.tar.gz"))) {
+            external_fs_.unlinkSync(external_path_.join("trunk-analytics-cli.tar.gz"));
         }
-        if (external_fs_.existsSync("./trunk-analytics-cli.tar.gz")) {
-            external_fs_.unlinkSync("./trunk-analytics-cli.tar.gz");
-        }
-        if (external_fs_.existsSync(`./trunk-analytics-cli-${bin}.tar.gz`)) {
-            external_fs_.unlinkSync(`./trunk-analytics-cli-${bin}.tar.gz`);
+        if (external_fs_.existsSync(external_path_.join(dir, `trunk-analytics-cli-${bin}.tar.gz`))) {
+            external_fs_.unlinkSync(external_path_.join(dir, `trunk-analytics-cli-${bin}.tar.gz`));
         }
     }
     catch (error) {
@@ -29598,9 +29597,9 @@ function cleanup(bin, tmpdir) {
             core.warning("Cleanup failed with unknown error");
         }
     }
-}
+};
 // Parse boolean input
-function parseBool(input, flag) {
+const parseBool = (input, flag) => {
     if (!input)
         return "";
     const lowerInput = input.toLowerCase();
@@ -29611,8 +29610,8 @@ function parseBool(input, flag) {
         return `${flag}=false`;
     }
     return "";
-}
-async function downloadRelease(owner, repo, version, bin, tmpdir) {
+};
+const downloadRelease = async (owner, repo, version, bin, tmpdir) => {
     // Get the GitHub token from the environment
     const token = core.getInput("github-token");
     if (!token) {
@@ -29637,8 +29636,8 @@ async function downloadRelease(owner, repo, version, bin, tmpdir) {
     external_fs_.writeFileSync(external_path_.join(tmpdir ?? ".", assetName), Buffer.from(response.data));
     core.info(`Downloaded ${assetName} from release ${version}`);
     return external_path_.join(tmpdir ?? ".", assetName);
-}
-function getInputs() {
+};
+const getInputs = () => {
     return {
         junitPaths: core.getInput("junit-paths"),
         orgSlug: core.getInput("org-slug"),
@@ -29662,8 +29661,23 @@ function getInputs() {
         ghRepoHeadCommitEpoch: core.getInput("gh-repo-head-commit-epoch"),
         ghRepoHeadAuthorName: core.getInput("gh-repo-head-author-name"),
     };
-}
-async function main(tmpdir) {
+};
+const parsePreviousStepOutcome = (previousStepOutcome) => {
+    if (!previousStepOutcome) {
+        return 0; // Default to success if not provided
+    }
+    switch (previousStepOutcome.toLowerCase()) {
+        case "success":
+        case "skipped":
+            return 0;
+        case "failure":
+        case "cancelled":
+            return 1;
+        default:
+            throw new Error(`Invalid previous step outcome: ${previousStepOutcome}`);
+    }
+};
+const main = async (tmpdir) => {
     let bin = "";
     try {
         const { junitPaths, orgSlug, token, repoHeadBranch, run, repoRoot, cliVersion, xcresultPath, bazelBepPath, quarantine, allowMissingJunitFiles, hideBanner, variant, useUnclonedRepo, previousStepOutcome, prTitle, ghRepoUrl, ghRepoHeadSha, ghRepoHeadBranch, ghRepoHeadCommitEpoch, ghRepoHeadAuthorName, } = getInputs();
@@ -29720,7 +29734,7 @@ async function main(tmpdir) {
                 ? "--use-uncloned-repo"
                 : "",
             previousStepOutcome
-                ? `--test-process-exit-code="${previousStepOutcome}"`
+                ? `--test-process-exit-code="${parsePreviousStepOutcome(previousStepOutcome)}"`
                 : "",
             run ? `-- ${run}` : "",
         ].filter(Boolean);
@@ -29756,7 +29770,7 @@ async function main(tmpdir) {
         cleanup(bin, tmpdir);
         core.debug("Cleanup complete");
     }
-}
+};
 
 
 /***/ }),

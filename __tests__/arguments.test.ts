@@ -6,7 +6,7 @@ import { jest } from "@jest/globals";
 import * as core from "../__fixtures__/core.js";
 jest.unstable_mockModule("@actions/core", () => core);
 
-const { main } = await import("../src/lib.js");
+const { parseBool, main, parsePreviousStepOutcome } = await import("../src/lib.js");
 
 const createEchoCli = async (tmpdir: string) => {
   await fs.writeFile(
@@ -15,6 +15,46 @@ const createEchoCli = async (tmpdir: string) => {
       echo -n $@`,
   );
 };
+
+describe("parseBool", () => {
+  it("returns empty string for undefined input", () => {
+    expect(parseBool(undefined, "--flag")).toBe("");
+  });
+
+  it("returns flag with true for 'true'", () => {
+    expect(parseBool("true", "--flag")).toBe("--flag=true");
+  });
+
+  it("returns flag with false for 'false'", () => {
+    expect(parseBool("false", "--flag")).toBe("--flag=false");
+  });
+
+  it("returns empty string for non-boolean input", () => {
+    expect(parseBool("not-a-boolean", "--flag")).toBe("");
+  });
+});
+
+describe("parsePreviousStepOutcome", () => {
+  it("returns 0 for 'success'", () => {
+    expect(parsePreviousStepOutcome("success")).toBe(0);
+  });
+
+  it("returns 0 for 'skipped'", () => {
+    expect(parsePreviousStepOutcome("skipped")).toBe(0);
+  });
+
+  it("returns 1 for 'failure'", () => {
+    expect(parsePreviousStepOutcome("failure")).toBe(1);
+  });
+
+  it("returns 1 for 'cancelled'", () => {
+    expect(parsePreviousStepOutcome("cancelled")).toBe(1);
+  });
+
+  it("throws for invalid value", () => {
+    expect(() => parsePreviousStepOutcome("not-a-status")).toThrow();
+  });
+});
 
 describe("Arguments", () => {
   afterEach(() => {
@@ -72,6 +112,9 @@ describe("Arguments", () => {
     expect(command).toMatch(
       `${tmpdir}/trunk-analytics-cli test --junit-paths "junit.xml" --org-url-slug "org" --token "token" -- exit 0`,
     );
+    // verify that the CLI is cleaned up after the command is run
+    const files = await fs.readdir(tmpdir);
+    expect(files).toEqual(expect.not.arrayContaining(["trunk-analytics-cli"]));
     await fs.rm(tmpdir, { recursive: true, force: true });
   });
 });
