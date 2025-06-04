@@ -18,9 +18,6 @@ inputs:
   run:
     description: The command to run before uploading test results.
     required: false
-  tags:
-    description: Comma separated list of custom tag=value pairs. This is deprecated and will be removed in a future release.
-    required: false
   repo-root:
     description: The root directory of the repository.
     required: false
@@ -28,9 +25,6 @@ inputs:
     description: The version of the uploader to use.
     required: false
     default: latest
-  team:
-    description: Value to tag team owner of upload.
-    required: false
   xcresult-path:
     description: Path to the xcresult directory.
     required: false
@@ -57,33 +51,30 @@ inputs:
   previous-step-outcome:
     description: The outcome of the previous step in the workflow. Set this equal to steps.[id].outcome where `[id]` is the id of the corresponding test run.
     required: false
+  # these are automatically grabbed inputs
+  # it is recommended to leave these as is and not specify them when running this action
+  github-token:
+    description: The GitHub token used to create an authenticated client
+    default: ${{ github.token }}
+  pr-title:
+    description: The Title of the Pull Request (if being run inside one)
+    default: ${{ github.event.pull_request.title }}
+  gh-repo-url:
+    description: The URL of the GitHub repo
+    default: ${{ github.event.pull_request.head.repo.html_url }}
+  gh-repo-head-sha:
+    description: The head commit of the pull request
+    default: ${{ github.event.pull_request.head.sha }}
+  gh-repo-head-branch:
+    description: The head branch of the pull request
+    default: ${{ github.event.pull_request.head.ref }}
+  gh-repo-head-commit-epoch:
+    description: The commit timestamp
+    default: ${{ github.event.pull_request.updated_at }}
+  gh-repo-head-author-name:
+    description: The actor triggering the action
+    default: ${{ github.actor }}
 
 runs:
-  using: composite
-  steps:
-    - name: Upload test results
-      run: ${GITHUB_ACTION_PATH}/script.sh ${{ inputs.run }}
-      shell: bash
-      env:
-        JUNIT_PATHS: ${{ inputs.junit-paths }}
-        ORG_URL_SLUG: ${{ inputs.org-slug }}
-        INPUT_TOKEN: ${{ inputs.token }}
-        REPO_HEAD_BRANCH: ${{ inputs.repo-head-branch }}
-        REPO_ROOT: ${{ inputs.repo-root }}
-        TAGS: ${{ inputs.tags }}
-        CLI_VERSION: ${{ inputs.cli-version }}
-        TEAM: ${{ inputs.team }}
-        QUARANTINE: ${{ inputs.quarantine }}
-        XCRESULT_PATH: ${{ inputs.xcresult-path }}
-        ALLOW_MISSING_JUNIT_FILES: ${{ inputs.allow-missing-junit-files }}
-        BAZEL_BEP_PATH: ${{ inputs.bazel-bep-path }}
-        PR_TITLE: ${{ github.event.pull_request.title }}
-        HIDE_BANNER: ${{ inputs.hide-banner }}
-        VARIANT: ${{ inputs.variant }}
-        USE_UNCLONED_REPO: ${{ inputs.use-uncloned-repo }}
-        GH_REPO_URL: ${{ github.event.pull_request.head.repo.html_url }}
-        GH_REPO_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        GH_REPO_HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
-        GH_REPO_HEAD_COMMIT_EPOCH: ${{ github.event.pull_request.updated_at }}
-        GH_REPO_HEAD_AUTHOR_NAME: ${{ github.actor }}
-        PREVIOUS_STEP_OUTCOME: ${{ inputs.previous-step-outcome }}
+  using: node20
+  main: dist/index.js
