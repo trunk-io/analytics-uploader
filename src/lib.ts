@@ -6,7 +6,7 @@ import * as os from "os";
 import { Octokit } from "@octokit/rest";
 
 // Cleanup to remove downloaded files
-const cleanup = (bin: string, dir: string = "."): void => {
+const cleanup = (bin: string, dir = "."): void => {
   try {
     if (fs.existsSync(path.join(dir, "trunk-analytics-cli"))) {
       fs.unlinkSync(path.join(dir, "trunk-analytics-cli"));
@@ -119,7 +119,9 @@ const getInputs = (): Record<string, string> => {
   };
 };
 
-export const parsePreviousStepOutcome = (previousStepOutcome?: string): number => {
+export const parsePreviousStepOutcome = (
+  previousStepOutcome?: string,
+): number => {
   if (!previousStepOutcome) {
     return 0; // Default to success if not provided
   }
@@ -223,7 +225,7 @@ export const main = async (tmpdir?: string): Promise<string | null> => {
         ? "--use-uncloned-repo"
         : "",
       previousStepOutcome
-        ? `--test-process-exit-code="${parsePreviousStepOutcome(previousStepOutcome)}"`
+        ? `--test-process-exit-code=${parsePreviousStepOutcome(previousStepOutcome).toString()}`
         : "",
       run ? `-- ${run}` : "",
     ].filter(Boolean);

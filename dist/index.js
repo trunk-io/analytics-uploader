@@ -29734,7 +29734,7 @@ const main = async (tmpdir) => {
                 ? "--use-uncloned-repo"
                 : "",
             previousStepOutcome
-                ? `--test-process-exit-code="${parsePreviousStepOutcome(previousStepOutcome)}"`
+                ? `--test-process-exit-code=${parsePreviousStepOutcome(previousStepOutcome).toString()}`
                 : "",
             run ? `-- ${run}` : "",
         ].filter(Boolean);

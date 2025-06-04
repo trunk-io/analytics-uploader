@@ -6,7 +6,9 @@ import { jest } from "@jest/globals";
 import * as core from "../__fixtures__/core.js";
 jest.unstable_mockModule("@actions/core", () => core);
 
-const { parseBool, main, parsePreviousStepOutcome } = await import("../src/lib.js");
+const { parseBool, main, parsePreviousStepOutcome } = await import(
+  "../src/lib.js"
+);
 
 const createEchoCli = async (tmpdir: string) => {
   await fs.writeFile(
@@ -83,6 +85,34 @@ describe("Arguments", () => {
     const command = await main(tmpdir);
     expect(command).toMatch(
       `${tmpdir}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token"`,
+    );
+    await fs.rm(tmpdir, { recursive: true, force: true });
+  });
+
+  it("Forwards inputs with previous step outcome - upload", async () => {
+    core.getInput.mockImplementation((name) => {
+      switch (name) {
+        case "junit-paths":
+          return "junit.xml";
+        case "org-slug":
+          return "org";
+        case "token":
+          return "token";
+        case "cli-version":
+          return "0.0.0";
+        case "previous-step-outcome":
+          return "success";
+        default:
+          return "";
+      }
+    });
+    const tmpdir = await fs.mkdtemp(
+      path.resolve(os.tmpdir(), "trunk-analytics-uploader-test-"),
+    );
+    await createEchoCli(tmpdir);
+    const command = await main(tmpdir);
+    expect(command).toMatch(
+      `${tmpdir}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token" --test-process-exit-code=0`,
     );
     await fs.rm(tmpdir, { recursive: true, force: true });
   });
