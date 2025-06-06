@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Run tests
-        id: unit-test
+        id: unit-tests
         # Execute your tests.
         run: mkdir -p target/path && touch target/path/junit_report.xml
         continue-on-error: true
