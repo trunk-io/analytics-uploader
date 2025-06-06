@@ -23,11 +23,12 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Run tests
+        id: unit-test
         # Execute your tests.
         run: mkdir -p target/path && touch target/path/junit_report.xml
+        continue-on-error: true
 
       - name: Upload results
-        if: "!cancelled()"
         uses: trunk-io/analytics-uploader@v1
         with:
           # Path to your test results.
@@ -40,7 +41,8 @@ jobs:
           # You can find Trunk token by navigating to app.trunk.io → Settings → Manage Organization → Organization API Token → View.
           # To add it as a GitHub secret, see https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions.
           token: ${{ secrets.TRUNK_API_TOKEN }}
-        continue-on-error: true
+          # The outcome of the testing step
+          previous-step-outcome: ${{ steps.unit-tests.outcome }}
 ```
 
 ## Arguments
@@ -70,6 +72,7 @@ jobs:
 | `cli-version`               | The version of the uploader to use.                                   | `latest` |
 | `quarantine`                | Whether or not to allow quarantining of failing tests.                |          |
 | `allow-missing-junit-files` | Whether or not to allow missing junit files in the upload invocation. | `true`   |
+| `previous-step-outcome`     | The previous step outcome, which is used as the result of this step   | `true`   |
 
 ## Questions
 
