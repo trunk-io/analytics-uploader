@@ -72,7 +72,7 @@ jobs:
 | `cli-version`               | The version of the uploader to use.                                   | `latest` |
 | `quarantine`                | Whether or not to allow quarantining of failing tests.                |          |
 | `allow-missing-junit-files` | Whether or not to allow missing junit files in the upload invocation. | `true`   |
-| `previous-step-outcome`     | The previous step outcome, which is used as the result of this step   | `true`   |
+| `previous-step-outcome`     | The previous step outcome, which is used as the result of this step   |          |
 
 ## Questions
 
