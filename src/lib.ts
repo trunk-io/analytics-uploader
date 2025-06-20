@@ -1,9 +1,30 @@
 import * as core from "@actions/core";
+import { context } from "@actions/github";
 import { execSync } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
 import { Octokit } from "@octokit/rest";
+import * as TelemetryPb from "./generated/telemetry_pb.js";
+import promiseRetry from "promise-retry";
+import { type OperationOptions } from "retry";
+
+const VERSION = {
+  major: 0,
+  minor: 1,
+  patch: 0,
+  suffix: "",
+};
+
+const TELEMETRY_ENDPOINT =
+  "https://telemetry.trunk.io/flakytests-uploader/upload-metrics";
+
+const TELEMETRY_RETRY = {
+  retries: 3,
+  minTimeout: 1000,
+  maxTimeout: 10000,
+  maxRetryTime: 10000,
+} satisfies OperationOptions;
 
 // Cleanup to remove downloaded files
 const cleanup = (bin: string, dir = "."): void => {
@@ -139,31 +160,32 @@ export const parsePreviousStepOutcome = (
 
 export const main = async (tmpdir?: string): Promise<string | null> => {
   let bin = "";
-  try {
-    const {
-      junitPaths,
-      orgSlug,
-      token,
-      repoHeadBranch,
-      run,
-      repoRoot,
-      cliVersion,
-      xcresultPath,
-      bazelBepPath,
-      quarantine,
-      allowMissingJunitFiles,
-      hideBanner,
-      variant,
-      useUnclonedRepo,
-      previousStepOutcome,
-      prTitle,
-      ghRepoUrl,
-      ghRepoHeadSha,
-      ghRepoHeadBranch,
-      ghRepoHeadCommitEpoch,
-      ghRepoHeadAuthorName,
-    } = getInputs();
 
+  const {
+    junitPaths,
+    orgSlug,
+    token,
+    repoHeadBranch,
+    run,
+    repoRoot,
+    cliVersion,
+    xcresultPath,
+    bazelBepPath,
+    quarantine,
+    allowMissingJunitFiles,
+    hideBanner,
+    variant,
+    useUnclonedRepo,
+    previousStepOutcome,
+    prTitle,
+    ghRepoUrl,
+    ghRepoHeadSha,
+    ghRepoHeadBranch,
+    ghRepoHeadCommitEpoch,
+    ghRepoHeadAuthorName,
+  } = getInputs();
+
+  try {
     // Validate required inputs
     if (!junitPaths && !xcresultPath && !bazelBepPath) {
       throw new Error("Missing input files");
@@ -242,22 +264,69 @@ export const main = async (tmpdir?: string): Promise<string | null> => {
       GH_REPO_HEAD_AUTHOR_NAME: ghRepoHeadAuthorName,
     };
     execSync(command, { stdio: "inherit", env });
+    await sendTelemetry(token);
     return command;
   } catch (error: unknown) {
     // check if exec sync error
+    let failureReason = "";
     if (error instanceof Error && error.message.includes("Command failed")) {
+      failureReason = error.message;
       core.setFailed(
         "A failure occurred while executing the command -- see above for details",
       );
     } else if (error instanceof Error) {
+      failureReason = error.message;
       core.setFailed(error.message);
     } else {
-      core.setFailed("An unknown error occurred");
+      const message = "An unknown error occurred";
+      failureReason = message;
+      core.setFailed(message);
     }
+    await sendTelemetry(token, failureReason);
     return null;
   } finally {
     core.debug("Cleaning up...");
     cleanup(bin, tmpdir);
     core.debug("Cleanup complete");
   }
+};
+
+const sendTelemetry = async (
+  apiToken: string,
+  failureReason?: string,
+): Promise<void> => {
+  const uploaderVersion = new TelemetryPb.Semver();
+  uploaderVersion.setMajor(VERSION.major);
+  uploaderVersion.setMinor(VERSION.minor);
+  uploaderVersion.setPatch(VERSION.patch);
+  uploaderVersion.setSuffix(VERSION.suffix);
+
+  const repo = new TelemetryPb.Repo();
+  repo.setHost("github.com");
+  repo.setOwner(context.repo.owner);
+  repo.setName(context.repo.repo);
+
+  const message = new TelemetryPb.UploaderUploadMetrics();
+  message.setUploaderVersion(uploaderVersion);
+  message.setRepo(repo);
+  if (failureReason) {
+    message.setFailed(true);
+    message.setFailureReason(failureReason);
+  } else {
+    message.setFailed(false);
+  }
+
+  await promiseRetry(async (retry) => {
+    const response = await fetch(TELEMETRY_ENDPOINT, {
+      method: "POST",
+      body: message.serializeBinary(),
+      headers: {
+        "Content-Type": "application/x-protobuf",
+        "x-api-token": apiToken,
+      },
+    });
+    if (!response.ok) {
+      retry(response);
+    }
+  }, TELEMETRY_RETRY);
 };
