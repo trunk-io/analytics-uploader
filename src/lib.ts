@@ -5,7 +5,7 @@ import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
 import { Octokit } from "@octokit/rest";
-import * as TelemetryPb from "./generated/telemetry_pb.js";
+import * as TelemetryPb from "../generated/telemetry_pb.js";
 import promiseRetry from "promise-retry";
 import { type OperationOptions } from "retry";
 

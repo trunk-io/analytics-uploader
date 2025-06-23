@@ -19,11 +19,10 @@ export class Semver extends jspb.Message {
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): Semver.AsObject;
   static toObject(includeInstance: boolean, msg: Semver): Semver.AsObject;
-  static extensions: Record<number, jspb.ExtensionFieldInfo<jspb.Message>>;
-  static extensionsBinary: Record<
-    number,
-    jspb.ExtensionFieldBinaryInfo<jspb.Message>
-  >;
+  static extensions: { [key: number]: jspb.ExtensionFieldInfo<jspb.Message> };
+  static extensionsBinary: {
+    [key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>;
+  };
   static serializeBinaryToWriter(
     message: Semver,
     writer: jspb.BinaryWriter,
@@ -36,12 +35,12 @@ export class Semver extends jspb.Message {
 }
 
 export namespace Semver {
-  export interface AsObject {
+  export type AsObject = {
     major: number;
     minor: number;
     patch: number;
     suffix: string;
-  }
+  };
 }
 
 export class Repo extends jspb.Message {
@@ -57,11 +56,10 @@ export class Repo extends jspb.Message {
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): Repo.AsObject;
   static toObject(includeInstance: boolean, msg: Repo): Repo.AsObject;
-  static extensions: Record<number, jspb.ExtensionFieldInfo<jspb.Message>>;
-  static extensionsBinary: Record<
-    number,
-    jspb.ExtensionFieldBinaryInfo<jspb.Message>
-  >;
+  static extensions: { [key: number]: jspb.ExtensionFieldInfo<jspb.Message> };
+  static extensionsBinary: {
+    [key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>;
+  };
   static serializeBinaryToWriter(
     message: Repo,
     writer: jspb.BinaryWriter,
@@ -74,11 +72,11 @@ export class Repo extends jspb.Message {
 }
 
 export namespace Repo {
-  export interface AsObject {
+  export type AsObject = {
     host: string;
     owner: string;
     name: string;
-  }
+  };
 }
 
 export class UploaderUploadMetrics extends jspb.Message {
@@ -104,11 +102,10 @@ export class UploaderUploadMetrics extends jspb.Message {
     includeInstance: boolean,
     msg: UploaderUploadMetrics,
   ): UploaderUploadMetrics.AsObject;
-  static extensions: Record<number, jspb.ExtensionFieldInfo<jspb.Message>>;
-  static extensionsBinary: Record<
-    number,
-    jspb.ExtensionFieldBinaryInfo<jspb.Message>
-  >;
+  static extensions: { [key: number]: jspb.ExtensionFieldInfo<jspb.Message> };
+  static extensionsBinary: {
+    [key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>;
+  };
   static serializeBinaryToWriter(
     message: UploaderUploadMetrics,
     writer: jspb.BinaryWriter,
@@ -121,10 +118,10 @@ export class UploaderUploadMetrics extends jspb.Message {
 }
 
 export namespace UploaderUploadMetrics {
-  export interface AsObject {
+  export type AsObject = {
     uploaderVersion?: Semver.AsObject;
     repo?: Repo.AsObject;
     failed: boolean;
     failureReason: string;
-  }
+  };
 }

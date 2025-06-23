@@ -1,6 +1,5 @@
 syntax = "proto3";
 
-/* trunk-ignore(buf-lint/PACKAGE_DIRECTORY_MATCH) */
 package trunk.analytics_uploader.telemetry.v1;
 
 message Semver {
