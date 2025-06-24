@@ -1,14 +1,14 @@
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { beforeEach, jest } from "@jest/globals";
-import fetch from "jest-fetch-mock";
-import fetchMock from "jest-fetch-mock";
+import { jest } from "@jest/globals";
 
 import * as core from "../__fixtures__/core.js";
 import * as github from "../__fixtures__/github.js";
+import * as nodeFetch from "../__fixtures__/node_fetch.js";
 jest.unstable_mockModule("@actions/core", () => core);
 jest.unstable_mockModule("@actions/github", () => github);
+jest.unstable_mockModule("node-fetch", () => nodeFetch);
 
 const { parseBool, main, parsePreviousStepOutcome } = await import(
   "../src/lib.js"
@@ -21,11 +21,6 @@ const createEchoCli = async (tmpdir: string) => {
       echo -n $@`,
   );
 };
-
-beforeEach(() => {
-  fetchMock.doMock();
-  fetch.mockResponse(JSON.stringify({ ok: true }));
-});
 
 describe("parseBool", () => {
   it("returns empty string for undefined input", () => {

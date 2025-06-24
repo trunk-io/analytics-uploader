@@ -8,6 +8,8 @@ import { Octokit } from "@octokit/rest";
 import promiseRetry from "promise-retry";
 import { type OperationOptions } from "retry";
 import protobuf from "protobufjs";
+import fetch from "node-fetch";
+import { Buffer } from "node:buffer";
 
 const VERSION = {
   major: 0,
@@ -338,7 +340,7 @@ const sendTelemetry = async (
   await promiseRetry(async (retry) => {
     const response = await fetch(TELEMETRY_ENDPOINT, {
       method: "POST",
-      body: buffer,
+      body: Buffer.from(buffer),
       headers: {
         "Content-Type": "application/x-protobuf",
         "x-api-token": apiToken,
