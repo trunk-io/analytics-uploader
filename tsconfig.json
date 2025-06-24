@@ -113,6 +113,7 @@
     "jest.config.mjs",
     "__tests__/**/*.ts",
     "src/**/*.ts",
-    "__fixtures__/**/*.ts"
+    "__fixtures__/**/*.ts",
+    "setup_jest.mjs"
   ]
 }

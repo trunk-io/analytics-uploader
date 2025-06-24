@@ -297,17 +297,19 @@ const sendTelemetry = async (
 ): Promise<void> => {
   const root = await protobuf.load("src/proto/v1/telemetry.proto");
 
-  var Semver = root?.lookupType("trunk.analytics_uploader.telemetry.v1.Semver");
+  const Semver = root?.lookupType(
+    "trunk.analytics_uploader.telemetry.v1.Semver",
+  );
   if (!Semver) {
     throw new Error("Semver protobuf is not available");
   }
 
-  var Repo = root?.lookupType("trunk.analytics_uploader.telemetry.v1.Repo");
+  const Repo = root?.lookupType("trunk.analytics_uploader.telemetry.v1.Repo");
   if (!Repo) {
     throw new Error("Repo protobuf is not available");
   }
 
-  var UploaderUploadMetrics = root?.lookupType(
+  const UploaderUploadMetrics = root?.lookupType(
     "trunk.analytics_uploader.telemetry.v1.UploaderUploadMetrics",
   );
   if (!UploaderUploadMetrics) {
