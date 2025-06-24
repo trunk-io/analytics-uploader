@@ -44274,18 +44274,9 @@ const main = async (tmpdir) => {
 };
 const sendTelemetry = async (apiToken, failureReason) => {
     const root = await protobufjs_default().load("src/proto/v1/telemetry.proto");
-    const Semver = root?.lookupType("trunk.analytics_uploader.telemetry.v1.Semver");
-    if (!Semver) {
-        throw new Error("Semver protobuf is not available");
-    }
-    const Repo = root?.lookupType("trunk.analytics_uploader.telemetry.v1.Repo");
-    if (!Repo) {
-        throw new Error("Repo protobuf is not available");
-    }
-    const UploaderUploadMetrics = root?.lookupType("trunk.analytics_uploader.telemetry.v1.UploaderUploadMetrics");
-    if (!UploaderUploadMetrics) {
-        throw new Error("UploaderUploadMetrics protobuf is not available");
-    }
+    const Semver = root.lookupType("trunk.analytics_uploader.telemetry.v1.Semver");
+    const Repo = root.lookupType("trunk.analytics_uploader.telemetry.v1.Repo");
+    const UploaderUploadMetrics = root.lookupType("trunk.analytics_uploader.telemetry.v1.UploaderUploadMetrics");
     const uploaderVersion = Semver.create({
         major: lib_VERSION.major,
         minor: lib_VERSION.minor,
