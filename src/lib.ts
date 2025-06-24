@@ -5,9 +5,9 @@ import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
 import { Octokit } from "@octokit/rest";
-import * as TelemetryPb from "../generated/telemetry_pb.js";
 import promiseRetry from "promise-retry";
 import { type OperationOptions } from "retry";
+import protobuf from "protobufjs";
 
 const VERSION = {
   major: 0,
@@ -295,31 +295,57 @@ const sendTelemetry = async (
   apiToken: string,
   failureReason?: string,
 ): Promise<void> => {
-  const uploaderVersion = new TelemetryPb.Semver();
-  uploaderVersion.setMajor(VERSION.major);
-  uploaderVersion.setMinor(VERSION.minor);
-  uploaderVersion.setPatch(VERSION.patch);
-  uploaderVersion.setSuffix(VERSION.suffix);
+  const root = await protobuf.load("src/proto/v1/telemetry.proto");
 
-  const repo = new TelemetryPb.Repo();
-  repo.setHost("github.com");
-  repo.setOwner(context.repo.owner);
-  repo.setName(context.repo.repo);
-
-  const message = new TelemetryPb.UploaderUploadMetrics();
-  message.setUploaderVersion(uploaderVersion);
-  message.setRepo(repo);
-  if (failureReason) {
-    message.setFailed(true);
-    message.setFailureReason(failureReason);
-  } else {
-    message.setFailed(false);
+  var Semver = root?.lookupType("trunk.analytics_uploader.telemetry.v1.Semver");
+  if (!Semver) {
+    throw new Error("Semver protobuf is not available");
   }
 
+  var Repo = root?.lookupType("trunk.analytics_uploader.telemetry.v1.Repo");
+  if (!Repo) {
+    throw new Error("Repo protobuf is not available");
+  }
+
+  var UploaderUploadMetrics = root?.lookupType(
+    "trunk.analytics_uploader.telemetry.v1.UploaderUploadMetrics",
+  );
+  if (!UploaderUploadMetrics) {
+    throw new Error("UploaderUploadMetrics protobuf is not available");
+  }
+
+  const uploaderVersion = Semver.create({
+    major: VERSION.major,
+    minor: VERSION.minor,
+    patch: VERSION.patch,
+    suffix: VERSION.suffix,
+  });
+
+  const repo = Repo.create({
+    host: "github.com",
+    owner: context.repo.owner,
+    name: context.repo.repo,
+  });
+
+  let failed = false;
+  let failureReasonMessage: string | undefined = undefined;
+  if (failureReason) {
+    failed = true;
+    failureReasonMessage = failureReason;
+  }
+
+  const message = UploaderUploadMetrics.create({
+    uploaderVersion: uploaderVersion,
+    repo,
+    failed,
+    failureReasonMessage,
+  });
+
+  const buffer = UploaderUploadMetrics.encode(message).finish();
   await promiseRetry(async (retry) => {
     const response = await fetch(TELEMETRY_ENDPOINT, {
       method: "POST",
-      body: message.serializeBinary(),
+      body: buffer,
       headers: {
         "Content-Type": "application/x-protobuf",
         "x-api-token": apiToken,

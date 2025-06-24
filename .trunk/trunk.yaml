@@ -36,7 +36,6 @@ lint:
     - linters: [ALL]
       paths:
         - dist
-        - generated
 actions:
   definitions:
     - id: build-pre-commit

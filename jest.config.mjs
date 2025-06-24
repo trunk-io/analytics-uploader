@@ -17,6 +17,8 @@ const config = {
       },
     ],
   },
+  automock: false,
+  setupFiles: ["./setup_jest.js"],
 };
 
 export default config;
