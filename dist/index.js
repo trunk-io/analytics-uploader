@@ -51229,13 +51229,13 @@ const sendTelemetry = async (apiToken, failureReason) => {
         failureReasonMessage = failureReason;
     }
     const message = UploaderUploadMetrics.create({
-        uploaderVersion: uploaderVersion,
+        uploader_version: uploaderVersion,
         repo,
         failed,
-        failureReasonMessage,
+        failure_reason: failureReasonMessage,
     });
     core.error(`message was ${JSON.stringify(UploaderUploadMetrics.toObject(message))}`);
-    const arr = new Uint8Array(46);
+    /*const arr = new Uint8Array(46);
     arr[0] = 10;
     arr[1] = 8;
     arr[2] = 8;
@@ -51293,8 +51293,8 @@ const sendTelemetry = async (apiToken, failureReason) => {
     arr[54] = 24;
     arr[55] = 0;
     arr[56] = 34;
-    arr[57] = 0;
-    const buffer = arr; //UploaderUploadMetrics.encode(message).finish();
+    arr[57] = 0;*/
+    const buffer = UploaderUploadMetrics.encode(message).finish();
     core.error(`Buffer was ${buffer}`);
     await promise_retry_default()(async (retry) => {
         const response = await fetch(TELEMETRY_ENDPOINT, {
