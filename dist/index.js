@@ -51186,6 +51186,14 @@ const main = async (tmpdir) => {
     }
 };
 const sendTelemetry = async (apiToken, failureReason) => {
+    // This uses protobufjs's reflection library to define the protobuf in-code.
+    // We do this as the easiest of the following:
+    // - standard protoc builds from a proto file require a number of regex substitutions
+    //   in order to port protoc's generated code to esm modules, which requires adding a
+    //   bunch of extra build complexity for what should ultimately be a simple package
+    // - using protobufjs's load function to load a proto file uses XMLHttpRequest to load
+    //   files, which is not available in the environment Github Actions run in
+    // - this, which is a bit unique, but is directly usable.
     const Semver = new (protobufjs_default()).Type("Semver")
         .add(new (protobufjs_default()).Field("major", 1, "uint32"))
         .add(new (protobufjs_default()).Field("minor", 2, "uint32"))
@@ -51202,11 +51210,6 @@ const sendTelemetry = async (apiToken, failureReason) => {
         .add(new (protobufjs_default()).Field("failure_reason", 4, "string"))
         .add(Semver)
         .add(Repo);
-    /*const root = new protobuf.Root()
-      .define("trunk.analytics_uploader.telemetry.v1")
-      .add(Semver)
-      .add(Repo)
-      .add(UploaderUploadMetrics);*/
     const uploaderVersion = Semver.create({
         major: lib_VERSION.major,
         minor: lib_VERSION.minor,
