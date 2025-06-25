@@ -51216,7 +51216,6 @@ const sendTelemetry = async (apiToken, failureReason) => {
         patch: lib_VERSION.patch,
         suffix: lib_VERSION.suffix,
     });
-    core.error(`uploader version was ${JSON.stringify(Semver.toObject(uploaderVersion))}`);
     const repo = Repo.create({
         host: "github.com",
         owner: github.context.repo.owner,
@@ -51234,68 +51233,7 @@ const sendTelemetry = async (apiToken, failureReason) => {
         failed,
         failure_reason: failureReasonMessage,
     });
-    core.error(`message was ${JSON.stringify(UploaderUploadMetrics.toObject(message))}`);
-    /*const arr = new Uint8Array(46);
-    arr[0] = 10;
-    arr[1] = 8;
-    arr[2] = 8;
-    arr[3] = 0;
-    arr[4] = 16;
-    arr[5] = 1;
-    arr[6] = 24;
-    arr[7] = 0;
-    arr[8] = 34;
-    arr[9] = 0;
-    arr[10] = 18;
-    arr[11] = 42;
-    arr[12] = 10;
-    arr[13] = 10;
-    arr[14] = 103;
-    arr[15] = 105;
-    arr[16] = 116;
-    arr[17] = 104;
-    arr[18] = 117;
-    arr[19] = 98;
-    arr[20] = 46;
-    arr[21] = 99;
-    arr[22] = 111;
-    arr[23] = 109;
-    arr[24] = 18;
-    arr[25] = 8;
-    arr[26] = 116;
-    arr[27] = 114;
-    arr[28] = 117;
-    arr[29] = 110;
-    arr[30] = 107;
-    arr[31] = 45;
-    arr[32] = 105;
-    arr[33] = 111;
-    arr[34] = 26;
-    arr[35] = 18;
-    arr[36] = 97;
-    arr[37] = 110;
-    arr[38] = 97;
-    arr[39] = 108;
-    arr[40] = 121;
-    arr[41] = 116;
-    arr[42] = 105;
-    arr[43] = 99;
-    arr[44] = 115;
-    arr[45] = 45;
-    arr[46] = 117;
-    arr[47] = 112;
-    arr[48] = 108;
-    arr[49] = 111;
-    arr[50] = 97;
-    arr[51] = 100;
-    arr[52] = 101;
-    arr[53] = 114;
-    arr[54] = 24;
-    arr[55] = 0;
-    arr[56] = 34;
-    arr[57] = 0;*/
     const buffer = UploaderUploadMetrics.encode(message).finish();
-    core.error(`Buffer was ${buffer}`);
     await promise_retry_default()(async (retry) => {
         const response = await fetch(TELEMETRY_ENDPOINT, {
             method: "POST",
