@@ -312,7 +312,9 @@ const sendTelemetry = async (
     .add(new protobuf.Field("uploader_version", 1, "Semver"))
     .add(new protobuf.Field("repo", 2, "Repo"))
     .add(new protobuf.Field("failed", 3, "bool"))
-    .add(new protobuf.Field("failure_reason", 4, "string"));
+    .add(new protobuf.Field("failure_reason", 4, "string"))
+    .add(Semver)
+    .add(Repo);
 
   /*const root = new protobuf.Root()
     .define("trunk.analytics_uploader.telemetry.v1")

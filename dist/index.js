@@ -51199,7 +51199,9 @@ const sendTelemetry = async (apiToken, failureReason) => {
         .add(new (protobufjs_default()).Field("uploader_version", 1, "Semver"))
         .add(new (protobufjs_default()).Field("repo", 2, "Repo"))
         .add(new (protobufjs_default()).Field("failed", 3, "bool"))
-        .add(new (protobufjs_default()).Field("failure_reason", 4, "string"));
+        .add(new (protobufjs_default()).Field("failure_reason", 4, "string"))
+        .add(Semver)
+        .add(Repo);
     /*const root = new protobuf.Root()
       .define("trunk.analytics_uploader.telemetry.v1")
       .add(Semver)
