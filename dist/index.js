@@ -50976,7 +50976,7 @@ const lib_VERSION = {
     patch: 0,
     suffix: "",
 };
-const TELEMETRY_ENDPOINT = "https://telemetry.api.dev.trunk-staging.io/v1/flakytests-uploader/upload-metrics";
+const TELEMETRY_ENDPOINT = "https://telemetry.api.trunk.io/v1/flakytests-uploader/upload-metrics";
 const TELEMETRY_RETRY = {
     retries: 3,
     minTimeout: 1000,

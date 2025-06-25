@@ -19,7 +19,7 @@ const VERSION = {
 };
 
 const TELEMETRY_ENDPOINT =
-  "https://telemetry.api.dev.trunk-staging.io/v1/flakytests-uploader/upload-metrics";
+  "https://telemetry.api.trunk.io/v1/flakytests-uploader/upload-metrics";
 
 const TELEMETRY_RETRY = {
   retries: 3,
