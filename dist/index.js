@@ -51186,10 +51186,25 @@ const main = async (tmpdir) => {
     }
 };
 const sendTelemetry = async (apiToken, failureReason) => {
-    const root = await protobufjs_default().load("src/proto/v1/telemetry.proto");
-    const Semver = root.lookupType("trunk.analytics_uploader.telemetry.v1.Semver");
-    const Repo = root.lookupType("trunk.analytics_uploader.telemetry.v1.Repo");
-    const UploaderUploadMetrics = root.lookupType("trunk.analytics_uploader.telemetry.v1.UploaderUploadMetrics");
+    const Semver = new (protobufjs_default()).Type("Semver")
+        .add(new (protobufjs_default()).Field("major", 1, "uint32"))
+        .add(new (protobufjs_default()).Field("minor", 2, "uint32"))
+        .add(new (protobufjs_default()).Field("patch", 3, "uint32"))
+        .add(new (protobufjs_default()).Field("suffix", 4, "string"));
+    const Repo = new (protobufjs_default()).Type("Repo")
+        .add(new (protobufjs_default()).Field("host", 1, "string"))
+        .add(new (protobufjs_default()).Field("owner", 2, "string"))
+        .add(new (protobufjs_default()).Field("name", 3, "string"));
+    const UploaderUploadMetrics = new (protobufjs_default()).Type("UploaderUploadMetrics")
+        .add(new (protobufjs_default()).Field("uploader_version", 1, "Semver"))
+        .add(new (protobufjs_default()).Field("repo", 2, "Repo"))
+        .add(new (protobufjs_default()).Field("failed", 3, "bool"))
+        .add(new (protobufjs_default()).Field("failure_reason", 4, "string"));
+    /*const root = new protobuf.Root()
+      .define("trunk.analytics_uploader.telemetry.v1")
+      .add(Semver)
+      .add(Repo)
+      .add(UploaderUploadMetrics);*/
     const uploaderVersion = Semver.create({
         major: lib_VERSION.major,
         minor: lib_VERSION.minor,
