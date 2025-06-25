@@ -51233,7 +51233,8 @@ const sendTelemetry = async (apiToken, failureReason) => {
         failed,
         failureReasonMessage,
     });
-    const buffer = UploaderUploadMetrics.encodeDelimited(message).finish();
+    const buffer = UploaderUploadMetrics.encode(message).finish();
+    core.debug(`Buffer was ${buffer}`);
     await promise_retry_default()(async (retry) => {
         const response = await fetch(TELEMETRY_ENDPOINT, {
             method: "POST",
