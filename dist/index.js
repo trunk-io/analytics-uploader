@@ -51176,19 +51176,7 @@ const main = async (tmpdir) => {
             failureReason = message;
             core.setFailed(message);
         }
-        try {
-            await sendTelemetry(token, failureReason);
-        }
-        catch (error) {
-            // Swallow telemetry, as telemetry is not critical path and failures should not
-            // show up in a user's build log.
-            if (error instanceof Error) {
-                core.debug(`Telemetry upload failed with error ${error.message}`);
-            }
-            else {
-                core.debug("Telemetry upload failed with unknown error");
-            }
-        }
+        await sendTelemetry(token, failureReason);
         return null;
     }
     finally {
@@ -51246,19 +51234,31 @@ const sendTelemetry = async (apiToken, failureReason) => {
         failure_reason: failureReasonMessage,
     });
     const buffer = UploaderUploadMetrics.encode(message).finish();
-    await promise_retry_default()(async (retry) => {
-        const response = await fetch(TELEMETRY_ENDPOINT, {
-            method: "POST",
-            body: external_node_buffer_namespaceObject.Buffer.from(buffer),
-            headers: {
-                "Content-Type": "application/x-protobuf",
-                "x-api-token": apiToken,
-            },
-        });
-        if (!response.ok) {
-            retry(response);
+    try {
+        await promise_retry_default()(async (retry) => {
+            const response = await fetch(TELEMETRY_ENDPOINT, {
+                method: "POST",
+                body: external_node_buffer_namespaceObject.Buffer.from(buffer),
+                headers: {
+                    "Content-Type": "application/x-protobuf",
+                    "x-api-token": apiToken,
+                },
+            });
+            if (!response.ok) {
+                retry(response);
+            }
+        }, TELEMETRY_RETRY);
+    }
+    catch (error) {
+        // Swallow telemetry, as telemetry is not critical path and failures should not
+        // show up in a user's build log.
+        if (error instanceof Error) {
+            core.debug(`Telemetry upload failed with error ${error.message}`);
         }
-    }, TELEMETRY_RETRY);
+        else {
+            core.debug("Telemetry upload failed with unknown error");
+        }
+    }
 };
 
 

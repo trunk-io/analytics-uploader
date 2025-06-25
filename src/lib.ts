@@ -284,17 +284,7 @@ export const main = async (tmpdir?: string): Promise<string | null> => {
       failureReason = message;
       core.setFailed(message);
     }
-    try {
-      await sendTelemetry(token, failureReason);
-    } catch (error: unknown) {
-      // Swallow telemetry, as telemetry is not critical path and failures should not
-      // show up in a user's build log.
-      if (error instanceof Error) {
-        core.debug(`Telemetry upload failed with error ${error.message}`);
-      } else {
-        core.debug("Telemetry upload failed with unknown error");
-      }
-    }
+    await sendTelemetry(token, failureReason);
     return null;
   } finally {
     core.debug("Cleaning up...");
@@ -362,17 +352,27 @@ const sendTelemetry = async (
   });
 
   const buffer = UploaderUploadMetrics.encode(message).finish();
-  await promiseRetry(async (retry) => {
-    const response = await fetch(TELEMETRY_ENDPOINT, {
-      method: "POST",
-      body: Buffer.from(buffer),
-      headers: {
-        "Content-Type": "application/x-protobuf",
-        "x-api-token": apiToken,
-      },
-    });
-    if (!response.ok) {
-      retry(response);
+  try {
+    await promiseRetry(async (retry) => {
+      const response = await fetch(TELEMETRY_ENDPOINT, {
+        method: "POST",
+        body: Buffer.from(buffer),
+        headers: {
+          "Content-Type": "application/x-protobuf",
+          "x-api-token": apiToken,
+        },
+      });
+      if (!response.ok) {
+        retry(response);
+      }
+    }, TELEMETRY_RETRY);
+  } catch (error: unknown) {
+    // Swallow telemetry, as telemetry is not critical path and failures should not
+    // show up in a user's build log.
+    if (error instanceof Error) {
+      core.debug(`Telemetry upload failed with error ${error.message}`);
+    } else {
+      core.debug("Telemetry upload failed with unknown error");
     }
-  }, TELEMETRY_RETRY);
+  }
 };
