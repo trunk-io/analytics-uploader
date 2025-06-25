@@ -1,4 +1,4 @@
-export default async (x: string, y: any) => {
+export default async () => {
   return Promise.resolve({
     ok: true,
   });
