@@ -51186,7 +51186,7 @@ const main = async (tmpdir) => {
                 core.debug(`Telemetry upload failed with error ${error.message}`);
             }
             else {
-                core.debug(`Telemetry upload failed with unknown error ${error}`);
+                core.debug("Telemetry upload failed with unknown error");
             }
         }
         return null;

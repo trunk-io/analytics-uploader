@@ -292,7 +292,7 @@ export const main = async (tmpdir?: string): Promise<string | null> => {
       if (error instanceof Error) {
         core.debug(`Telemetry upload failed with error ${error.message}`);
       } else {
-        core.debug(`Telemetry upload failed with unknown error ${error}`);
+        core.debug("Telemetry upload failed with unknown error");
       }
     }
     return null;
