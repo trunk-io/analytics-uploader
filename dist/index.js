@@ -51176,7 +51176,19 @@ const main = async (tmpdir) => {
             failureReason = message;
             core.setFailed(message);
         }
-        await sendTelemetry(token, failureReason);
+        try {
+            await sendTelemetry(token, failureReason);
+        }
+        catch (error) {
+            // Swallow telemetry, as telemetry is not critical path and failures should not
+            // show up in a user's build log.
+            if (error instanceof Error) {
+                core.debug(`Telemetry upload failed with error ${error.message}`);
+            }
+            else {
+                core.debug(`Telemetry upload failed with unknown error ${error}`);
+            }
+        }
         return null;
     }
     finally {
