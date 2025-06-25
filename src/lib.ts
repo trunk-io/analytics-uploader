@@ -352,7 +352,7 @@ const sendTelemetry = async (
   });
 
   const buffer = UploaderUploadMetrics.encode(message).finish();
-  core.debug(`Buffer was ${buffer}`);
+  core.error(`Buffer was ${buffer}`);
   await promiseRetry(async (retry) => {
     const response = await fetch(TELEMETRY_ENDPOINT, {
       method: "POST",
