@@ -289,7 +289,7 @@ export const main = async (tmpdir?: string): Promise<string | null> => {
       failureReason = message;
       core.setFailed(message);
     } else if (error instanceof Error) {
-      failureReason = error.message;
+      failureReason = error.message.substring(0, 100);
       core.setFailed(error.message);
     } else {
       const message = "An unknown error occurred";

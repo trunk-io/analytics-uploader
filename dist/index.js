@@ -51222,7 +51222,7 @@ const main = async (tmpdir) => {
             core.setFailed(message);
         }
         else if (error instanceof Error) {
-            failureReason = error.message;
+            failureReason = error.message.substring(0, 100);
             core.setFailed(error.message);
         }
         else {
