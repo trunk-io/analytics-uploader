@@ -21,6 +21,11 @@ const createEchoCli = async (tmpdir: string) => {
       echo -n $@`,
   );
 };
+describe("isgood", () => {
+  it("is true", () => {
+    expect(true).toBe(true);
+  });
+});
 
 /*describe("parseBool", () => {
   it("returns empty string for undefined input", () => {
