@@ -51164,6 +51164,7 @@ const main = async (tmpdir) => {
         // check if exec sync error
         let failureReason = undefined;
         if (error instanceof Error && error.message.includes("Command failed")) {
+            core.error(`Had an error with message ${error.message}`);
             if (error.message.includes("exit code 70")) {
                 // Exit code 70 is the system exit that occurs when the cli download/run has actual issues,
                 // as opposed to codes like 1 which are emitted by the cli when tests fail - since tests failing
@@ -51176,10 +51177,12 @@ const main = async (tmpdir) => {
             core.setFailed("A failure occurred while executing the command -- see above for details");
         }
         else if (error instanceof Error) {
+            core.error(`Had a non Command failed error with message ${error.message}`);
             failureReason = error.message;
             core.setFailed(error.message);
         }
         else {
+            core.error(`Had a toast error ${JSON.stringify(error)}`);
             const message = "An unknown error occurred";
             failureReason = message;
             core.setFailed(message);
