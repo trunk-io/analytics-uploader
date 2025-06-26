@@ -51118,7 +51118,7 @@ const main = async (tmpdir) => {
             core.info("Downloading trunk-analytics-cli...");
             const release = await downloadRelease("trunk-io", "analytics-cli", cliVersion, bin, tmpdir);
             core.info("Download complete, extracting...");
-            (0,external_child_process_.execSync)(`tarry -xvzf ${release}`, { stdio: "inherit" });
+            (0,external_child_process_.execSync)(`tar -xvzf ${release}`, { stdio: "inherit" });
             core.info("Extraction complete");
         }
         external_fs_.chmodSync(downloadPath, "755");

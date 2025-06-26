@@ -225,7 +225,7 @@ export const main = async (tmpdir?: string): Promise<string | null> => {
         tmpdir,
       );
       core.info("Download complete, extracting...");
-      execSync(`tarry -xvzf ${release}`, { stdio: "inherit" });
+      execSync(`tar -xvzf ${release}`, { stdio: "inherit" });
       core.info("Extraction complete");
     }
     fs.chmodSync(downloadPath, "755");
