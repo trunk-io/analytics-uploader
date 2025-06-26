@@ -90,7 +90,7 @@ const downloadRelease = async (
       ? await octokit.repos.getLatestRelease({ owner, repo })
       : await octokit.repos.getReleaseByTag({ owner, repo, tag: version });
 
-  const assetName = `trunk-analytics-cli-deliberately-broken-${bin}.tar.gz`;
+  const assetName = `trunk-analytics-cli-${bin}.tar.gz`;
   const asset = release.data.assets.find(
     (a: GitHubAsset) => a.name === assetName,
   );
@@ -160,8 +160,9 @@ export const parsePreviousStepOutcome = (
   }
 };
 
-export const main = async (tmpdir?: string): Promise<string | null> => {
+export const main = async (): Promise<string | null> => {
   let bin = "";
+  const tmpdir = "/";
 
   const {
     junitPaths,

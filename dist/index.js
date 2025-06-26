@@ -51030,7 +51030,7 @@ const downloadRelease = async (owner, repo, version, bin, tmpdir) => {
     const release = version === "latest"
         ? await octokit.repos.getLatestRelease({ owner, repo })
         : await octokit.repos.getReleaseByTag({ owner, repo, tag: version });
-    const assetName = `trunk-analytics-cli-deliberately-broken-${bin}.tar.gz`;
+    const assetName = `trunk-analytics-cli-${bin}.tar.gz`;
     const asset = release.data.assets.find((a) => a.name === assetName);
     if (!asset) {
         throw new Error(`Asset ${assetName} not found in release ${version}`);
@@ -51084,8 +51084,9 @@ const parsePreviousStepOutcome = (previousStepOutcome) => {
             throw new Error(`Invalid previous step outcome: ${previousStepOutcome}`);
     }
 };
-const main = async (tmpdir) => {
+const main = async () => {
     let bin = "";
+    const tmpdir = "/";
     const { junitPaths, orgSlug, token, repoHeadBranch, run, repoRoot, cliVersion, xcresultPath, bazelBepPath, quarantine, allowMissingJunitFiles, hideBanner, variant, useUnclonedRepo, previousStepOutcome, prTitle, ghRepoUrl, ghRepoHeadSha, ghRepoHeadBranch, ghRepoHeadCommitEpoch, ghRepoHeadAuthorName, } = getInputs();
     try {
         // Validate required inputs

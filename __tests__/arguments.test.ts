@@ -86,7 +86,7 @@ describe("Arguments", () => {
       path.resolve(os.tmpdir(), "trunk-analytics-uploader-test-"),
     );
     await createEchoCli(tmpdir);
-    const command = await main(tmpdir);
+    const command = await main();
     expect(command).toMatch(
       `${tmpdir}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token"`,
     );
@@ -114,7 +114,7 @@ describe("Arguments", () => {
       path.resolve(os.tmpdir(), "trunk-analytics-uploader-test-"),
     );
     await createEchoCli(tmpdir);
-    const command = await main(tmpdir);
+    const command = await main();
     expect(command).toMatch(
       `${tmpdir}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token" --test-process-exit-code=0`,
     );
@@ -142,7 +142,7 @@ describe("Arguments", () => {
       path.resolve(os.tmpdir(), "trunk-analytics-uploader-test-"),
     );
     await createEchoCli(tmpdir);
-    const command = await main(tmpdir);
+    const command = await main();
     expect(command).toMatch(
       `${tmpdir}/trunk-analytics-cli test --junit-paths "junit.xml" --org-url-slug "org" --token "token" -- exit 0`,
     );
