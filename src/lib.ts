@@ -13,8 +13,8 @@ import fetch from "node-fetch";
 import { Buffer } from "node:buffer";
 
 const VERSION = {
-  major: 0,
-  minor: 1,
+  major: 1,
+  minor: 15,
   patch: 0,
   suffix: "",
 };

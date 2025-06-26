@@ -51012,8 +51012,8 @@ function fixResponseChunkedTransferBadEnding(request, errorCallback) {
 
 
 const lib_VERSION = {
-    major: 0,
-    minor: 1,
+    major: 1,
+    minor: 15,
     patch: 0,
     suffix: "",
 };
