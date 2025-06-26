@@ -285,7 +285,7 @@ export const main = async (tmpdir?: string): Promise<string | null> => {
         "A failure occurred while executing the command -- see above for details",
       );
     } else if (error instanceof RequestError) {
-      const message = `Request to ${error.request.url} failed with status ${error.status}`;
+      const message = `Request to ${error.request.url} failed with status ${String(error.status)}`;
       failureReason = message;
       core.setFailed(message);
     } else if (error instanceof Error) {

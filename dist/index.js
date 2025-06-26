@@ -51217,7 +51217,7 @@ const main = async (tmpdir) => {
             core.setFailed("A failure occurred while executing the command -- see above for details");
         }
         else if (error instanceof dist_src_RequestError) {
-            const message = `Request to ${error.request.url} failed with status ${error.status}`;
+            const message = `Request to ${error.request.url} failed with status ${String(error.status)}`;
             failureReason = message;
             core.setFailed(message);
         }
