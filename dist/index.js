@@ -44795,7 +44795,7 @@ function wrappy (fn, cb) {
 /***/ ((module, __unused_webpack___webpack_exports__, __nccwpck_require__) => {
 
 __nccwpck_require__.a(module, async (__webpack_handle_async_dependencies__, __webpack_async_result__) => { try {
-/* harmony import */ var _lib__WEBPACK_IMPORTED_MODULE_0__ = __nccwpck_require__(5131);
+/* harmony import */ var _lib__WEBPACK_IMPORTED_MODULE_0__ = __nccwpck_require__(2770);
 
 await (0,_lib__WEBPACK_IMPORTED_MODULE_0__/* .main */ .iW)();
 
@@ -44804,7 +44804,7 @@ __webpack_async_result__();
 
 /***/ }),
 
-/***/ 5131:
+/***/ 2770:
 /***/ ((__unused_webpack_module, __webpack_exports__, __nccwpck_require__) => {
 
 
@@ -48807,6 +48807,46 @@ const dist_src_Octokit = Octokit.plugin(requestLog, legacyRestEndpointMethods, p
 );
 
 
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@octokit+request-error@7.0.0/node_modules/@octokit/request-error/dist-src/index.js
+class dist_src_RequestError extends Error {
+  name;
+  /**
+   * http status code
+   */
+  status;
+  /**
+   * Request options that lead to the error.
+   */
+  request;
+  /**
+   * Response object if a response was received
+   */
+  response;
+  constructor(message, statusCode, options) {
+    super(message);
+    this.name = "HttpError";
+    this.status = Number.parseInt(statusCode);
+    if (Number.isNaN(this.status)) {
+      this.status = 0;
+    }
+    if ("response" in options) {
+      this.response = options.response;
+    }
+    const requestCopy = Object.assign({}, options.request);
+    if (options.request.headers.authorization) {
+      requestCopy.headers = Object.assign({}, options.request.headers, {
+        authorization: options.request.headers.authorization.replace(
+          /(?<! ) .*$/,
+          " [REDACTED]"
+        )
+      });
+    }
+    requestCopy.url = requestCopy.url.replace(/\bclient_secret=\w+/g, "client_secret=[REDACTED]").replace(/\baccess_token=\w+/g, "access_token=[REDACTED]");
+    this.request = requestCopy;
+  }
+}
+
+
 // EXTERNAL MODULE: ./node_modules/.pnpm/promise-retry@2.0.1/node_modules/promise-retry/index.js
 var promise_retry = __nccwpck_require__(2921);
 var promise_retry_default = /*#__PURE__*/__nccwpck_require__.n(promise_retry);
@@ -50970,6 +51010,7 @@ function fixResponseChunkedTransferBadEnding(request, errorCallback) {
 
 
 
+
 const lib_VERSION = {
     major: 0,
     minor: 1,
@@ -51164,7 +51205,6 @@ const main = async (tmpdir) => {
         // check if exec sync error
         let failureReason = undefined;
         if (error instanceof Error && error.message.includes("Command failed")) {
-            core.error(`Had an error with message ${error.message}`);
             if (error.message.includes("exit code 70")) {
                 // Exit code 70 is the system exit that occurs when the cli download/run has actual issues,
                 // as opposed to codes like 1 which are emitted by the cli when tests fail - since tests failing
@@ -51176,13 +51216,16 @@ const main = async (tmpdir) => {
             }
             core.setFailed("A failure occurred while executing the command -- see above for details");
         }
+        else if (error instanceof dist_src_RequestError) {
+            const message = `Request to ${error.request.url} failed with status ${error.status}`;
+            failureReason = message;
+            core.setFailed(message);
+        }
         else if (error instanceof Error) {
-            core.error(`Had a non Command failed error with message ${error.message}`);
             failureReason = error.message;
             core.setFailed(error.message);
         }
         else {
-            core.error(`Had a toast error ${JSON.stringify(error)}`);
             const message = "An unknown error occurred";
             failureReason = message;
             core.setFailed(message);

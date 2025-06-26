@@ -5,6 +5,7 @@ import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
 import { Octokit } from "@octokit/rest";
+import { RequestError } from "octokit";
 import promiseRetry from "promise-retry";
 import { type OperationOptions } from "retry";
 import protobuf from "protobufjs";
@@ -272,7 +273,6 @@ export const main = async (tmpdir?: string): Promise<string | null> => {
     // check if exec sync error
     let failureReason: string | undefined = undefined;
     if (error instanceof Error && error.message.includes("Command failed")) {
-      core.error(`Had an error with message ${error.message}`);
       if (error.message.includes("exit code 70")) {
         // Exit code 70 is the system exit that occurs when the cli download/run has actual issues,
         // as opposed to codes like 1 which are emitted by the cli when tests fail - since tests failing
@@ -284,14 +284,14 @@ export const main = async (tmpdir?: string): Promise<string | null> => {
       core.setFailed(
         "A failure occurred while executing the command -- see above for details",
       );
+    } else if (error instanceof RequestError) {
+      const message = `Request to ${error.request.url} failed with status ${error.status}`;
+      failureReason = message;
+      core.setFailed(message);
     } else if (error instanceof Error) {
-      core.error(
-        `Had a non Command failed error with message ${error.message}`,
-      );
       failureReason = error.message;
       core.setFailed(error.message);
     } else {
-      core.error(`Had a toast error ${JSON.stringify(error)}`);
       const message = "An unknown error occurred";
       failureReason = message;
       core.setFailed(message);
