@@ -51084,9 +51084,8 @@ const parsePreviousStepOutcome = (previousStepOutcome) => {
             throw new Error(`Invalid previous step outcome: ${previousStepOutcome}`);
     }
 };
-const main = async () => {
+const main = async (tmpdir) => {
     let bin = "";
-    const tmpdir = "/";
     const { junitPaths, orgSlug, token, repoHeadBranch, run, repoRoot, cliVersion, xcresultPath, bazelBepPath, quarantine, allowMissingJunitFiles, hideBanner, variant, useUnclonedRepo, previousStepOutcome, prTitle, ghRepoUrl, ghRepoHeadSha, ghRepoHeadBranch, ghRepoHeadCommitEpoch, ghRepoHeadAuthorName, } = getInputs();
     try {
         // Validate required inputs
@@ -51119,7 +51118,7 @@ const main = async () => {
             core.info("Downloading trunk-analytics-cli...");
             const release = await downloadRelease("trunk-io", "analytics-cli", cliVersion, bin, tmpdir);
             core.info("Download complete, extracting...");
-            (0,external_child_process_.execSync)(`tar -xvzf ${release}`, { stdio: "inherit" });
+            (0,external_child_process_.execSync)(`tarry -xvzf ${release}`, { stdio: "inherit" });
             core.info("Extraction complete");
         }
         external_fs_.chmodSync(downloadPath, "755");

@@ -160,9 +160,8 @@ export const parsePreviousStepOutcome = (
   }
 };
 
-export const main = async (): Promise<string | null> => {
+export const main = async (tmpdir?: string): Promise<string | null> => {
   let bin = "";
-  const tmpdir = "/";
 
   const {
     junitPaths,
@@ -226,7 +225,7 @@ export const main = async (): Promise<string | null> => {
         tmpdir,
       );
       core.info("Download complete, extracting...");
-      execSync(`tar -xvzf ${release}`, { stdio: "inherit" });
+      execSync(`tarry -xvzf ${release}`, { stdio: "inherit" });
       core.info("Extraction complete");
     }
     fs.chmodSync(downloadPath, "755");

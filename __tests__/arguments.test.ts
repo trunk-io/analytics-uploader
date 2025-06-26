@@ -21,13 +21,8 @@ const createEchoCli = async (tmpdir: string) => {
       echo -n $@`,
   );
 };
-describe("isgood", () => {
-  it("is true", () => {
-    expect(true).toBe(true);
-  });
-});
 
-/*describe("parseBool", () => {
+describe("parseBool", () => {
   it("returns empty string for undefined input", () => {
     expect(parseBool(undefined, "--flag")).toBe("");
   });
@@ -91,7 +86,7 @@ describe("Arguments", () => {
       path.resolve(os.tmpdir(), "trunk-analytics-uploader-test-"),
     );
     await createEchoCli(tmpdir);
-    const command = await main();
+    const command = await main(tmpdir);
     expect(command).toMatch(
       `${tmpdir}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token"`,
     );
@@ -119,7 +114,7 @@ describe("Arguments", () => {
       path.resolve(os.tmpdir(), "trunk-analytics-uploader-test-"),
     );
     await createEchoCli(tmpdir);
-    const command = await main();
+    const command = await main(tmpdir);
     expect(command).toMatch(
       `${tmpdir}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token" --test-process-exit-code=0`,
     );
@@ -147,7 +142,7 @@ describe("Arguments", () => {
       path.resolve(os.tmpdir(), "trunk-analytics-uploader-test-"),
     );
     await createEchoCli(tmpdir);
-    const command = await main();
+    const command = await main(tmpdir);
     expect(command).toMatch(
       `${tmpdir}/trunk-analytics-cli test --junit-paths "junit.xml" --org-url-slug "org" --token "token" -- exit 0`,
     );
@@ -156,4 +151,4 @@ describe("Arguments", () => {
     expect(files).toEqual(expect.not.arrayContaining(["trunk-analytics-cli"]));
     await fs.rm(tmpdir, { recursive: true, force: true });
   });
-});*/
+});
