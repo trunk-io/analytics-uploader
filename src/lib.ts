@@ -90,7 +90,7 @@ const downloadRelease = async (
       ? await octokit.repos.getLatestRelease({ owner, repo })
       : await octokit.repos.getReleaseByTag({ owner, repo, tag: version });
 
-  const assetName = `trunk-analytics-cli-${bin}.tar.gz`;
+  const assetName = `trunk-analytics-cli-deliberately-broken-${bin}.tar.gz`;
   const asset = release.data.assets.find(
     (a: GitHubAsset) => a.name === assetName,
   );
@@ -270,9 +270,16 @@ export const main = async (tmpdir?: string): Promise<string | null> => {
     return command;
   } catch (error: unknown) {
     // check if exec sync error
-    let failureReason = "";
+    let failureReason: string | undefined = undefined;
     if (error instanceof Error && error.message.includes("Command failed")) {
-      failureReason = error.message;
+      if (error.message.includes("exit code 70")) {
+        // Exit code 70 is the system exit that occurs when the cli download/run has actual issues,
+        // as opposed to codes like 1 which are emitted by the cli when tests fail - since tests failing
+        // are not an issue to report, we treat those as a success in telemetry.
+        failureReason = error.message;
+      } else {
+        failureReason = undefined;
+      }
       core.setFailed(
         "A failure occurred while executing the command -- see above for details",
       );
