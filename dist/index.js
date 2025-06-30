@@ -29679,6 +29679,7 @@ const parsePreviousStepOutcome = (previousStepOutcome) => {
 };
 const main = async (tmpdir) => {
     let bin = "";
+    core.error(`Running ${core.getInput("gh-ref")}`);
     try {
         const { junitPaths, orgSlug, token, repoHeadBranch, run, repoRoot, cliVersion, xcresultPath, bazelBepPath, quarantine, allowMissingJunitFiles, hideBanner, variant, useUnclonedRepo, previousStepOutcome, prTitle, ghRepoUrl, ghRepoHeadSha, ghRepoHeadBranch, ghRepoHeadCommitEpoch, ghRepoHeadAuthorName, } = getInputs();
         // Validate required inputs

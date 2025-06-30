@@ -139,6 +139,9 @@ export const parsePreviousStepOutcome = (
 
 export const main = async (tmpdir?: string): Promise<string | null> => {
   let bin = "";
+
+  core.error(`Running ${core.getInput("gh-ref")}`);
+
   try {
     const {
       junitPaths,
