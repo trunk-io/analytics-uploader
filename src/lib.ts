@@ -12,13 +12,6 @@ import protobuf from "protobufjs";
 import fetch from "node-fetch";
 import { Buffer } from "node:buffer";
 
-const VERSION = {
-  major: 1,
-  minor: 15,
-  patch: 0,
-  suffix: "",
-};
-
 const TELEMETRY_ENDPOINT =
   "https://telemetry.api.trunk.io/v1/flakytests-uploader/upload-metrics";
 
@@ -140,6 +133,7 @@ const getInputs = (): Record<string, string> => {
     ghRepoHeadBranch: core.getInput("gh-repo-head-branch"),
     ghRepoHeadCommitEpoch: core.getInput("gh-repo-head-commit-epoch"),
     ghRepoHeadAuthorName: core.getInput("gh-repo-head-author-name"),
+    ghActionRef: core.getInput("gh-action-ref"),
   };
 };
 
@@ -186,6 +180,7 @@ export const main = async (tmpdir?: string): Promise<string | null> => {
     ghRepoHeadBranch,
     ghRepoHeadCommitEpoch,
     ghRepoHeadAuthorName,
+    ghActionRef,
   } = getInputs();
 
   try {
@@ -267,7 +262,7 @@ export const main = async (tmpdir?: string): Promise<string | null> => {
       GH_REPO_HEAD_AUTHOR_NAME: ghRepoHeadAuthorName,
     };
     execSync(command, { stdio: "inherit", env });
-    await sendTelemetry(token);
+    await sendTelemetry(token, ghActionRef);
     return command;
   } catch (error: unknown) {
     // check if exec sync error
@@ -296,7 +291,7 @@ export const main = async (tmpdir?: string): Promise<string | null> => {
       failureReason = message;
       core.setFailed(message);
     }
-    await sendTelemetry(token, failureReason);
+    await sendTelemetry(token, ghActionRef, failureReason);
     return null;
   } finally {
     core.debug("Cleaning up...");
@@ -305,8 +300,49 @@ export const main = async (tmpdir?: string): Promise<string | null> => {
   }
 };
 
+const semVerFromRef = (
+  ref: string,
+): {
+  major: number;
+  minor: number;
+  patch: number;
+  suffix: string;
+} => {
+  const versionRegex = /^v(\d+)\.(\d+)\.(\d+)(-(.+))?$/;
+  const matches = versionRegex.exec(ref);
+  if (matches && matches.length === 6) {
+    const major = parseInt(matches[1]);
+    const minor = parseInt(matches[2]);
+    const patch = parseInt(matches[3]);
+    // If there's no suffix, then the last group is returned as undefined
+    const suffix = parseInt(matches[5]) || "";
+
+    return {
+      major,
+      minor,
+      patch,
+      suffix: suffix.toString(),
+    };
+  } else if (ref.length > 0) {
+    return {
+      major: 0,
+      minor: 0,
+      patch: 0,
+      suffix: ref,
+    };
+  } else {
+    return {
+      major: 0,
+      minor: 0,
+      patch: 0,
+      suffix: "Undefined ref",
+    };
+  }
+};
+
 const sendTelemetry = async (
   apiToken: string,
+  ghActionRef: string,
   failureReason?: string,
 ): Promise<void> => {
   // This uses protobufjs's reflection library to define the protobuf in-code.
@@ -336,12 +372,7 @@ const sendTelemetry = async (
     .add(Semver)
     .add(Repo);
 
-  const uploaderVersion = Semver.create({
-    major: VERSION.major,
-    minor: VERSION.minor,
-    patch: VERSION.patch,
-    suffix: VERSION.suffix,
-  });
+  const uploaderVersion = Semver.create(semVerFromRef(ghActionRef));
 
   const repo = Repo.create({
     host: "github.com",
