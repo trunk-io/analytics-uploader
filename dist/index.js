@@ -44813,7 +44813,7 @@ __nccwpck_require__.d(__webpack_exports__, {
   iW: () => (/* binding */ main)
 });
 
-// UNUSED EXPORTS: parseBool, parsePreviousStepOutcome
+// UNUSED EXPORTS: parseBool, parsePreviousStepOutcome, semVerFromRef
 
 // EXTERNAL MODULE: ./node_modules/.pnpm/@actions+core@1.11.1/node_modules/@actions/core/lib/core.js
 var core = __nccwpck_require__(9999);
@@ -51242,7 +51242,7 @@ const semVerFromRef = (ref) => {
         const minor = parseInt(matches[2]);
         const patch = parseInt(matches[3]);
         // If there's no suffix, then the last group is returned as undefined
-        const suffix = parseInt(matches[5]) || "";
+        const suffix = matches[5] || "";
         return {
             major,
             minor,

@@ -300,7 +300,7 @@ export const main = async (tmpdir?: string): Promise<string | null> => {
   }
 };
 
-const semVerFromRef = (
+export const semVerFromRef = (
   ref: string,
 ): {
   major: number;
@@ -315,7 +315,7 @@ const semVerFromRef = (
     const minor = parseInt(matches[2]);
     const patch = parseInt(matches[3]);
     // If there's no suffix, then the last group is returned as undefined
-    const suffix = parseInt(matches[5]) || "";
+    const suffix = matches[5] || "";
 
     return {
       major,
