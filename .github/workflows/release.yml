@@ -11,6 +11,7 @@ on:
         type: choice
         description: Target major version
         options:
+          - v2
           - v1
 concurrency: ${{ github.workflow }}
 
