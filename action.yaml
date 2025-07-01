@@ -74,6 +74,9 @@ inputs:
   gh-repo-head-author-name:
     description: The actor triggering the action
     default: ${{ github.actor }}
+  gh-action-ref:
+    description: The ref of the action being used
+    default: ${{ github.action_ref }}
 
 runs:
   using: node20
