@@ -46,4 +46,15 @@ describe("semVerFromRef", () => {
     };
     expect(actual).toStrictEqual(expected);
   });
+
+  it("Falls back to the suffix when given a version tag", () => {
+    const actual = semVerFromRef("v1");
+    const expected = {
+      major: 0,
+      minor: 0,
+      patch: 0,
+      suffix: "v1",
+    };
+    expect(actual).toStrictEqual(expected);
+  });
 });
