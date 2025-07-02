@@ -44813,7 +44813,7 @@ __nccwpck_require__.d(__webpack_exports__, {
   iW: () => (/* binding */ main)
 });
 
-// UNUSED EXPORTS: parseBool, parsePreviousStepOutcome, semVerFromRef
+// UNUSED EXPORTS: convertToTelemetry, fetchApiAddress, parseBool, parsePreviousStepOutcome, semVerFromRef
 
 // EXTERNAL MODULE: ./node_modules/.pnpm/@actions+core@1.11.1/node_modules/@actions/core/lib/core.js
 var core = __nccwpck_require__(9999);
@@ -51011,7 +51011,6 @@ function fixResponseChunkedTransferBadEnding(request, errorCallback) {
 
 
 
-const TELEMETRY_ENDPOINT = "https://telemetry.api.trunk.io/v1/flakytests-uploader/upload-metrics";
 const TELEMETRY_RETRY = {
     retries: 3,
     minTimeout: 1000,
@@ -51119,6 +51118,24 @@ const parsePreviousStepOutcome = (previousStepOutcome) => {
         default:
             throw new Error(`Invalid previous step outcome: ${previousStepOutcome}`);
     }
+};
+const fetchApiAddress = () => {
+    const defaultAddress = "https://api.trunk.io";
+    if ("TRUNK_PUBLIC_API_ADDRESS" in process.env) {
+        const fetched = process.env.TRUNK_PUBLIC_API_ADDRESS;
+        if (fetched) {
+            return fetched;
+        }
+    }
+    return defaultAddress;
+};
+const convertToTelemetry = (apiAddress) => {
+    const baseMatcher = /^https:\/\/(.*?)\/?$/;
+    const domain = baseMatcher.exec(apiAddress)?.at(1);
+    if (domain) {
+        return `https://telemetry.${domain}/v1/flakytests-uploader/upload-metrics`;
+    }
+    return "https://telemetry.api.trunk.io/v1/flakytests-uploader/upload-metrics";
 };
 const main = async (tmpdir) => {
     let bin = "";
@@ -51311,9 +51328,11 @@ const sendTelemetry = async (apiToken, ghActionRef, failureReason) => {
         failure_reason: failureReasonMessage,
     });
     const buffer = UploaderUploadMetrics.encode(message).finish();
+    const apiEndpoint = fetchApiAddress();
+    const telemetryEndpoint = convertToTelemetry(apiEndpoint);
     try {
         await promise_retry_default()(async (retry) => {
-            const response = await fetch(TELEMETRY_ENDPOINT, {
+            const response = await fetch(telemetryEndpoint, {
                 method: "POST",
                 body: external_node_buffer_namespaceObject.Buffer.from(buffer),
                 headers: {
