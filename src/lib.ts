@@ -1,9 +1,26 @@
 import * as core from "@actions/core";
+import { context } from "@actions/github";
 import { execSync } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
 import { Octokit } from "@octokit/rest";
+import { RequestError } from "octokit";
+import promiseRetry from "promise-retry";
+import { type OperationOptions } from "retry";
+import protobuf from "protobufjs";
+import fetch from "node-fetch";
+import { Buffer } from "node:buffer";
+
+const TELEMETRY_ENDPOINT =
+  "https://telemetry.api.trunk.io/v1/flakytests-uploader/upload-metrics";
+
+const TELEMETRY_RETRY = {
+  retries: 3,
+  minTimeout: 1000,
+  maxTimeout: 10000,
+  maxRetryTime: 10000,
+} satisfies OperationOptions;
 
 // Cleanup to remove downloaded files
 const cleanup = (bin: string, dir = "."): void => {
@@ -116,6 +133,7 @@ const getInputs = (): Record<string, string> => {
     ghRepoHeadBranch: core.getInput("gh-repo-head-branch"),
     ghRepoHeadCommitEpoch: core.getInput("gh-repo-head-commit-epoch"),
     ghRepoHeadAuthorName: core.getInput("gh-repo-head-author-name"),
+    ghActionRef: core.getInput("gh-action-ref"),
   };
 };
 
@@ -139,31 +157,33 @@ export const parsePreviousStepOutcome = (
 
 export const main = async (tmpdir?: string): Promise<string | null> => {
   let bin = "";
-  try {
-    const {
-      junitPaths,
-      orgSlug,
-      token,
-      repoHeadBranch,
-      run,
-      repoRoot,
-      cliVersion,
-      xcresultPath,
-      bazelBepPath,
-      quarantine,
-      allowMissingJunitFiles,
-      hideBanner,
-      variant,
-      useUnclonedRepo,
-      previousStepOutcome,
-      prTitle,
-      ghRepoUrl,
-      ghRepoHeadSha,
-      ghRepoHeadBranch,
-      ghRepoHeadCommitEpoch,
-      ghRepoHeadAuthorName,
-    } = getInputs();
 
+  const {
+    junitPaths,
+    orgSlug,
+    token,
+    repoHeadBranch,
+    run,
+    repoRoot,
+    cliVersion,
+    xcresultPath,
+    bazelBepPath,
+    quarantine,
+    allowMissingJunitFiles,
+    hideBanner,
+    variant,
+    useUnclonedRepo,
+    previousStepOutcome,
+    prTitle,
+    ghRepoUrl,
+    ghRepoHeadSha,
+    ghRepoHeadBranch,
+    ghRepoHeadCommitEpoch,
+    ghRepoHeadAuthorName,
+    ghActionRef,
+  } = getInputs();
+
+  try {
     // Validate required inputs
     if (!junitPaths && !xcresultPath && !bazelBepPath) {
       throw new Error("Missing input files");
@@ -242,22 +262,160 @@ export const main = async (tmpdir?: string): Promise<string | null> => {
       GH_REPO_HEAD_AUTHOR_NAME: ghRepoHeadAuthorName,
     };
     execSync(command, { stdio: "inherit", env });
+    await sendTelemetry(token, ghActionRef);
     return command;
   } catch (error: unknown) {
     // check if exec sync error
+    let failureReason: string | undefined = undefined;
     if (error instanceof Error && error.message.includes("Command failed")) {
+      if (error.message.includes("exit code 70")) {
+        // Exit code 70 is the system exit that occurs when the cli download/run has actual issues,
+        // as opposed to codes like 1 which are emitted by the cli when tests fail - since tests failing
+        // are not an issue to report, we treat those as a success in telemetry.
+        failureReason = error.message;
+      } else {
+        failureReason = undefined;
+      }
       core.setFailed(
         "A failure occurred while executing the command -- see above for details",
       );
+    } else if (error instanceof RequestError) {
+      const message = `Request to ${error.request.url} failed with status ${String(error.status)}`;
+      failureReason = message;
+      core.setFailed(message);
     } else if (error instanceof Error) {
+      failureReason = error.message.substring(0, 100);
       core.setFailed(error.message);
     } else {
-      core.setFailed("An unknown error occurred");
+      const message = "An unknown error occurred";
+      failureReason = message;
+      core.setFailed(message);
     }
+    await sendTelemetry(token, ghActionRef, failureReason);
     return null;
   } finally {
     core.debug("Cleaning up...");
     cleanup(bin, tmpdir);
     core.debug("Cleanup complete");
+  }
+};
+
+export const semVerFromRef = (
+  ref: string,
+): {
+  major: number;
+  minor: number;
+  patch: number;
+  suffix: string;
+} => {
+  const versionRegex = /^v(\d+)\.(\d+)\.(\d+)(-(.+))?$/;
+  const matches = versionRegex.exec(ref);
+  if (matches && matches.length === 6) {
+    const major = parseInt(matches[1]);
+    const minor = parseInt(matches[2]);
+    const patch = parseInt(matches[3]);
+    // If there's no suffix, then the last group is returned as undefined
+    const suffix = matches[5] || "";
+
+    return {
+      major,
+      minor,
+      patch,
+      suffix: suffix.toString(),
+    };
+  } else if (ref.length > 0) {
+    return {
+      major: 0,
+      minor: 0,
+      patch: 0,
+      suffix: ref,
+    };
+  } else {
+    return {
+      major: 0,
+      minor: 0,
+      patch: 0,
+      suffix: "Undefined ref",
+    };
+  }
+};
+
+const sendTelemetry = async (
+  apiToken: string,
+  ghActionRef: string,
+  failureReason?: string,
+): Promise<void> => {
+  // This uses protobufjs's reflection library to define the protobuf in-code.
+  // We do this as the easiest of the following:
+  // - standard protoc builds from a proto file require a number of regex substitutions
+  //   in order to port protoc's generated code to esm modules, which requires adding a
+  //   bunch of extra build complexity for what should ultimately be a simple package
+  // - using protobufjs's load function to load a proto file uses XMLHttpRequest to load
+  //   files, which is not available in the environment Github Actions run in
+  // - this, which is a bit unique, but is directly usable.
+  const Semver = new protobuf.Type("Semver")
+    .add(new protobuf.Field("major", 1, "uint32"))
+    .add(new protobuf.Field("minor", 2, "uint32"))
+    .add(new protobuf.Field("patch", 3, "uint32"))
+    .add(new protobuf.Field("suffix", 4, "string"));
+
+  const Repo = new protobuf.Type("Repo")
+    .add(new protobuf.Field("host", 1, "string"))
+    .add(new protobuf.Field("owner", 2, "string"))
+    .add(new protobuf.Field("name", 3, "string"));
+
+  const UploaderUploadMetrics = new protobuf.Type("UploaderUploadMetrics")
+    .add(new protobuf.Field("uploader_version", 1, "Semver"))
+    .add(new protobuf.Field("repo", 2, "Repo"))
+    .add(new protobuf.Field("failed", 3, "bool"))
+    .add(new protobuf.Field("failure_reason", 4, "string"))
+    .add(Semver)
+    .add(Repo);
+
+  const uploaderVersion = Semver.create(semVerFromRef(ghActionRef));
+
+  const repo = Repo.create({
+    host: "github.com",
+    owner: context.repo.owner,
+    name: context.repo.repo,
+  });
+
+  let failed = false;
+  let failureReasonMessage: string | undefined = undefined;
+  if (failureReason) {
+    failed = true;
+    failureReasonMessage = failureReason;
+  }
+
+  const message = UploaderUploadMetrics.create({
+    uploader_version: uploaderVersion,
+    repo,
+    failed,
+    failure_reason: failureReasonMessage,
+  });
+
+  const buffer = UploaderUploadMetrics.encode(message).finish();
+  try {
+    await promiseRetry(async (retry) => {
+      const response = await fetch(TELEMETRY_ENDPOINT, {
+        method: "POST",
+        body: Buffer.from(buffer),
+        headers: {
+          "Content-Type": "application/x-protobuf",
+          "x-api-token": apiToken,
+        },
+      });
+      if (!response.ok) {
+        retry(response);
+      }
+    }, TELEMETRY_RETRY);
+  } catch (error: unknown) {
+    // Swallow telemetry, as telemetry is not critical path and failures should not
+    // show up in a user's build log.
+    if (error instanceof Error) {
+      core.debug(`Telemetry upload failed with error ${error.message}`);
+    } else {
+      core.debug("Telemetry upload failed with unknown error");
+    }
   }
 };

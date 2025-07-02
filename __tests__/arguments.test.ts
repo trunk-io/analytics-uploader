@@ -4,7 +4,11 @@ import * as path from "node:path";
 import { jest } from "@jest/globals";
 
 import * as core from "../__fixtures__/core.js";
+import * as github from "../__fixtures__/github.js";
+import * as nodeFetch from "../__fixtures__/node_fetch.js";
 jest.unstable_mockModule("@actions/core", () => core);
+jest.unstable_mockModule("@actions/github", () => github);
+jest.unstable_mockModule("node-fetch", () => nodeFetch);
 
 const { parseBool, main, parsePreviousStepOutcome } = await import(
   "../src/lib.js"
