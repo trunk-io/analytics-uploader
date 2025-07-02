@@ -12,9 +12,6 @@ import protobuf from "protobufjs";
 import fetch from "node-fetch";
 import { Buffer } from "node:buffer";
 
-const TELEMETRY_ENDPOINT =
-  "https://telemetry.api.trunk.io/v1/flakytests-uploader/upload-metrics";
-
 const TELEMETRY_RETRY = {
   retries: 3,
   minTimeout: 1000,
@@ -153,6 +150,26 @@ export const parsePreviousStepOutcome = (
     default:
       throw new Error(`Invalid previous step outcome: ${previousStepOutcome}`);
   }
+};
+
+export const fetchApiAddress = (): string => {
+  const defaultAddress = "https://api.trunk.io";
+  if ("TRUNK_PUBLIC_API_ADDRESS" in process.env) {
+    const fetched = process.env.TRUNK_PUBLIC_API_ADDRESS;
+    if (fetched) {
+      return fetched;
+    }
+  }
+  return defaultAddress;
+};
+
+export const convertToTelemetry = (apiAddress: string): string => {
+  const baseMatcher = /^https:\/\/(.*?)\/?$/;
+  const domain = baseMatcher.exec(apiAddress)?.at(1);
+  if (domain) {
+    return `https://telemetry.${domain}/v1/flakytests-uploader/upload-metrics`;
+  }
+  return "https://telemetry.api.trunk.io/v1/flakytests-uploader/upload-metrics";
 };
 
 export const main = async (tmpdir?: string): Promise<string | null> => {
@@ -395,9 +412,13 @@ const sendTelemetry = async (
   });
 
   const buffer = UploaderUploadMetrics.encode(message).finish();
+
+  const apiEndpoint = fetchApiAddress();
+  const telemetryEndpoint = convertToTelemetry(apiEndpoint);
+
   try {
     await promiseRetry(async (retry) => {
-      const response = await fetch(TELEMETRY_ENDPOINT, {
+      const response = await fetch(telemetryEndpoint, {
         method: "POST",
         body: Buffer.from(buffer),
         headers: {

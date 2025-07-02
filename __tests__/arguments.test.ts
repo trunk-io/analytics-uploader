@@ -10,9 +10,13 @@ jest.unstable_mockModule("@actions/core", () => core);
 jest.unstable_mockModule("@actions/github", () => github);
 jest.unstable_mockModule("node-fetch", () => nodeFetch);
 
-const { parseBool, main, parsePreviousStepOutcome } = await import(
-  "../src/lib.js"
-);
+const {
+  parseBool,
+  main,
+  parsePreviousStepOutcome,
+  fetchApiAddress,
+  convertToTelemetry,
+} = await import("../src/lib.js");
 
 const createEchoCli = async (tmpdir: string) => {
   await fs.writeFile(
@@ -21,6 +25,55 @@ const createEchoCli = async (tmpdir: string) => {
       echo -n $@`,
   );
 };
+
+describe("fetchApiAddress", () => {
+  const oldEnv = process.env;
+
+  beforeEach(() => {
+    jest.resetModules();
+    process.env = oldEnv;
+  });
+
+  afterEach(() => {
+    process.env = oldEnv;
+  });
+
+  it("defaults to prod if there is no address", () => {
+    delete process.env.TRUNK_PUBLIC_API_ADDRESS;
+    expect(fetchApiAddress()).toBe("https://api.trunk.io");
+  });
+
+  it("uses the provided address", () => {
+    process.env.TRUNK_PUBLIC_API_ADDRESS = "https://myFancyDeploy.trunk.ca";
+    expect(fetchApiAddress()).toBe("https://myFancyDeploy.trunk.ca");
+  });
+});
+
+describe("convertToTelemetry", () => {
+  it("falls back to prod when given an invalid address", () => {
+    expect(convertToTelemetry("html://notADomain.oops")).toBe(
+      "https://telemetry.api.trunk.io/v1/flakytests-uploader/upload-metrics",
+    );
+  });
+
+  it("adapts a prod address", () => {
+    expect(convertToTelemetry("https://api.trunk.io")).toBe(
+      "https://telemetry.api.trunk.io/v1/flakytests-uploader/upload-metrics",
+    );
+  });
+
+  it("adapts a prod address with an extra slash", () => {
+    expect(convertToTelemetry("https://api.trunk.io/")).toBe(
+      "https://telemetry.api.trunk.io/v1/flakytests-uploader/upload-metrics",
+    );
+  });
+
+  it("adapts a devenv", () => {
+    expect(convertToTelemetry("https://api.dev1.trunk-staging.io")).toBe(
+      "https://telemetry.api.dev1.trunk-staging.io/v1/flakytests-uploader/upload-metrics",
+    );
+  });
+});
 
 describe("parseBool", () => {
   it("returns empty string for undefined input", () => {
