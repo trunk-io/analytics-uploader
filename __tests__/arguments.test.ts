@@ -159,6 +159,8 @@ describe("Arguments", () => {
           return "0.0.0";
         case "previous-step-outcome":
           return "success";
+        case "verbose":
+          return "true";
         default:
           return "";
       }
@@ -169,7 +171,7 @@ describe("Arguments", () => {
     await createEchoCli(tmpdir);
     const command = await main(tmpdir);
     expect(command).toMatch(
-      `${tmpdir}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token" --test-process-exit-code=0`,
+      `${tmpdir}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token" --test-process-exit-code=0 -v`,
     );
     await fs.rm(tmpdir, { recursive: true, force: true });
   });
