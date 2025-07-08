@@ -131,6 +131,8 @@ describe("Arguments", () => {
           return "token";
         case "cli-version":
           return "0.0.0";
+        case "show-failure-messages":
+          return "true";
         default:
           return "";
       }
@@ -141,7 +143,7 @@ describe("Arguments", () => {
     await createEchoCli(tmpdir);
     const command = await main(tmpdir);
     expect(command).toMatch(
-      `${tmpdir}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token"`,
+      `${tmpdir}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token" --show-failure-messages`,
     );
     await fs.rm(tmpdir, { recursive: true, force: true });
   });

@@ -132,6 +132,7 @@ const getInputs = (): Record<string, string> => {
     ghRepoHeadAuthorName: core.getInput("gh-repo-head-author-name"),
     ghActionRef: core.getInput("gh-action-ref"),
     verbose: core.getInput("verbose"),
+    showFailureMessages: core.getInput("show-failure-messages"),
   };
 };
 
@@ -200,6 +201,7 @@ export const main = async (tmpdir?: string): Promise<string | null> => {
     ghRepoHeadAuthorName,
     ghActionRef,
     verbose,
+    showFailureMessages,
   } = getInputs();
 
   try {
@@ -267,6 +269,7 @@ export const main = async (tmpdir?: string): Promise<string | null> => {
         ? `--test-process-exit-code=${parsePreviousStepOutcome(previousStepOutcome).toString()}`
         : "",
       verbose === "true" ? "-v" : "",
+      showFailureMessages === "true" ? "--show-failure-messages" : "",
       run ? `-- ${run}` : "",
     ].filter(Boolean);
 
