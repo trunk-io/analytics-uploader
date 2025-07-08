@@ -83,6 +83,10 @@ inputs:
   gh-action-ref:
     description: The ref of the action being used
     default: ${{ github.action_ref }}
+  show-failure-messages:
+    description: Show failure outputs in upload. This is experimental, do not rely on this.
+    type: boolean
+    default: false
 
 runs:
   using: node20
