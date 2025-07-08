@@ -51104,6 +51104,7 @@ const getInputs = () => {
         ghActionRef: core.getInput("gh-action-ref"),
         verbose: core.getInput("verbose"),
         showFailureMessages: core.getInput("show-failure-messages"),
+        githubRunId: core.getInput("github-run-id"),
     };
 };
 const parsePreviousStepOutcome = (previousStepOutcome) => {
@@ -51141,7 +51142,7 @@ const convertToTelemetry = (apiAddress) => {
 };
 const main = async (tmpdir) => {
     let bin = "";
-    const { junitPaths, orgSlug, token, repoHeadBranch, run, repoRoot, cliVersion, xcresultPath, bazelBepPath, quarantine, allowMissingJunitFiles, hideBanner, variant, useUnclonedRepo, previousStepOutcome, prTitle, ghRepoUrl, ghRepoHeadSha, ghRepoHeadBranch, ghRepoHeadCommitEpoch, ghRepoHeadAuthorName, ghActionRef, verbose, showFailureMessages, } = getInputs();
+    const { junitPaths, orgSlug, token, repoHeadBranch, run, repoRoot, cliVersion, xcresultPath, bazelBepPath, quarantine, allowMissingJunitFiles, hideBanner, variant, useUnclonedRepo, previousStepOutcome, prTitle, ghRepoUrl, ghRepoHeadSha, ghRepoHeadBranch, ghRepoHeadCommitEpoch, ghRepoHeadAuthorName, ghActionRef, verbose, showFailureMessages, githubRunId, } = getInputs();
     try {
         // Validate required inputs
         if (!junitPaths && !xcresultPath && !bazelBepPath) {
@@ -51199,9 +51200,7 @@ const main = async (tmpdir) => {
                 ? `--test-process-exit-code=${parsePreviousStepOutcome(previousStepOutcome).toString()}`
                 : "",
             verbose === "true" ? "-v" : "",
-            showFailureMessages === "true"
-                ? "--show-failure-messages"
-                : "",
+            showFailureMessages === "true" ? "--show-failure-messages" : "",
             run ? `-- ${run}` : "",
         ].filter(Boolean);
         // Execute the command
@@ -51214,6 +51213,7 @@ const main = async (tmpdir) => {
             GH_REPO_HEAD_BRANCH: ghRepoHeadBranch,
             GH_REPO_HEAD_COMMIT_EPOCH: ghRepoHeadCommitEpoch,
             GH_REPO_HEAD_AUTHOR_NAME: ghRepoHeadAuthorName,
+            GITHUB_JOB_RUN_ID: githubRunId,
         };
         (0,external_child_process_.execSync)(command, { stdio: "inherit", env });
         await sendTelemetry(token, ghActionRef);

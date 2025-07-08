@@ -133,6 +133,7 @@ const getInputs = (): Record<string, string> => {
     ghActionRef: core.getInput("gh-action-ref"),
     verbose: core.getInput("verbose"),
     showFailureMessages: core.getInput("show-failure-messages"),
+    githubRunId: core.getInput("github-run-id"),
   };
 };
 
@@ -202,6 +203,7 @@ export const main = async (tmpdir?: string): Promise<string | null> => {
     ghActionRef,
     verbose,
     showFailureMessages,
+    githubRunId,
   } = getInputs();
 
   try {
@@ -283,6 +285,7 @@ export const main = async (tmpdir?: string): Promise<string | null> => {
       GH_REPO_HEAD_BRANCH: ghRepoHeadBranch,
       GH_REPO_HEAD_COMMIT_EPOCH: ghRepoHeadCommitEpoch,
       GH_REPO_HEAD_AUTHOR_NAME: ghRepoHeadAuthorName,
+      GITHUB_JOB_RUN_ID: githubRunId,
     };
     execSync(command, { stdio: "inherit", env });
     await sendTelemetry(token, ghActionRef);

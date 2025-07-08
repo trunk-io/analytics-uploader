@@ -87,6 +87,9 @@ inputs:
     description: Show failure outputs in upload. This is experimental, do not rely on this.
     type: boolean
     default: false
+  github-run-id:
+    description: The ID of workflow run
+    default: ${{ github.event.workflow_job.id }}
 
 runs:
   using: node20
