@@ -51102,6 +51102,7 @@ const getInputs = () => {
         ghRepoHeadCommitEpoch: core.getInput("gh-repo-head-commit-epoch"),
         ghRepoHeadAuthorName: core.getInput("gh-repo-head-author-name"),
         ghActionRef: core.getInput("gh-action-ref"),
+        verbose: core.getInput("verbose"),
     };
 };
 const parsePreviousStepOutcome = (previousStepOutcome) => {
@@ -51139,7 +51140,7 @@ const convertToTelemetry = (apiAddress) => {
 };
 const main = async (tmpdir) => {
     let bin = "";
-    const { junitPaths, orgSlug, token, repoHeadBranch, run, repoRoot, cliVersion, xcresultPath, bazelBepPath, quarantine, allowMissingJunitFiles, hideBanner, variant, useUnclonedRepo, previousStepOutcome, prTitle, ghRepoUrl, ghRepoHeadSha, ghRepoHeadBranch, ghRepoHeadCommitEpoch, ghRepoHeadAuthorName, ghActionRef, } = getInputs();
+    const { junitPaths, orgSlug, token, repoHeadBranch, run, repoRoot, cliVersion, xcresultPath, bazelBepPath, quarantine, allowMissingJunitFiles, hideBanner, variant, useUnclonedRepo, previousStepOutcome, prTitle, ghRepoUrl, ghRepoHeadSha, ghRepoHeadBranch, ghRepoHeadCommitEpoch, ghRepoHeadAuthorName, ghActionRef, verbose, } = getInputs();
     try {
         // Validate required inputs
         if (!junitPaths && !xcresultPath && !bazelBepPath) {
@@ -51196,6 +51197,7 @@ const main = async (tmpdir) => {
             previousStepOutcome
                 ? `--test-process-exit-code=${parsePreviousStepOutcome(previousStepOutcome).toString()}`
                 : "",
+            verbose === "true" ? "-v" : "",
             run ? `-- ${run}` : "",
         ].filter(Boolean);
         // Execute the command

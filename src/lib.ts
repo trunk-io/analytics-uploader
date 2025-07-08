@@ -131,6 +131,7 @@ const getInputs = (): Record<string, string> => {
     ghRepoHeadCommitEpoch: core.getInput("gh-repo-head-commit-epoch"),
     ghRepoHeadAuthorName: core.getInput("gh-repo-head-author-name"),
     ghActionRef: core.getInput("gh-action-ref"),
+    verbose: core.getInput("verbose"),
   };
 };
 
@@ -198,6 +199,7 @@ export const main = async (tmpdir?: string): Promise<string | null> => {
     ghRepoHeadCommitEpoch,
     ghRepoHeadAuthorName,
     ghActionRef,
+    verbose,
   } = getInputs();
 
   try {
@@ -264,6 +266,7 @@ export const main = async (tmpdir?: string): Promise<string | null> => {
       previousStepOutcome
         ? `--test-process-exit-code=${parsePreviousStepOutcome(previousStepOutcome).toString()}`
         : "",
+      verbose === "true" ? "-v" : "",
       run ? `-- ${run}` : "",
     ].filter(Boolean);
 
