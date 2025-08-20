@@ -51069,13 +51069,12 @@ const downloadRelease = async (owner, repo, version, bin, tmpdir) => {
     if (!asset) {
         throw new Error(`Asset ${assetName} not found in release ${version}`);
     }
-    const response = await fetch(asset.url, {
-        method: "GET",
+    const response = await octokit.request(`GET ${asset.url}`, {
         headers: {
             accept: "application/octet-stream",
         },
     });
-    external_fs_.writeFileSync(external_path_.join(tmpdir ?? ".", assetName), external_node_buffer_namespaceObject.Buffer.from(await response.arrayBuffer()));
+    external_fs_.writeFileSync(external_path_.join(tmpdir ?? ".", assetName), external_node_buffer_namespaceObject.Buffer.from(response.data));
     core.info(`Downloaded ${assetName} from release ${version}`);
     return external_path_.join(tmpdir ?? ".", assetName);
 };
@@ -51200,7 +51199,9 @@ const main = async (tmpdir) => {
                 ? `--test-process-exit-code=${parsePreviousStepOutcome(previousStepOutcome).toString()}`
                 : "",
             verbose === "true" ? "-v" : "",
-            showFailureMessages === "true" ? "--show-failure-messages" : "",
+            showFailureMessages === "true"
+                ? "--show-failure-messages"
+                : "",
             run ? `-- ${run}` : "",
         ].filter(Boolean);
         // Execute the command
