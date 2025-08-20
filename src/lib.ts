@@ -90,8 +90,7 @@ const downloadRelease = async (
     throw new Error(`Asset ${assetName} not found in release ${version}`);
   }
 
-  const response = await fetch(asset.url, {
-    method: "GET",
+  const response = await octokit.request(`GET ${asset.url}`, {
     headers: {
       accept: "application/octet-stream",
     },
@@ -99,7 +98,7 @@ const downloadRelease = async (
 
   fs.writeFileSync(
     path.join(tmpdir ?? ".", assetName),
-    Buffer.from(await response.arrayBuffer()),
+    Buffer.from(response.data),
   );
   core.info(`Downloaded ${assetName} from release ${version}`);
   return path.join(tmpdir ?? ".", assetName);
