@@ -51018,6 +51018,11 @@ const TELEMETRY_RETRY = {
     maxRetryTime: 10000,
 };
 const FAILURE_PREVIOUS_STEP_CODE = 1;
+class CliFetchError extends Error {
+    constructor(message, cause) {
+        super(message, { cause });
+    }
+}
 // Cleanup to remove downloaded files
 const cleanup = (bin, dir = ".") => {
     try {
@@ -51070,14 +51075,22 @@ const downloadRelease = async (owner, repo, version, bin, tmpdir) => {
     if (!asset) {
         throw new Error(`Asset ${assetName} not found in release ${version}`);
     }
-    const response = await octokit.request(`GET ${asset.url}`, {
-        headers: {
-            accept: "application/octet-stream",
-        },
-    });
-    external_fs_.writeFileSync(external_path_.join(tmpdir ?? ".", assetName), external_node_buffer_namespaceObject.Buffer.from(response.data));
-    core.info(`Downloaded ${assetName} from release ${version}`);
-    return external_path_.join(tmpdir ?? ".", assetName);
+    try {
+        const response = await octokit.request(`GET ${asset.url}`, {
+            headers: {
+                accept: "application/octet-stream",
+            },
+        });
+        external_fs_.writeFileSync(external_path_.join(tmpdir ?? ".", assetName), external_node_buffer_namespaceObject.Buffer.from(response.data));
+        core.info(`Downloaded ${assetName} from release ${version}`);
+        return external_path_.join(tmpdir ?? ".", assetName);
+    }
+    catch (error) {
+        if (error instanceof dist_src_RequestError && error.status === 500) {
+            throw new CliFetchError("Github rate limits prevented fetching analytics-cli release (you may need to cache this if this error is common).", error);
+        }
+        throw error;
+    }
 };
 const getInputs = () => {
     return {
@@ -51168,6 +51181,10 @@ const handleCommandError = (error, previousStepOutcome) => {
         const message = `Request to ${error.request.url} failed with status ${String(error.status)}`;
         failureReason = message;
         core.setFailed(message);
+    }
+    else if (error instanceof CliFetchError) {
+        failureReason = undefined;
+        core.setFailed(error.message);
     }
     else if (error instanceof Error) {
         failureReason = error.message.substring(0, 100);
