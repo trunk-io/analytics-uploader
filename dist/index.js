@@ -44813,7 +44813,7 @@ __nccwpck_require__.d(__webpack_exports__, {
   iW: () => (/* binding */ main)
 });
 
-// UNUSED EXPORTS: FAILURE_PREVIOUS_STEP_CODE, convertToTelemetry, fetchApiAddress, handleCommandError, parseBool, parsePreviousStepOutcome, semVerFromRef
+// UNUSED EXPORTS: FAILURE_PREVIOUS_STEP_CODE, convertToTelemetry, fetchApiAddress, handleCommandError, parseBool, parsePreviousStepOutcome, previousStepFailed, semVerFromRef
 
 // EXTERNAL MODULE: ./node_modules/.pnpm/@actions+core@1.11.1/node_modules/@actions/core/lib/core.js
 var core = __nccwpck_require__(9999);
@@ -51117,9 +51117,21 @@ const parsePreviousStepOutcome = (previousStepOutcome) => {
             return 0;
         case "failure":
         case "cancelled":
-            return FAILURE_PREVIOUS_STEP_CODE;
+            return 1;
         default:
             throw new Error(`Invalid previous step outcome: ${previousStepOutcome}`);
+    }
+};
+const previousStepFailed = (previousStepOutcome) => {
+    if (!previousStepOutcome) {
+        return false;
+    }
+    switch (previousStepOutcome.toLowerCase()) {
+        case "failure":
+        case "cancelled":
+            return true;
+        default:
+            return false;
     }
 };
 const fetchApiAddress = () => {
@@ -51132,12 +51144,11 @@ const fetchApiAddress = () => {
     }
     return defaultAddress;
 };
-const handleCommandError = (error) => {
+const handleCommandError = (error, previousStepOutcome) => {
     // check if exec sync error
     let failureReason = undefined;
     if (error instanceof Error && error.message.includes("Command failed")) {
-        core.error(`Got a message, ${error.message}`);
-        if (error.message.includes(`exit code ${FAILURE_PREVIOUS_STEP_CODE.toString()}`)) {
+        if (previousStepFailed(previousStepOutcome)) {
             core.setFailed("The test results you are uploading contain test failures -- see above for details. This step will pass when the tests are fixed.");
         }
         else {
@@ -51256,7 +51267,7 @@ const main = async (tmpdir) => {
         return command;
     }
     catch (error) {
-        const { failureReason } = handleCommandError(error);
+        const { failureReason } = handleCommandError(error, previousStepOutcome);
         await sendTelemetry(token, ghActionRef, failureReason);
         return null;
     }

@@ -150,9 +150,22 @@ export const parsePreviousStepOutcome = (
       return 0;
     case "failure":
     case "cancelled":
-      return FAILURE_PREVIOUS_STEP_CODE;
+      return 1;
     default:
       throw new Error(`Invalid previous step outcome: ${previousStepOutcome}`);
+  }
+};
+
+export const previousStepFailed = (previousStepOutcome?: string): boolean => {
+  if (!previousStepOutcome) {
+    return false;
+  }
+  switch (previousStepOutcome.toLowerCase()) {
+    case "failure":
+    case "cancelled":
+      return true;
+    default:
+      return false;
   }
 };
 
@@ -169,16 +182,12 @@ export const fetchApiAddress = (): string => {
 
 export const handleCommandError = (
   error: unknown,
+  previousStepOutcome?: string,
 ): { failureReason: string | undefined } => {
   // check if exec sync error
   let failureReason: string | undefined = undefined;
   if (error instanceof Error && error.message.includes("Command failed")) {
-    core.error(`Got a message, ${error.message}`);
-    if (
-      error.message.includes(
-        `exit code ${FAILURE_PREVIOUS_STEP_CODE.toString()}`,
-      )
-    ) {
+    if (previousStepFailed(previousStepOutcome)) {
       core.setFailed(
         "The test results you are uploading contain test failures -- see above for details. This step will pass when the tests are fixed.",
       );
@@ -333,7 +342,7 @@ export const main = async (tmpdir?: string): Promise<string | null> => {
     await sendTelemetry(token, ghActionRef);
     return command;
   } catch (error: unknown) {
-    const { failureReason } = handleCommandError(error);
+    const { failureReason } = handleCommandError(error, previousStepOutcome);
     await sendTelemetry(token, ghActionRef, failureReason);
     return null;
   } finally {

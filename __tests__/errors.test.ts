@@ -3,7 +3,7 @@ import { jest } from "@jest/globals";
 import * as core from "../__fixtures__/core.js";
 jest.mock("@actions/core", () => core);
 
-import { FAILURE_PREVIOUS_STEP_CODE, handleCommandError } from "../src/lib.js";
+import { handleCommandError } from "../src/lib.js";
 import { RequestError } from "octokit";
 
 describe("handleCommandError", () => {
@@ -16,6 +16,7 @@ describe("handleCommandError", () => {
           headers: {},
         },
       }),
+      "failure",
     );
     const expected =
       "Request to example.com/my-missing-path failed with status 404";
@@ -24,26 +25,26 @@ describe("handleCommandError", () => {
 
   it("given Error with 'Command failed' and our 70 exit code", () => {
     const expected = "Command failed with exit code 70";
-    const actual = handleCommandError(new Error(expected));
+    const actual = handleCommandError(new Error(expected), "success");
     expect(actual).toStrictEqual({ failureReason: expected });
   });
 
-  it("given Error with 'Command failed' and our manually set failure exit code", () => {
-    const expected = `Command failed with exit code ${FAILURE_PREVIOUS_STEP_CODE.toString()}`;
-    const actual = handleCommandError(new Error(expected));
+  it("given Error with 'Command failed' and the previous step failed", () => {
+    const expected = "Command failed with exit code 1";
+    const actual = handleCommandError(new Error(expected), "failure");
     expect(actual).toStrictEqual({ failureReason: undefined });
   });
 
-  it("given Error with 'Command failed' and an unknown other code", () => {
-    const expected = "Command failed with exit code 214";
-    const actual = handleCommandError(new Error(expected));
+  it("given Error with 'Command failed' and the previous step succeeded", () => {
+    const expected = "Command failed with exit code 1";
+    const actual = handleCommandError(new Error(expected), "success");
     expect(actual).toStrictEqual({ failureReason: undefined });
   });
 
   it("given other Error with an extremely long message", () => {
     const expected =
       "123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 ";
-    const actual = handleCommandError(new Error(expected));
+    const actual = handleCommandError(new Error(expected), "failure");
     // This is a shortened form of the original message
     expect(actual).toStrictEqual({
       failureReason:
@@ -52,7 +53,10 @@ describe("handleCommandError", () => {
   });
 
   it("given a non-Error", () => {
-    const actual = handleCommandError({ key: "wow something went wrong" });
+    const actual = handleCommandError(
+      { key: "wow something went wrong" },
+      "failure",
+    );
     const expected = "An unknown error occurred";
     expect(actual).toStrictEqual({ failureReason: expected });
   });
