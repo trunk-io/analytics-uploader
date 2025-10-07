@@ -3,7 +3,7 @@ import { jest } from "@jest/globals";
 import * as core from "../__fixtures__/core.js";
 jest.mock("@actions/core", () => core);
 
-import { handleCommandError } from "../src/lib.js";
+import { CliFetchError, handleCommandError } from "../src/lib.js";
 import { RequestError } from "octokit";
 
 describe("handleCommandError", () => {
@@ -59,5 +59,13 @@ describe("handleCommandError", () => {
     );
     const expected = "An unknown error occurred";
     expect(actual).toStrictEqual({ failureReason: expected });
+  });
+
+  it("when we fail to fetch the cli", () => {
+    const actual = handleCommandError(
+      new CliFetchError("test message", new Error("cause")),
+      "failure",
+    );
+    expect(actual).toStrictEqual({ failureReason: undefined });
   });
 });

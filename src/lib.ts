@@ -21,7 +21,7 @@ const TELEMETRY_RETRY = {
 
 export const FAILURE_PREVIOUS_STEP_CODE = 1;
 
-class CliFetchError extends Error {
+export class CliFetchError extends Error {
   constructor(message: string, cause: Error) {
     super(message, { cause });
   }
@@ -112,16 +112,9 @@ const downloadRelease = async (
     core.info(`Downloaded ${assetName} from release ${version}`);
     return path.join(tmpdir ?? ".", assetName);
   } catch (error: unknown) {
-    core.error(`Got error ${JSON.stringify(error)} of type ${typeof error}`);
-    if (error instanceof Error) {
-      core.error(
-        `Error was Error type, message ${error.message}, name ${error.name}`,
-      );
-    }
     if (error instanceof Error && error.name === "HttpError") {
-      core.error("We did get a request error");
       throw new CliFetchError(
-        "Github rate limits prevented fetching analytics-cli release (you may need to cache this if this error is common).",
+        "Github rate limits prevented fetching analytics-cli release (you may need to cache the analytics-cli if this error is common).",
         error,
       );
     }

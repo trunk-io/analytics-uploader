@@ -44813,7 +44813,7 @@ __nccwpck_require__.d(__webpack_exports__, {
   iW: () => (/* binding */ main)
 });
 
-// UNUSED EXPORTS: FAILURE_PREVIOUS_STEP_CODE, convertToTelemetry, fetchApiAddress, handleCommandError, parseBool, parsePreviousStepOutcome, previousStepFailed, semVerFromRef
+// UNUSED EXPORTS: CliFetchError, FAILURE_PREVIOUS_STEP_CODE, convertToTelemetry, fetchApiAddress, handleCommandError, parseBool, parsePreviousStepOutcome, previousStepFailed, semVerFromRef
 
 // EXTERNAL MODULE: ./node_modules/.pnpm/@actions+core@1.11.1/node_modules/@actions/core/lib/core.js
 var core = __nccwpck_require__(9999);
@@ -51086,13 +51086,8 @@ const downloadRelease = async (owner, repo, version, bin, tmpdir) => {
         return external_path_.join(tmpdir ?? ".", assetName);
     }
     catch (error) {
-        core.error(`Got error ${JSON.stringify(error)} of type ${typeof error}`);
-        if (error instanceof Error) {
-            core.error(`Error was Error type, message ${error.message}, name ${error.name}`);
-        }
         if (error instanceof Error && error.name === "HttpError") {
-            core.error("We did get a request error");
-            throw new CliFetchError("Github rate limits prevented fetching analytics-cli release (you may need to cache this if this error is common).", error);
+            throw new CliFetchError("Github rate limits prevented fetching analytics-cli release (you may need to cache the analytics-cli if this error is common).", error);
         }
         throw error;
     }
