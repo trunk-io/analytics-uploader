@@ -19,7 +19,7 @@ const TELEMETRY_RETRY = {
   maxRetryTime: 10000,
 } satisfies OperationOptions;
 
-export const FAILURE_PREVIOUS_STEP_CODE: number = 1;
+export const FAILURE_PREVIOUS_STEP_CODE = 1;
 
 // Cleanup to remove downloaded files
 const cleanup = (bin: string, dir = "."): void => {
@@ -173,7 +173,11 @@ export const handleCommandError = (
   // check if exec sync error
   let failureReason: string | undefined = undefined;
   if (error instanceof Error && error.message.includes("Command failed")) {
-    if (error.message.includes(`exit code ${FAILURE_PREVIOUS_STEP_CODE}`)) {
+    if (
+      error.message.includes(
+        `exit code ${FAILURE_PREVIOUS_STEP_CODE.toString()}`,
+      )
+    ) {
       core.setFailed(
         "The test results you are uploading contain test failures -- see above for details. This step will pass when the tests are fixed.",
       );

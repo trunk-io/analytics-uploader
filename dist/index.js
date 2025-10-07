@@ -51136,7 +51136,7 @@ const handleCommandError = (error) => {
     // check if exec sync error
     let failureReason = undefined;
     if (error instanceof Error && error.message.includes("Command failed")) {
-        if (error.message.includes(`exit code ${FAILURE_PREVIOUS_STEP_CODE}`)) {
+        if (error.message.includes(`exit code ${FAILURE_PREVIOUS_STEP_CODE.toString()}`)) {
             core.setFailed("The test results you are uploading contain test failures -- see above for details. This step will pass when the tests are fixed.");
         }
         else {

@@ -29,7 +29,7 @@ describe("handleCommandError", () => {
   });
 
   it("given Error with 'Command failed' and our manually set failure exit code", () => {
-    const expected = `Command failed with exit code ${FAILURE_PREVIOUS_STEP_CODE}`;
+    const expected = `Command failed with exit code ${FAILURE_PREVIOUS_STEP_CODE.toString()}`;
     const actual = handleCommandError(new Error(expected));
     expect(actual).toStrictEqual({ failureReason: undefined });
   });
