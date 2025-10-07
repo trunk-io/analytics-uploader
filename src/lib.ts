@@ -105,16 +105,14 @@ const downloadRelease = async (
       },
     });
 
-    fs.writeFileSync(
-      path.join(tmpdir ?? ".", assetName),
-      Buffer.from(response.data),
-    );
+    const targetDir = path.join(tmpdir ?? ".", assetName);
+    fs.writeFileSync(targetDir, Buffer.from(response.data));
     core.info(`Downloaded ${assetName} from release ${version}`);
-    return path.join(tmpdir ?? ".", assetName);
+    return targetDir;
   } catch (error: unknown) {
     if (error instanceof Error && error.name === "HttpError") {
       throw new CliFetchError(
-        "Github rate limits prevented fetching analytics-cli release (you may need to cache the analytics-cli if this error is common).",
+        "Github rate limits prevented fetching analytics-cli release. Hint: You may need to cache the analytics-cli.",
         error,
       );
     }

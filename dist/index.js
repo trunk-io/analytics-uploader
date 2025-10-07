@@ -51081,13 +51081,14 @@ const downloadRelease = async (owner, repo, version, bin, tmpdir) => {
                 accept: "application/octet-stream",
             },
         });
-        external_fs_.writeFileSync(external_path_.join(tmpdir ?? ".", assetName), external_node_buffer_namespaceObject.Buffer.from(response.data));
+        const targetDir = external_path_.join(tmpdir ?? ".", assetName);
+        external_fs_.writeFileSync(targetDir, external_node_buffer_namespaceObject.Buffer.from(response.data));
         core.info(`Downloaded ${assetName} from release ${version}`);
-        return external_path_.join(tmpdir ?? ".", assetName);
+        return targetDir;
     }
     catch (error) {
         if (error instanceof Error && error.name === "HttpError") {
-            throw new CliFetchError("Github rate limits prevented fetching analytics-cli release (you may need to cache the analytics-cli if this error is common).", error);
+            throw new CliFetchError("Github rate limits prevented fetching analytics-cli release. Hint: You may need to cache the analytics-cli.", error);
         }
         throw error;
     }
