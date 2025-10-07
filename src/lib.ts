@@ -173,6 +173,7 @@ export const handleCommandError = (
   // check if exec sync error
   let failureReason: string | undefined = undefined;
   if (error instanceof Error && error.message.includes("Command failed")) {
+    core.error(`Got a message, ${error.message}`);
     if (
       error.message.includes(
         `exit code ${FAILURE_PREVIOUS_STEP_CODE.toString()}`,
