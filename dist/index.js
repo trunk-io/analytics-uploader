@@ -51076,7 +51076,7 @@ const downloadRelease = async (owner, repo, version, bin, tmpdir) => {
         throw new Error(`Asset ${assetName} not found in release ${version}`);
     }
     try {
-        const response = await octokit.request(`GET ${asset.url}/fake-suffix`, {
+        const response = await octokit.request(`GET ${asset.url}`, {
             headers: {
                 accept: "application/octet-stream",
             },

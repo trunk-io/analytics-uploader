@@ -99,7 +99,7 @@ const downloadRelease = async (
   }
 
   try {
-    const response = await octokit.request(`GET ${asset.url}/fake-suffix`, {
+    const response = await octokit.request(`GET ${asset.url}`, {
       headers: {
         accept: "application/octet-stream",
       },
