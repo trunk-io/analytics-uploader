@@ -112,6 +112,12 @@ const downloadRelease = async (
     core.info(`Downloaded ${assetName} from release ${version}`);
     return path.join(tmpdir ?? ".", assetName);
   } catch (error: unknown) {
+    core.error(`Got error ${JSON.stringify(error)} of type ${typeof error}`);
+    if (error instanceof Error) {
+      core.error(
+        `Error was Error type, message ${error.message}, name ${error.name}`,
+      );
+    }
     if (error instanceof RequestError && error.status === 500) {
       core.error("We did get a request error");
       throw new CliFetchError(
