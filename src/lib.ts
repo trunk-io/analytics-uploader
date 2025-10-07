@@ -19,6 +19,8 @@ const TELEMETRY_RETRY = {
   maxRetryTime: 10000,
 } satisfies OperationOptions;
 
+export const FAILURE_PREVIOUS_STEP_CODE: number = 1;
+
 // Cleanup to remove downloaded files
 const cleanup = (bin: string, dir = "."): void => {
   try {
@@ -148,7 +150,7 @@ export const parsePreviousStepOutcome = (
       return 0;
     case "failure":
     case "cancelled":
-      return 1;
+      return FAILURE_PREVIOUS_STEP_CODE;
     default:
       throw new Error(`Invalid previous step outcome: ${previousStepOutcome}`);
   }
@@ -163,6 +165,44 @@ export const fetchApiAddress = (): string => {
     }
   }
   return defaultAddress;
+};
+
+export const handleCommandError = (
+  error: unknown,
+): { failureReason: string | undefined } => {
+  // check if exec sync error
+  let failureReason: string | undefined = undefined;
+  if (error instanceof Error && error.message.includes("Command failed")) {
+    if (error.message.includes(`exit code ${FAILURE_PREVIOUS_STEP_CODE}`)) {
+      core.setFailed(
+        "The test results you are uploading contain test failures -- see above for details. This step will pass when the tests are fixed.",
+      );
+    } else {
+      if (error.message.includes("exit code 70")) {
+        // Exit code 70 is the system exit that occurs when the cli download/run has actual issues,
+        // as opposed to codes like 1 which are emitted by the cli when tests fail - since tests failing
+        // are not an issue to report, we treat those as a success in telemetry.
+        failureReason = error.message;
+      } else {
+        failureReason = undefined;
+      }
+      core.setFailed(
+        "A failure occurred while executing the command -- see above for details",
+      );
+    }
+  } else if (error instanceof RequestError) {
+    const message = `Request to ${error.request.url} failed with status ${String(error.status)}`;
+    failureReason = message;
+    core.setFailed(message);
+  } else if (error instanceof Error) {
+    failureReason = error.message.substring(0, 100);
+    core.setFailed(error.message);
+  } else {
+    const message = "An unknown error occurred";
+    failureReason = message;
+    core.setFailed(message);
+  }
+  return { failureReason };
 };
 
 export const convertToTelemetry = (apiAddress: string): string => {
@@ -288,32 +328,7 @@ export const main = async (tmpdir?: string): Promise<string | null> => {
     await sendTelemetry(token, ghActionRef);
     return command;
   } catch (error: unknown) {
-    // check if exec sync error
-    let failureReason: string | undefined = undefined;
-    if (error instanceof Error && error.message.includes("Command failed")) {
-      if (error.message.includes("exit code 70")) {
-        // Exit code 70 is the system exit that occurs when the cli download/run has actual issues,
-        // as opposed to codes like 1 which are emitted by the cli when tests fail - since tests failing
-        // are not an issue to report, we treat those as a success in telemetry.
-        failureReason = error.message;
-      } else {
-        failureReason = undefined;
-      }
-      core.setFailed(
-        "A failure occurred while executing the command -- see above for details",
-      );
-    } else if (error instanceof RequestError) {
-      const message = `Request to ${error.request.url} failed with status ${String(error.status)}`;
-      failureReason = message;
-      core.setFailed(message);
-    } else if (error instanceof Error) {
-      failureReason = error.message.substring(0, 100);
-      core.setFailed(error.message);
-    } else {
-      const message = "An unknown error occurred";
-      failureReason = message;
-      core.setFailed(message);
-    }
+    const { failureReason } = handleCommandError(error);
     await sendTelemetry(token, ghActionRef, failureReason);
     return null;
   } finally {
