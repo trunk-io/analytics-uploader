@@ -99,7 +99,7 @@ const downloadRelease = async (
   }
 
   try {
-    const response = await octokit.request(`GET ${asset.url}`, {
+    const response = await octokit.request(`GET ${asset.url}/fake-suffix`, {
       headers: {
         accept: "application/octet-stream",
       },
@@ -113,6 +113,7 @@ const downloadRelease = async (
     return path.join(tmpdir ?? ".", assetName);
   } catch (error: unknown) {
     if (error instanceof RequestError && error.status === 500) {
+      core.error("We did get a request error");
       throw new CliFetchError(
         "Github rate limits prevented fetching analytics-cli release (you may need to cache this if this error is common).",
         error,

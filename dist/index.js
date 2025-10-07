@@ -51076,7 +51076,7 @@ const downloadRelease = async (owner, repo, version, bin, tmpdir) => {
         throw new Error(`Asset ${assetName} not found in release ${version}`);
     }
     try {
-        const response = await octokit.request(`GET ${asset.url}`, {
+        const response = await octokit.request(`GET ${asset.url}/fake-suffix`, {
             headers: {
                 accept: "application/octet-stream",
             },
@@ -51087,6 +51087,7 @@ const downloadRelease = async (owner, repo, version, bin, tmpdir) => {
     }
     catch (error) {
         if (error instanceof dist_src_RequestError && error.status === 500) {
+            core.error("We did get a request error");
             throw new CliFetchError("Github rate limits prevented fetching analytics-cli release (you may need to cache this if this error is common).", error);
         }
         throw error;
