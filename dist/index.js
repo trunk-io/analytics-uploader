@@ -44813,7 +44813,7 @@ __nccwpck_require__.d(__webpack_exports__, {
   iW: () => (/* binding */ main)
 });
 
-// UNUSED EXPORTS: FAILURE_PREVIOUS_STEP_CODE, convertToTelemetry, fetchApiAddress, handleCommandError, parseBool, parsePreviousStepOutcome, previousStepFailed, semVerFromRef
+// UNUSED EXPORTS: convertToTelemetry, fetchApiAddress, handleCommandError, parseBool, parsePreviousStepOutcome, previousStepFailed, semVerFromRef
 
 // EXTERNAL MODULE: ./node_modules/.pnpm/@actions+core@1.11.1/node_modules/@actions/core/lib/core.js
 var core = __nccwpck_require__(9999);
@@ -51017,7 +51017,6 @@ const TELEMETRY_RETRY = {
     maxTimeout: 10000,
     maxRetryTime: 10000,
 };
-const FAILURE_PREVIOUS_STEP_CODE = 1;
 // Cleanup to remove downloaded files
 const cleanup = (bin, dir = ".") => {
     try {
@@ -51149,7 +51148,7 @@ const handleCommandError = (error, previousStepOutcome) => {
     let failureReason = undefined;
     if (error instanceof Error && error.message.includes("Command failed")) {
         if (previousStepFailed(previousStepOutcome)) {
-            core.setFailed("The test results you are uploading contain test failures -- see above for details. This step will pass when the tests are fixed.");
+            core.setFailed("The test results you are uploading contain non quarantined test failures -- see above for details.");
         }
         else {
             if (error.message.includes("exit code 70")) {

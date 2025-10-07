@@ -19,8 +19,6 @@ const TELEMETRY_RETRY = {
   maxRetryTime: 10000,
 } satisfies OperationOptions;
 
-export const FAILURE_PREVIOUS_STEP_CODE = 1;
-
 // Cleanup to remove downloaded files
 const cleanup = (bin: string, dir = "."): void => {
   try {
@@ -189,7 +187,7 @@ export const handleCommandError = (
   if (error instanceof Error && error.message.includes("Command failed")) {
     if (previousStepFailed(previousStepOutcome)) {
       core.setFailed(
-        "The test results you are uploading contain test failures -- see above for details. This step will pass when the tests are fixed.",
+        "The test results you are uploading contain non quarantined test failures -- see above for details.",
       );
     } else {
       if (error.message.includes("exit code 70")) {
