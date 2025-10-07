@@ -22,7 +22,7 @@ const TELEMETRY_RETRY = {
 export const FAILURE_PREVIOUS_STEP_CODE = 1;
 
 class CliFetchError extends Error {
-  constructor(message: string, cause: RequestError) {
+  constructor(message: string, cause: Error) {
     super(message, { cause });
   }
 }
@@ -118,7 +118,7 @@ const downloadRelease = async (
         `Error was Error type, message ${error.message}, name ${error.name}`,
       );
     }
-    if (error instanceof RequestError && error.status === 500) {
+    if (error instanceof Error && error.name === "HttpError") {
       core.error("We did get a request error");
       throw new CliFetchError(
         "Github rate limits prevented fetching analytics-cli release (you may need to cache this if this error is common).",

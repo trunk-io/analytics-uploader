@@ -51090,7 +51090,7 @@ const downloadRelease = async (owner, repo, version, bin, tmpdir) => {
         if (error instanceof Error) {
             core.error(`Error was Error type, message ${error.message}, name ${error.name}`);
         }
-        if (error instanceof dist_src_RequestError && error.status === 500) {
+        if (error instanceof Error && error.name === "HttpError") {
             core.error("We did get a request error");
             throw new CliFetchError("Github rate limits prevented fetching analytics-cli release (you may need to cache this if this error is common).", error);
         }
