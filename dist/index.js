@@ -44813,7 +44813,7 @@ __nccwpck_require__.d(__webpack_exports__, {
   iW: () => (/* binding */ main)
 });
 
-// UNUSED EXPORTS: convertToTelemetry, fetchApiAddress, parseBool, parsePreviousStepOutcome, semVerFromRef
+// UNUSED EXPORTS: convertToTelemetry, fetchApiAddress, handleCommandError, parseBool, parsePreviousStepOutcome, previousStepFailed, semVerFromRef
 
 // EXTERNAL MODULE: ./node_modules/.pnpm/@actions+core@1.11.1/node_modules/@actions/core/lib/core.js
 var core = __nccwpck_require__(9999);
@@ -51121,6 +51121,18 @@ const parsePreviousStepOutcome = (previousStepOutcome) => {
             throw new Error(`Invalid previous step outcome: ${previousStepOutcome}`);
     }
 };
+const previousStepFailed = (previousStepOutcome) => {
+    if (!previousStepOutcome) {
+        return false;
+    }
+    switch (previousStepOutcome.toLowerCase()) {
+        case "failure":
+        case "cancelled":
+            return true;
+        default:
+            return false;
+    }
+};
 const fetchApiAddress = () => {
     const defaultAddress = "https://api.trunk.io";
     if ("TRUNK_PUBLIC_API_ADDRESS" in process.env) {
@@ -51130,6 +51142,42 @@ const fetchApiAddress = () => {
         }
     }
     return defaultAddress;
+};
+const handleCommandError = (error, previousStepOutcome) => {
+    // check if exec sync error
+    let failureReason = undefined;
+    if (error instanceof Error && error.message.includes("Command failed")) {
+        if (previousStepFailed(previousStepOutcome)) {
+            core.setFailed("The test results you are uploading contain non quarantined test failures -- see above for details.");
+        }
+        else {
+            if (error.message.includes("exit code 70")) {
+                // Exit code 70 is the system exit that occurs when the cli download/run has actual issues,
+                // as opposed to codes like 1 which are emitted by the cli when tests fail - since tests failing
+                // are not an issue to report, we treat those as a success in telemetry.
+                failureReason = error.message;
+            }
+            else {
+                failureReason = undefined;
+            }
+            core.setFailed("A failure occurred while executing the command -- see above for details");
+        }
+    }
+    else if (error instanceof dist_src_RequestError) {
+        const message = `Request to ${error.request.url} failed with status ${String(error.status)}`;
+        failureReason = message;
+        core.setFailed(message);
+    }
+    else if (error instanceof Error) {
+        failureReason = error.message.substring(0, 100);
+        core.setFailed(error.message);
+    }
+    else {
+        const message = "An unknown error occurred";
+        failureReason = message;
+        core.setFailed(message);
+    }
+    return { failureReason };
 };
 const convertToTelemetry = (apiAddress) => {
     const baseMatcher = /^https:\/\/(.*?)\/?$/;
@@ -51199,9 +51247,7 @@ const main = async (tmpdir) => {
                 ? `--test-process-exit-code=${parsePreviousStepOutcome(previousStepOutcome).toString()}`
                 : "",
             verbose === "true" ? "-v" : "",
-            showFailureMessages === "true"
-                ? "--show-failure-messages"
-                : "",
+            showFailureMessages === "true" ? "--show-failure-messages" : "",
             run ? `-- ${run}` : "",
         ].filter(Boolean);
         // Execute the command
@@ -51220,34 +51266,7 @@ const main = async (tmpdir) => {
         return command;
     }
     catch (error) {
-        // check if exec sync error
-        let failureReason = undefined;
-        if (error instanceof Error && error.message.includes("Command failed")) {
-            if (error.message.includes("exit code 70")) {
-                // Exit code 70 is the system exit that occurs when the cli download/run has actual issues,
-                // as opposed to codes like 1 which are emitted by the cli when tests fail - since tests failing
-                // are not an issue to report, we treat those as a success in telemetry.
-                failureReason = error.message;
-            }
-            else {
-                failureReason = undefined;
-            }
-            core.setFailed("A failure occurred while executing the command -- see above for details");
-        }
-        else if (error instanceof dist_src_RequestError) {
-            const message = `Request to ${error.request.url} failed with status ${String(error.status)}`;
-            failureReason = message;
-            core.setFailed(message);
-        }
-        else if (error instanceof Error) {
-            failureReason = error.message.substring(0, 100);
-            core.setFailed(error.message);
-        }
-        else {
-            const message = "An unknown error occurred";
-            failureReason = message;
-            core.setFailed(message);
-        }
+        const { failureReason } = handleCommandError(error, previousStepOutcome);
         await sendTelemetry(token, ghActionRef, failureReason);
         return null;
     }
