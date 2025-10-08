@@ -19,6 +19,14 @@ const TELEMETRY_RETRY = {
   maxRetryTime: 10000,
 } satisfies OperationOptions;
 
+export const FAILURE_PREVIOUS_STEP_CODE = 1;
+
+export class CliFetchError extends Error {
+  constructor(message: string, cause: Error) {
+    super(message, { cause });
+  }
+}
+
 // Cleanup to remove downloaded files
 const cleanup = (bin: string, dir = "."): void => {
   try {
@@ -90,18 +98,26 @@ const downloadRelease = async (
     throw new Error(`Asset ${assetName} not found in release ${version}`);
   }
 
-  const response = await octokit.request(`GET ${asset.url}`, {
-    headers: {
-      accept: "application/octet-stream",
-    },
-  });
+  try {
+    const response = await octokit.request(`GET ${asset.url}`, {
+      headers: {
+        accept: "application/octet-stream",
+      },
+    });
 
-  fs.writeFileSync(
-    path.join(tmpdir ?? ".", assetName),
-    Buffer.from(response.data),
-  );
-  core.info(`Downloaded ${assetName} from release ${version}`);
-  return path.join(tmpdir ?? ".", assetName);
+    const targetDir = path.join(tmpdir ?? ".", assetName);
+    fs.writeFileSync(targetDir, Buffer.from(response.data));
+    core.info(`Downloaded ${assetName} from release ${version}`);
+    return targetDir;
+  } catch (error: unknown) {
+    if (error instanceof Error && error.name === "HttpError") {
+      throw new CliFetchError(
+        "Github rate limits prevented fetching analytics-cli release. Hint: You may need to cache the analytics-cli.",
+        error,
+      );
+    }
+    throw error;
+  }
 };
 
 const getInputs = (): Record<string, string> => {
@@ -206,6 +222,9 @@ export const handleCommandError = (
     const message = `Request to ${error.request.url} failed with status ${String(error.status)}`;
     failureReason = message;
     core.setFailed(message);
+  } else if (error instanceof CliFetchError) {
+    failureReason = undefined;
+    core.setFailed(error.message);
   } else if (error instanceof Error) {
     failureReason = error.message.substring(0, 100);
     core.setFailed(error.message);

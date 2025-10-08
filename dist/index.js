@@ -44813,7 +44813,7 @@ __nccwpck_require__.d(__webpack_exports__, {
   iW: () => (/* binding */ main)
 });
 
-// UNUSED EXPORTS: convertToTelemetry, fetchApiAddress, handleCommandError, parseBool, parsePreviousStepOutcome, previousStepFailed, semVerFromRef
+// UNUSED EXPORTS: CliFetchError, FAILURE_PREVIOUS_STEP_CODE, convertToTelemetry, fetchApiAddress, handleCommandError, parseBool, parsePreviousStepOutcome, previousStepFailed, semVerFromRef
 
 // EXTERNAL MODULE: ./node_modules/.pnpm/@actions+core@1.11.1/node_modules/@actions/core/lib/core.js
 var core = __nccwpck_require__(9999);
@@ -51017,6 +51017,12 @@ const TELEMETRY_RETRY = {
     maxTimeout: 10000,
     maxRetryTime: 10000,
 };
+const FAILURE_PREVIOUS_STEP_CODE = 1;
+class CliFetchError extends Error {
+    constructor(message, cause) {
+        super(message, { cause });
+    }
+}
 // Cleanup to remove downloaded files
 const cleanup = (bin, dir = ".") => {
     try {
@@ -51069,14 +51075,23 @@ const downloadRelease = async (owner, repo, version, bin, tmpdir) => {
     if (!asset) {
         throw new Error(`Asset ${assetName} not found in release ${version}`);
     }
-    const response = await octokit.request(`GET ${asset.url}`, {
-        headers: {
-            accept: "application/octet-stream",
-        },
-    });
-    external_fs_.writeFileSync(external_path_.join(tmpdir ?? ".", assetName), external_node_buffer_namespaceObject.Buffer.from(response.data));
-    core.info(`Downloaded ${assetName} from release ${version}`);
-    return external_path_.join(tmpdir ?? ".", assetName);
+    try {
+        const response = await octokit.request(`GET ${asset.url}`, {
+            headers: {
+                accept: "application/octet-stream",
+            },
+        });
+        const targetDir = external_path_.join(tmpdir ?? ".", assetName);
+        external_fs_.writeFileSync(targetDir, external_node_buffer_namespaceObject.Buffer.from(response.data));
+        core.info(`Downloaded ${assetName} from release ${version}`);
+        return targetDir;
+    }
+    catch (error) {
+        if (error instanceof Error && error.name === "HttpError") {
+            throw new CliFetchError("Github rate limits prevented fetching analytics-cli release. Hint: You may need to cache the analytics-cli.", error);
+        }
+        throw error;
+    }
 };
 const getInputs = () => {
     return {
@@ -51167,6 +51182,10 @@ const handleCommandError = (error, previousStepOutcome) => {
         const message = `Request to ${error.request.url} failed with status ${String(error.status)}`;
         failureReason = message;
         core.setFailed(message);
+    }
+    else if (error instanceof CliFetchError) {
+        failureReason = undefined;
+        core.setFailed(error.message);
     }
     else if (error instanceof Error) {
         failureReason = error.message.substring(0, 100);
