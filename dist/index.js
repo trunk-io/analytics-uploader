@@ -51035,6 +51035,12 @@ const cleanup = (bin, dir = ".") => {
         if (external_fs_.existsSync(external_path_.join(dir, `trunk-analytics-cli-${bin}.tar.gz`))) {
             external_fs_.unlinkSync(external_path_.join(dir, `trunk-analytics-cli-${bin}.tar.gz`));
         }
+        if (external_fs_.existsSync(external_path_.join(dir, "bundle_upload"))) {
+            external_fs_.rmSync(external_path_.join(dir, "bundle_upload"), {
+                recursive: true,
+                force: true,
+            });
+        }
     }
     catch (error) {
         if (error instanceof Error) {
@@ -51119,6 +51125,7 @@ const getInputs = () => {
         ghActionRef: core.getInput("gh-action-ref"),
         verbose: core.getInput("verbose"),
         showFailureMessages: core.getInput("show-failure-messages"),
+        dryRun: core.getInput("dry-run"),
     };
 };
 const parsePreviousStepOutcome = (previousStepOutcome) => {
@@ -51208,7 +51215,7 @@ const convertToTelemetry = (apiAddress) => {
 };
 const main = async (tmpdir) => {
     let bin = "";
-    const { junitPaths, orgSlug, token, repoHeadBranch, run, repoRoot, cliVersion, xcresultPath, bazelBepPath, quarantine, allowMissingJunitFiles, hideBanner, variant, useUnclonedRepo, previousStepOutcome, prTitle, ghRepoUrl, ghRepoHeadSha, ghRepoHeadBranch, ghRepoHeadCommitEpoch, ghRepoHeadAuthorName, ghActionRef, verbose, showFailureMessages, } = getInputs();
+    const { junitPaths, orgSlug, token, repoHeadBranch, run, repoRoot, cliVersion, xcresultPath, bazelBepPath, quarantine, allowMissingJunitFiles, hideBanner, variant, useUnclonedRepo, previousStepOutcome, prTitle, ghRepoUrl, ghRepoHeadSha, ghRepoHeadBranch, ghRepoHeadCommitEpoch, ghRepoHeadAuthorName, ghActionRef, verbose, showFailureMessages, dryRun, } = getInputs();
     try {
         // Validate required inputs
         if (!junitPaths && !xcresultPath && !bazelBepPath) {
@@ -51267,6 +51274,7 @@ const main = async (tmpdir) => {
                 : "",
             verbose === "true" ? "-v" : "",
             showFailureMessages === "true" ? "--show-failure-messages" : "",
+            dryRun === "true" ? "--dry-run" : "",
             run ? `-- ${run}` : "",
         ].filter(Boolean);
         // Execute the command

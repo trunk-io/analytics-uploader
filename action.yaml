@@ -87,6 +87,11 @@ inputs:
     description: Show failure outputs in upload. This is experimental, do not rely on this.
     type: boolean
     default: false
+  dry-run:
+    description: Run without uploading the results to the server. They will instead be dumped to the directory that the action is run in.
+    type: boolean
+    default: false
+    required: false
 
 runs:
   using: node20

@@ -82,3 +82,54 @@ jobs:
           quarantine: "true"
         env:
           TRUNK_PUBLIC_API_ADDRESS: https://api.trunk-staging.io
+
+  test_dry_run_cleanup:
+    name: Test Dry Run Cleanup
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install pnpm
+        uses: trunk-io/trunk-action/install@v1
+        with:
+          tools: pnpm
+
+      - name: Run tests
+        shell: bash
+        run: |
+          pnpm install
+          pnpm test
+
+      # Do NOT continue-on-error for these uploads
+      - name: Trunk Analytics Uploader (Prod)
+        uses: ./
+        with:
+          junit-paths: junit.xml
+          org-slug: trunk
+          token: ${{ secrets.TRUNK_PROD_ORG_API_TOKEN }}
+          allow-missing-junit-files: "false"
+          # Forces the uploader to not continue-on-error and use the CLI exit code
+          quarantine: "true"
+          dry-run: "true"
+
+      - name: Verify bundle_upload directory was cleaned up
+        run: |
+          if [ -d "bundle_upload" ]; then echo "❌ ERROR: bundle_upload directory still exists after dry-run!"; ls -la bundle_upload/; exit 1; else echo "✅ SUCCESS: bundle_upload directory was properly cleaned up"; fi
+
+      - name: Verify no leftover CLI artifacts
+        run: |
+          if [ -f "trunk-analytics-cli" ]; then
+            echo "❌ ERROR: trunk-analytics-cli binary still exists!"
+            exit 1
+          fi
+          if [ -f "trunk-analytics-cli.tar.gz" ] || [ -f "trunk-analytics-cli-"*".tar.gz" ]; then
+            echo "❌ ERROR: trunk-analytics-cli tarball still exists!"
+            exit 1
+          fi
+          echo "✅ SUCCESS: All CLI artifacts were properly cleaned up"
