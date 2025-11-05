@@ -208,4 +208,48 @@ describe("Arguments", () => {
     expect(files).toEqual(expect.not.arrayContaining(["trunk-analytics-cli"]));
     await fs.rm(tmpdir, { recursive: true, force: true });
   });
+
+  it("Forwards dry-run flag and cleans up bundle_upload directory", async () => {
+    core.getInput.mockImplementation((name) => {
+      switch (name) {
+        case "junit-paths":
+          return "junit.xml";
+        case "org-slug":
+          return "org";
+        case "token":
+          return "token";
+        case "cli-version":
+          return "0.0.0";
+        case "dry-run":
+          return "true";
+        default:
+          return "";
+      }
+    });
+    const tmpdir = await fs.mkdtemp(
+      path.resolve(os.tmpdir(), "trunk-analytics-uploader-test-"),
+    );
+    await createEchoCli(tmpdir);
+
+    // Create a bundle_upload directory to simulate dry-run output
+    const bundleUploadDir = path.join(tmpdir, "bundle_upload");
+    await fs.mkdir(bundleUploadDir);
+    await fs.writeFile(path.join(bundleUploadDir, "test.txt"), "test content");
+
+    // Verify the directory exists before running the command
+    expect(await fs.stat(bundleUploadDir)).toBeTruthy();
+
+    const command = await main(tmpdir);
+
+    // Verify dry-run flag is in the command
+    expect(command).toMatch(
+      `${tmpdir}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token" --dry-run`,
+    );
+
+    // Verify the bundle_upload directory was cleaned up
+    const files = await fs.readdir(tmpdir);
+    expect(files).toEqual(expect.not.arrayContaining(["bundle_upload"]));
+
+    await fs.rm(tmpdir, { recursive: true, force: true });
+  });
 });

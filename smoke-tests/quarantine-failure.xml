@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="example-suites" tests="2" failures="1" errors="0" time="0.011">
+    <testsuite name="smoke-test" tests="2" disabled="0" errors="0" failures="1">
+        <testcase name="tests::always_fails" classname="smoke-test" time="0.011">
+          <failure type="test failure">Always fail so that we verify quarantining works.</failure>
+        </testcase>
+        <testcase name="tests::always_succeed" classname="smoke-test" time="0.000" />
+    </testsuite>
+</testsuites>
