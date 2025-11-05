@@ -59,27 +59,24 @@ jobs:
         run: |
           pnpm install
           pnpm test
+        continue-on-error: true
 
       # Do NOT continue-on-error for these uploads
       - name: Trunk Analytics Uploader (Prod)
         uses: ./
         with:
-          junit-paths: junit.xml
+          junit-paths: junit.xml,smoke-tests/quarantine-failure.xml
           org-slug: trunk
           token: ${{ secrets.TRUNK_PROD_ORG_API_TOKEN }}
           allow-missing-junit-files: "false"
-          # Forces the uploader to not continue-on-error and use the CLI exit code
-          quarantine: "true"
 
       - name: Trunk Analytics Uploader (Staging)
         uses: ./
         with:
-          junit-paths: junit.xml
+          junit-paths: junit.xml,smoke-tests/quarantine-failure.xml
           org-slug: trunk-staging-org
           token: ${{ secrets.TRUNK_STAGING_ORG_API_TOKEN }}
           allow-missing-junit-files: "false"
-          # Forces the uploader to not continue-on-error and use the CLI exit code
-          quarantine: "true"
         env:
           TRUNK_PUBLIC_API_ADDRESS: https://api.trunk-staging.io
 
@@ -90,32 +87,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-
-      - name: Install pnpm
-        uses: trunk-io/trunk-action/install@v1
-        with:
-          tools: pnpm
-
-      - name: Run tests
-        shell: bash
-        run: |
-          pnpm install
-          pnpm test
-
       # Do NOT continue-on-error for these uploads
+      # We want to verify quarantining works for dry-runs
       - name: Trunk Analytics Uploader (Prod)
         uses: ./
         with:
-          junit-paths: junit.xml
+          junit-paths: smoke-tests/quarantine-failure.xml
           org-slug: trunk
           token: ${{ secrets.TRUNK_PROD_ORG_API_TOKEN }}
           allow-missing-junit-files: "false"
-          # Forces the uploader to not continue-on-error and use the CLI exit code
-          quarantine: "true"
           dry-run: "true"
 
       - name: Verify bundle_upload directory was cleaned up
