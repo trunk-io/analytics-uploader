@@ -51024,7 +51024,7 @@ class CliFetchError extends Error {
     }
 }
 // Cleanup to remove downloaded files
-const cleanup = (bin, dir = ".") => {
+const cleanup = (bin, dir = ".", dryRun = false) => {
     try {
         if (external_fs_.existsSync(external_path_.join(dir, "trunk-analytics-cli"))) {
             external_fs_.unlinkSync(external_path_.join(dir, "trunk-analytics-cli"));
@@ -51035,7 +51035,7 @@ const cleanup = (bin, dir = ".") => {
         if (external_fs_.existsSync(external_path_.join(dir, `trunk-analytics-cli-${bin}.tar.gz`))) {
             external_fs_.unlinkSync(external_path_.join(dir, `trunk-analytics-cli-${bin}.tar.gz`));
         }
-        if (external_fs_.existsSync(external_path_.join(dir, "bundle_upload"))) {
+        if (dryRun && external_fs_.existsSync(external_path_.join(dir, "bundle_upload"))) {
             external_fs_.rmSync(external_path_.join(dir, "bundle_upload"), {
                 recursive: true,
                 force: true,
@@ -51299,7 +51299,7 @@ const main = async (tmpdir) => {
     }
     finally {
         core.debug("Cleaning up...");
-        cleanup(bin, tmpdir);
+        cleanup(bin, tmpdir, dryRun === "true");
         core.debug("Cleanup complete");
     }
 };

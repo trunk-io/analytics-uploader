@@ -28,7 +28,7 @@ export class CliFetchError extends Error {
 }
 
 // Cleanup to remove downloaded files
-const cleanup = (bin: string, dir = "."): void => {
+const cleanup = (bin: string, dir = ".", dryRun = false): void => {
   try {
     if (fs.existsSync(path.join(dir, "trunk-analytics-cli"))) {
       fs.unlinkSync(path.join(dir, "trunk-analytics-cli"));
@@ -39,7 +39,7 @@ const cleanup = (bin: string, dir = "."): void => {
     if (fs.existsSync(path.join(dir, `trunk-analytics-cli-${bin}.tar.gz`))) {
       fs.unlinkSync(path.join(dir, `trunk-analytics-cli-${bin}.tar.gz`));
     }
-    if (fs.existsSync(path.join(dir, "bundle_upload"))) {
+    if (dryRun && fs.existsSync(path.join(dir, "bundle_upload"))) {
       fs.rmSync(path.join(dir, "bundle_upload"), {
         recursive: true,
         force: true,
@@ -373,7 +373,7 @@ export const main = async (tmpdir?: string): Promise<string | null> => {
     return null;
   } finally {
     core.debug("Cleaning up...");
-    cleanup(bin, tmpdir);
+    cleanup(bin, tmpdir, dryRun === "true");
     core.debug("Cleanup complete");
   }
 };
