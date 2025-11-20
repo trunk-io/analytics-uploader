@@ -51081,14 +51081,7 @@ const downloadRelease = async (owner, repo, version, bin, tmpdir, platform) => {
         auth: token,
     });
     const release = version === "latest"
-        ? await octokit.repos
-            .listReleases({ owner, repo, per_page: 1 })
-            .then((response) => {
-            if (response.data.length === 0) {
-                throw new Error("No releases found");
-            }
-            return { data: response.data[0] };
-        })
+        ? await octokit.repos.getLatestRelease({ owner, repo })
         : await octokit.repos.getReleaseByTag({ owner, repo, tag: version });
     const assetName = platform === "win32"
         ? `trunk-analytics-cli-${bin}-experimental.zip`
