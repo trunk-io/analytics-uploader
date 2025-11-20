@@ -2,6 +2,15 @@
 
 Github Action enabling integration between Junit runners and Trunk Analytics.
 
+## Platform Support
+
+| Platform | Architecture | Status    |
+| -------- | ------------ | --------- |
+| Linux    | x64, ARM64   | Supported |
+| macOS    | x64, ARM64   | Supported |
+
+| Windows | x64 | Experimental |
+
 ## Usage
 
 Running this action will upload `junit.xml` files to [Trunk Flaky Tests](https://docs.trunk.io/flaky-tests).
