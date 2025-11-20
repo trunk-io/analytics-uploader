@@ -349,7 +349,9 @@ export const main = async (tmpdir?: string): Promise<string | null> => {
       platform === "win32" ? "trunk-analytics-cli.exe" : "trunk-analytics-cli";
     const downloadPath = tmpdir
       ? path.join(tmpdir, executableName)
-      : `./${executableName}`;
+      : platform === "win32"
+        ? executableName
+        : `./${executableName}`;
     if (!fs.existsSync(downloadPath)) {
       core.info("Downloading trunk-analytics-cli...");
       const release = await downloadRelease(

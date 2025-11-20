@@ -51265,7 +51265,9 @@ const main = async (tmpdir) => {
         const executableName = platform === "win32" ? "trunk-analytics-cli.exe" : "trunk-analytics-cli";
         const downloadPath = tmpdir
             ? external_path_.join(tmpdir, executableName)
-            : `./${executableName}`;
+            : platform === "win32"
+                ? executableName
+                : `./${executableName}`;
         if (!external_fs_.existsSync(downloadPath)) {
             core.info("Downloading trunk-analytics-cli...");
             const release = await downloadRelease("trunk-io", "analytics-cli", cliVersion, bin, tmpdir, platform);
