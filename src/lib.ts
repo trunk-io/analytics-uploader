@@ -115,7 +115,7 @@ const downloadRelease = async (
       ? await octokit.repos
           .listReleases({ owner, repo, per_page: 1 })
           .then((response) => {
-            if (!response.data || response.data.length === 0) {
+            if (response.data.length === 0) {
               throw new Error("No releases found");
             }
             return { data: response.data[0] };
