@@ -4,12 +4,11 @@ Github Action enabling integration between Junit runners and Trunk Analytics.
 
 ## Platform Support
 
-| Platform | Architecture | Status    |
-| -------- | ------------ | --------- |
-| Linux    | x64, ARM64   | Supported |
-| macOS    | x64, ARM64   | Supported |
-
-| Windows | x64 | Experimental |
+| Platform | Architecture | Status       |
+| -------- | ------------ | ------------ |
+| Linux    | x64, ARM64   | Supported    |
+| macOS    | x64, ARM64   | Supported    |
+| Windows  | x64          | Experimental |
 
 ## Usage
 
