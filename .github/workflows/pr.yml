@@ -61,9 +61,10 @@ jobs:
         with:
           node-version: "22"
 
-      # Do NOT continue-on-error for these uploads
+      # Do NOT continue-on-error for these uploads (except Windows which is experimental)
       - name: Trunk Analytics Uploader (Prod)
         uses: ./
+        continue-on-error: ${{ matrix.os == 'windows' }}
         with:
           junit-paths: junit.xml,smoke-tests/quarantine-failure.xml
           org-slug: trunk
@@ -72,6 +73,7 @@ jobs:
 
       - name: Trunk Analytics Uploader (Staging)
         uses: ./
+        continue-on-error: ${{ matrix.os == 'windows' }}
         with:
           junit-paths: junit.xml,smoke-tests/quarantine-failure.xml
           org-slug: trunk-staging-org
