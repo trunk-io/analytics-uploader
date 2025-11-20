@@ -51279,6 +51279,17 @@ const main = async (tmpdir) => {
         if (platform !== "win32") {
             external_fs_.chmodSync(downloadPath, "755");
         }
+        // Display version information
+        try {
+            core.info("Checking trunk-analytics-cli version...");
+            (0,external_child_process_.execSync)(`${downloadPath} --version`, { stdio: "inherit" });
+        }
+        catch (error) {
+            // Version check is informational, don't fail if it errors
+            if (error instanceof Error) {
+                core.warning(`Failed to get version: ${error.message}`);
+            }
+        }
         // Build command arguments
         const args = [
             downloadPath,

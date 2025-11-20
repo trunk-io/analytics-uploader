@@ -373,6 +373,17 @@ export const main = async (tmpdir?: string): Promise<string | null> => {
       fs.chmodSync(downloadPath, "755");
     }
 
+    // Display version information
+    try {
+      core.info("Checking trunk-analytics-cli version...");
+      execSync(`${downloadPath} --version`, { stdio: "inherit" });
+    } catch (error: unknown) {
+      // Version check is informational, don't fail if it errors
+      if (error instanceof Error) {
+        core.warning(`Failed to get version: ${error.message}`);
+      }
+    }
+
     // Build command arguments
     const args = [
       downloadPath,
