@@ -38,8 +38,17 @@ jobs:
         uses: trunk-io/trunk-action@v1
 
   test_and_upload:
-    name: Test and Upload
-    runs-on: ubuntu-latest
+    name: Test and Upload (${{ matrix.os }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu
+            runner: ubuntu-latest
+          - os: macos
+            runner: macos-latest
+          - os: windows
+            runner: windows-latest
 
     steps:
       - uses: actions/checkout@v4
@@ -108,8 +117,16 @@ jobs:
             echo "❌ ERROR: trunk-analytics-cli binary still exists!"
             exit 1
           fi
+          if [ -f "trunk-analytics-cli.exe" ]; then
+            echo "❌ ERROR: trunk-analytics-cli.exe binary still exists!"
+            exit 1
+          fi
           if [ -f "trunk-analytics-cli.tar.gz" ] || [ -f "trunk-analytics-cli-"*".tar.gz" ]; then
             echo "❌ ERROR: trunk-analytics-cli tarball still exists!"
+            exit 1
+          fi
+          if [ -f "trunk-analytics-cli-"*".zip" ]; then
+            echo "❌ ERROR: trunk-analytics-cli zip still exists!"
             exit 1
           fi
           echo "✅ SUCCESS: All CLI artifacts were properly cleaned up"
