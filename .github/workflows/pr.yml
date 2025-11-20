@@ -29,6 +29,8 @@ jobs:
         uses: trunk-io/trunk-action/install@v1
         with:
           tools: pnpm
+      - name: Install dependencies
+        run: pnpm install
 
       - name: Trunk Check
         uses: trunk-io/trunk-action@v1
