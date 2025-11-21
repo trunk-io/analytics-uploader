@@ -28,16 +28,35 @@ export class CliFetchError extends Error {
 }
 
 // Cleanup to remove downloaded files
-const cleanup = (bin: string, dir = ".", dryRun = false): void => {
+const cleanup = (
+  bin: string,
+  dir = ".",
+  dryRun = false,
+  platform?: string,
+): void => {
   try {
-    if (fs.existsSync(path.join(dir, "trunk-analytics-cli"))) {
-      fs.unlinkSync(path.join(dir, "trunk-analytics-cli"));
+    const executableName =
+      platform === "win32" ? "trunk-analytics-cli.exe" : "trunk-analytics-cli";
+    if (fs.existsSync(path.join(dir, executableName))) {
+      fs.unlinkSync(path.join(dir, executableName));
     }
     if (fs.existsSync(path.join(dir, "trunk-analytics-cli.tar.gz"))) {
-      fs.unlinkSync(path.join("trunk-analytics-cli.tar.gz"));
+      fs.unlinkSync(path.join(dir, "trunk-analytics-cli.tar.gz"));
     }
     if (fs.existsSync(path.join(dir, `trunk-analytics-cli-${bin}.tar.gz`))) {
       fs.unlinkSync(path.join(dir, `trunk-analytics-cli-${bin}.tar.gz`));
+    }
+    // Clean up Windows zip files
+    if (platform === "win32") {
+      if (
+        fs.existsSync(
+          path.join(dir, `trunk-analytics-cli-${bin}-experimental.zip`),
+        )
+      ) {
+        fs.unlinkSync(
+          path.join(dir, `trunk-analytics-cli-${bin}-experimental.zip`),
+        );
+      }
     }
     if (dryRun && fs.existsSync(path.join(dir, "bundle_upload"))) {
       fs.rmSync(path.join(dir, "bundle_upload"), {
@@ -77,6 +96,7 @@ const downloadRelease = async (
   version: string,
   bin: string,
   tmpdir?: string,
+  platform?: string,
 ): Promise<string> => {
   // Get the GitHub token from the environment
   const token = core.getInput("github-token");
@@ -95,7 +115,10 @@ const downloadRelease = async (
       ? await octokit.repos.getLatestRelease({ owner, repo })
       : await octokit.repos.getReleaseByTag({ owner, repo, tag: version });
 
-  const assetName = `trunk-analytics-cli-${bin}.tar.gz`;
+  const assetName =
+    platform === "win32"
+      ? `trunk-analytics-cli-${bin}-experimental.zip`
+      : `trunk-analytics-cli-${bin}.tar.gz`;
   const asset = release.data.assets.find(
     (a: GitHubAsset) => a.name === assetName,
   );
@@ -283,6 +306,9 @@ export const main = async (tmpdir?: string): Promise<string | null> => {
     dryRun,
   } = getInputs();
 
+  // Determine binary based on OS (declared outside try block for use in finally)
+  const platform = os.platform();
+
   try {
     // Validate required inputs
     if (!junitPaths && !xcresultPath && !bazelBepPath) {
@@ -294,23 +320,31 @@ export const main = async (tmpdir?: string): Promise<string | null> => {
     if (!token) {
       throw new Error("Missing trunk api token");
     }
-
-    // Determine binary based on OS
-    const platform = os.platform();
     const arch = os.arch();
 
     if (platform === "darwin") {
       bin = arch === "arm64" ? "aarch64-apple-darwin" : "x86_64-apple-darwin";
     } else if (platform === "linux") {
       bin = arch === "arm64" ? "aarch64-unknown-linux" : "x86_64-unknown-linux";
+    } else if (platform === "win32") {
+      if (arch !== "x64") {
+        throw new Error(
+          `Unsupported Windows architecture (${arch}). Only x64 is supported.`,
+        );
+      }
+      bin = "x86_64-pc-windows-gnu";
     } else {
       throw new Error(`Unsupported OS (${platform}, ${arch})`);
     }
 
     // Download and extract CLI
+    const executableName =
+      platform === "win32" ? "trunk-analytics-cli.exe" : "trunk-analytics-cli";
     const downloadPath = tmpdir
-      ? path.join(tmpdir, "trunk-analytics-cli")
-      : "./trunk-analytics-cli";
+      ? path.join(tmpdir, executableName)
+      : platform === "win32"
+        ? executableName
+        : `./${executableName}`;
     if (!fs.existsSync(downloadPath)) {
       core.info("Downloading trunk-analytics-cli...");
       const release = await downloadRelease(
@@ -319,12 +353,36 @@ export const main = async (tmpdir?: string): Promise<string | null> => {
         cliVersion,
         bin,
         tmpdir,
+        platform,
       );
       core.info("Download complete, extracting...");
-      execSync(`tar -xvzf ${release}`, { stdio: "inherit" });
+      if (platform === "win32") {
+        // Extract zip file using PowerShell
+        const extractPath = tmpdir ?? ".";
+        execSync(
+          `powershell -command "Expand-Archive -Path '${release}' -DestinationPath '${extractPath}' -Force"`,
+          { stdio: "inherit" },
+        );
+      } else {
+        execSync(`tar -xvzf ${release}`, { stdio: "inherit" });
+      }
       core.info("Extraction complete");
     }
-    fs.chmodSync(downloadPath, "755");
+    // chmod doesn't work on Windows, but files are executable by default
+    if (platform !== "win32") {
+      fs.chmodSync(downloadPath, "755");
+    }
+
+    // Display version information
+    try {
+      core.info("Checking trunk-analytics-cli version...");
+      execSync(`${downloadPath} --version`, { stdio: "inherit" });
+    } catch (error: unknown) {
+      // Version check is informational, don't fail if it errors
+      if (error instanceof Error) {
+        core.warning(`Failed to get version: ${error.message}`);
+      }
+    }
 
     // Build command arguments
     const args = [
@@ -373,7 +431,7 @@ export const main = async (tmpdir?: string): Promise<string | null> => {
     return null;
   } finally {
     core.debug("Cleaning up...");
-    cleanup(bin, tmpdir, dryRun === "true");
+    cleanup(bin, tmpdir, dryRun === "true", platform);
     core.debug("Cleanup complete");
   }
 };
