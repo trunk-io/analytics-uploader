@@ -93,7 +93,7 @@ inputs:
     default: false
     required: false
   use-cache:
-    description: Enable caching of the trunk-analytics-cli binary to speed up subsequent runs.
+    description: Enable caching of the trunk-analytics-cli binary to reduce subsequent downloads
     type: boolean
     default: false
     required: false
