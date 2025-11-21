@@ -292,7 +292,7 @@ export const convertToTelemetry = (apiAddress: string): string => {
   return "https://telemetry.api.trunk.io/v1/flakytests-uploader/upload-metrics";
 };
 
-const resolveCliVersion = async (version: string): Promise<string> => {
+const resolveCliVersion = async (version: string): Promise<string | null> => {
   if (version !== "latest") {
     return version;
   }
@@ -314,15 +314,15 @@ const resolveCliVersion = async (version: string): Promise<string> => {
   } catch (error: unknown) {
     if (error instanceof Error) {
       core.warning(
-        `Failed to resolve latest version: ${error.message}. Using "latest" in cache key.`,
+        `Failed to resolve latest version: ${error.message}. Caching will be disabled.`,
       );
     } else {
       core.warning(
-        'Failed to resolve latest version. Using "latest" in cache key.',
+        "Failed to resolve latest version. Caching will be disabled.",
       );
     }
-    // Fallback to "latest" if resolution fails
-    return version;
+    // Return null to indicate caching should be disabled
+    return null;
   }
 };
 
@@ -464,10 +464,14 @@ export const main = async (tmpdir?: string): Promise<string | null> => {
     // Resolve "latest" to actual version for consistent cache keys
     const resolvedCliVersion = await resolveCliVersion(cliVersion);
 
-    const shouldUseCache = parseBoolean(useCache);
+    // Only use cache if version was successfully resolved (not null)
+    const shouldUseCache =
+      parseBoolean(useCache) && resolvedCliVersion !== null;
     let cacheRestored = false;
     if (shouldUseCache) {
       cacheRestored = await restoreCache(bin, resolvedCliVersion, tmpdir);
+    } else if (parseBoolean(useCache) && resolvedCliVersion === null) {
+      core.info("Caching disabled due to inability to resolve CLI version");
     }
 
     if (!fs.existsSync(downloadPath)) {

@@ -65862,13 +65862,13 @@ const resolveCliVersion = async (version) => {
     }
     catch (error) {
         if (error instanceof Error) {
-            core.warning(`Failed to resolve latest version: ${error.message}. Using "latest" in cache key.`);
+            core.warning(`Failed to resolve latest version: ${error.message}. Caching will be disabled.`);
         }
         else {
-            core.warning('Failed to resolve latest version. Using "latest" in cache key.');
+            core.warning("Failed to resolve latest version. Caching will be disabled.");
         }
-        // Fallback to "latest" if resolution fails
-        return version;
+        // Return null to indicate caching should be disabled
+        return null;
     }
 };
 const restoreCache = async (bin, cliVersion, tmpdir) => {
@@ -65967,10 +65967,14 @@ const main = async (tmpdir) => {
                 : `./${executableName}`;
         // Resolve "latest" to actual version for consistent cache keys
         const resolvedCliVersion = await resolveCliVersion(cliVersion);
-        const shouldUseCache = parseBoolean(useCache);
+        // Only use cache if version was successfully resolved (not null)
+        const shouldUseCache = parseBoolean(useCache) && resolvedCliVersion !== null;
         let cacheRestored = false;
-        if (shouldUseCache) {
+        if (shouldUseCache && resolvedCliVersion !== null) {
             cacheRestored = await restoreCache(bin, resolvedCliVersion, tmpdir);
+        }
+        else if (parseBoolean(useCache) && resolvedCliVersion === null) {
+            core.info("Caching disabled due to inability to resolve CLI version");
         }
         if (!external_fs_.existsSync(downloadPath)) {
             core.info("Downloading trunk-analytics-cli...");
@@ -65986,7 +65990,7 @@ const main = async (tmpdir) => {
             }
             core.info("Extraction complete");
             // Save to cache if enabled and we didn't restore from cache
-            if (shouldUseCache && !cacheRestored) {
+            if (shouldUseCache && !cacheRestored && resolvedCliVersion !== null) {
                 await saveCache(bin, resolvedCliVersion, tmpdir);
             }
         }
