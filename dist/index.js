@@ -65833,6 +65833,35 @@ const convertToTelemetry = (apiAddress) => {
     }
     return "https://telemetry.api.trunk.io/v1/flakytests-uploader/upload-metrics";
 };
+const resolveCliVersion = async (version) => {
+    if (version !== "latest") {
+        return version;
+    }
+    // Resolve "latest" to the actual version tag
+    const token = core.getInput("github-token");
+    const octokit = new dist_src_Octokit({
+        auth: token,
+    });
+    try {
+        const release = await octokit.repos.getLatestRelease({
+            owner: "trunk-io",
+            repo: "analytics-cli",
+        });
+        const actualVersion = release.data.tag_name;
+        core.info(`Resolved "latest" to version: ${actualVersion}`);
+        return actualVersion;
+    }
+    catch (error) {
+        if (error instanceof Error) {
+            core.warning(`Failed to resolve latest version: ${error.message}. Using "latest" in cache key.`);
+        }
+        else {
+            core.warning('Failed to resolve latest version. Using "latest" in cache key.');
+        }
+        // Fallback to "latest" if resolution fails
+        return version;
+    }
+};
 const restoreCache = async (bin, cliVersion, tmpdir) => {
     const cacheKey = `trunk-analytics-cli-${bin}-${cliVersion}`;
     const baseDir = tmpdir ? external_path_.resolve(tmpdir) : process.cwd();
@@ -65918,10 +65947,12 @@ const main = async (tmpdir) => {
         const downloadPath = tmpdir
             ? external_path_.join(tmpdir, "trunk-analytics-cli")
             : "./trunk-analytics-cli";
+        // Resolve "latest" to actual version for consistent cache keys
+        const resolvedCliVersion = await resolveCliVersion(cliVersion);
         const shouldUseCache = parseBoolean(useCache);
         let cacheRestored = false;
         if (shouldUseCache) {
-            cacheRestored = await restoreCache(bin, cliVersion, tmpdir);
+            cacheRestored = await restoreCache(bin, resolvedCliVersion, tmpdir);
         }
         if (!external_fs_.existsSync(downloadPath)) {
             core.info("Downloading trunk-analytics-cli...");
@@ -65931,7 +65962,7 @@ const main = async (tmpdir) => {
             core.info("Extraction complete");
             // Save to cache if enabled and we didn't restore from cache
             if (shouldUseCache && !cacheRestored) {
-                await saveCache(bin, cliVersion, tmpdir);
+                await saveCache(bin, resolvedCliVersion, tmpdir);
             }
         }
         external_fs_.chmodSync(downloadPath, "755");

@@ -269,6 +269,40 @@ export const convertToTelemetry = (apiAddress: string): string => {
   return "https://telemetry.api.trunk.io/v1/flakytests-uploader/upload-metrics";
 };
 
+const resolveCliVersion = async (version: string): Promise<string> => {
+  if (version !== "latest") {
+    return version;
+  }
+
+  // Resolve "latest" to the actual version tag
+  const token = core.getInput("github-token");
+  const octokit = new Octokit({
+    auth: token,
+  });
+
+  try {
+    const release = await octokit.repos.getLatestRelease({
+      owner: "trunk-io",
+      repo: "analytics-cli",
+    });
+    const actualVersion = release.data.tag_name;
+    core.info(`Resolved "latest" to version: ${actualVersion}`);
+    return actualVersion;
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      core.warning(
+        `Failed to resolve latest version: ${error.message}. Using "latest" in cache key.`,
+      );
+    } else {
+      core.warning(
+        'Failed to resolve latest version. Using "latest" in cache key.',
+      );
+    }
+    // Fallback to "latest" if resolution fails
+    return version;
+  }
+};
+
 const restoreCache = async (
   bin: string,
   cliVersion: string,
@@ -393,10 +427,13 @@ export const main = async (tmpdir?: string): Promise<string | null> => {
       ? path.join(tmpdir, "trunk-analytics-cli")
       : "./trunk-analytics-cli";
 
+    // Resolve "latest" to actual version for consistent cache keys
+    const resolvedCliVersion = await resolveCliVersion(cliVersion);
+
     const shouldUseCache = parseBoolean(useCache);
     let cacheRestored = false;
     if (shouldUseCache) {
-      cacheRestored = await restoreCache(bin, cliVersion, tmpdir);
+      cacheRestored = await restoreCache(bin, resolvedCliVersion, tmpdir);
     }
 
     if (!fs.existsSync(downloadPath)) {
@@ -414,7 +451,7 @@ export const main = async (tmpdir?: string): Promise<string | null> => {
 
       // Save to cache if enabled and we didn't restore from cache
       if (shouldUseCache && !cacheRestored) {
-        await saveCache(bin, cliVersion, tmpdir);
+        await saveCache(bin, resolvedCliVersion, tmpdir);
       }
     }
     fs.chmodSync(downloadPath, "755");
