@@ -68,7 +68,8 @@ jobs:
           junit-paths: junit.xml,smoke-tests/quarantine-failure.xml
           org-slug: trunk
           token: ${{ secrets.TRUNK_PROD_ORG_API_TOKEN }}
-          allow-missing-junit-files: "false"
+          allow-missing-junit-files: false
+          use-cache: true
 
       - name: Trunk Analytics Uploader (Staging)
         uses: ./
@@ -76,7 +77,8 @@ jobs:
           junit-paths: junit.xml,smoke-tests/quarantine-failure.xml
           org-slug: trunk-staging-org
           token: ${{ secrets.TRUNK_STAGING_ORG_API_TOKEN }}
-          allow-missing-junit-files: "false"
+          allow-missing-junit-files: false
+          use-cache: true
         env:
           TRUNK_PUBLIC_API_ADDRESS: https://api.trunk-staging.io
 
@@ -95,8 +97,9 @@ jobs:
           junit-paths: smoke-tests/quarantine-failure.xml
           org-slug: trunk
           token: ${{ secrets.TRUNK_PROD_ORG_API_TOKEN }}
-          allow-missing-junit-files: "false"
-          dry-run: "true"
+          allow-missing-junit-files: false
+          dry-run: true
+          use-cache: true
 
       - name: Verify bundle_upload directory was cleaned up
         run: |
