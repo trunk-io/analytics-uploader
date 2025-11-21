@@ -9,6 +9,7 @@
     "test": "NODE_OPTIONS=\"$NODE_OPTIONS --experimental-vm-modules\" jest"
   },
   "dependencies": {
+    "@actions/cache": "^4.0.4",
     "@actions/core": "^1.11.1",
     "@actions/github": "^6.0.0",
     "@jest/globals": "^29.7.0",
