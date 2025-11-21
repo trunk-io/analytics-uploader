@@ -11,7 +11,7 @@ jest.unstable_mockModule("@actions/github", () => github);
 jest.unstable_mockModule("node-fetch", () => nodeFetch);
 
 const {
-  parseBool,
+  parseBoolIntoFlag,
   main,
   parsePreviousStepOutcome,
   fetchApiAddress,
@@ -75,21 +75,21 @@ describe("convertToTelemetry", () => {
   });
 });
 
-describe("parseBool", () => {
+describe("parseBoolIntoFlag", () => {
   it("returns empty string for undefined input", () => {
-    expect(parseBool(undefined, "--flag")).toBe("");
+    expect(parseBoolIntoFlag(undefined, "--flag")).toBe("");
   });
 
   it("returns flag with true for 'true'", () => {
-    expect(parseBool("true", "--flag")).toBe("--flag=true");
+    expect(parseBoolIntoFlag("true", "--flag")).toBe("--flag=true");
   });
 
   it("returns flag with false for 'false'", () => {
-    expect(parseBool("false", "--flag")).toBe("--flag=false");
+    expect(parseBoolIntoFlag("false", "--flag")).toBe("--flag=false");
   });
 
   it("returns empty string for non-boolean input", () => {
-    expect(parseBool("not-a-boolean", "--flag")).toBe("");
+    expect(parseBoolIntoFlag("not-a-boolean", "--flag")).toBe("");
   });
 });
 

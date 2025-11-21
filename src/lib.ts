@@ -1,3 +1,4 @@
+import * as cache from "@actions/cache";
 import * as core from "@actions/core";
 import { context } from "@actions/github";
 import { execSync } from "child_process";
@@ -74,15 +75,24 @@ const cleanup = (
 };
 
 // Parse boolean input
-export const parseBool = (input: string | undefined, flag: string): string => {
+export const parseBoolIntoFlag = (
+  input: string | undefined,
+  flag: string,
+): string => {
   if (!input) return "";
-  const lowerInput = input.toLowerCase();
-  if (lowerInput === "true") {
+  if (input.toLowerCase() === "true") {
     return `${flag}=true`;
-  } else if (lowerInput === "false") {
+  } else if (input.toLowerCase() === "false") {
     return `${flag}=false`;
+  } else {
+    return "";
   }
-  return "";
+};
+
+// Parse boolean value from string input
+const parseBoolean = (input: string | undefined): boolean => {
+  if (!input) return false;
+  return input.toLowerCase() === "true";
 };
 
 interface GitHubAsset {
@@ -160,12 +170,18 @@ const getInputs = (): Record<string, string> => {
     cliVersion: core.getInput("cli-version") || "latest",
     xcresultPath: core.getInput("xcresult-path"),
     bazelBepPath: core.getInput("bazel-bep-path"),
-    quarantine: parseBool(core.getInput("quarantine"), "--use-quarantining"),
-    allowMissingJunitFiles: parseBool(
+    quarantine: parseBoolIntoFlag(
+      core.getInput("quarantine"),
+      "--use-quarantining",
+    ),
+    allowMissingJunitFiles: parseBoolIntoFlag(
       core.getInput("allow-missing-junit-files"),
       "--allow-missing-junit-files",
     ),
-    hideBanner: parseBool(core.getInput("hide-banner"), "--hide-banner"),
+    hideBanner: parseBoolIntoFlag(
+      core.getInput("hide-banner"),
+      "--hide-banner",
+    ),
     variant: core.getInput("variant"),
     useUnclonedRepo: core.getInput("use-uncloned-repo"),
     previousStepOutcome: core.getInput("previous-step-outcome"),
@@ -179,6 +195,7 @@ const getInputs = (): Record<string, string> => {
     verbose: core.getInput("verbose"),
     showFailureMessages: core.getInput("show-failure-messages"),
     dryRun: core.getInput("dry-run"),
+    useCache: core.getInput("use-cache"),
   };
 };
 
@@ -275,6 +292,103 @@ export const convertToTelemetry = (apiAddress: string): string => {
   return "https://telemetry.api.trunk.io/v1/flakytests-uploader/upload-metrics";
 };
 
+const resolveCliVersion = async (version: string): Promise<string | null> => {
+  if (version !== "latest") {
+    return version;
+  }
+
+  // Resolve "latest" to the actual version tag
+  const token = core.getInput("github-token");
+  const octokit = new Octokit({
+    auth: token,
+  });
+
+  try {
+    const release = await octokit.repos.getLatestRelease({
+      owner: "trunk-io",
+      repo: "analytics-cli",
+    });
+    const actualVersion = release.data.tag_name;
+    core.info(`Resolved "latest" to version: ${actualVersion}`);
+    return actualVersion;
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      core.warning(
+        `Failed to resolve latest version: ${error.message}. Caching will be disabled.`,
+      );
+    } else {
+      core.warning(
+        "Failed to resolve latest version. Caching will be disabled.",
+      );
+    }
+    // Return null to indicate caching should be disabled
+    return null;
+  }
+};
+
+const restoreCache = async (
+  bin: string,
+  cliVersion: string,
+  tmpdir?: string,
+): Promise<boolean> => {
+  const cacheKey = `trunk-analytics-cli-${bin}-${cliVersion}`;
+  const baseDir = tmpdir ? path.resolve(tmpdir) : process.cwd();
+  const binaryPath = path.join(baseDir, "trunk-analytics-cli");
+  const cachePaths = [binaryPath];
+
+  try {
+    const cacheKeyFound = await cache.restoreCache(cachePaths, cacheKey);
+    if (cacheKeyFound) {
+      core.info(`Cache restored with key: ${cacheKey}`);
+      // Verify that the binary exists after restore
+      if (fs.existsSync(binaryPath)) {
+        core.info("Binary found in cache");
+        return true;
+      } else {
+        core.warning("Cache restored but binary not found, will download");
+        return false;
+      }
+    }
+    return false;
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      core.warning(`Cache restore failed: ${error.message}`);
+    } else {
+      core.warning("Cache restore failed with unknown error");
+    }
+    return false;
+  }
+};
+
+const saveCache = async (
+  bin: string,
+  cliVersion: string,
+  tmpdir?: string,
+): Promise<void> => {
+  const cacheKey = `trunk-analytics-cli-${bin}-${cliVersion}`;
+  const baseDir = tmpdir ? path.resolve(tmpdir) : process.cwd();
+  const binaryPath = path.join(baseDir, "trunk-analytics-cli");
+  const cachePaths = [binaryPath];
+
+  // Verify binary exists before caching
+  if (!fs.existsSync(binaryPath)) {
+    core.warning("Binary not found, skipping cache save");
+    return;
+  }
+
+  try {
+    await cache.saveCache(cachePaths, cacheKey);
+    core.info(`Cache saved with key: ${cacheKey}`);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      core.warning(`Cache save failed: ${error.message}`);
+    } else {
+      core.warning("Cache save failed with unknown error");
+    }
+    // Don't throw - cache save failures shouldn't break the action
+  }
+};
+
 export const main = async (tmpdir?: string): Promise<string | null> => {
   let bin = "";
 
@@ -304,6 +418,7 @@ export const main = async (tmpdir?: string): Promise<string | null> => {
     verbose,
     showFailureMessages,
     dryRun,
+    useCache,
   } = getInputs();
 
   // Determine binary based on OS (declared outside try block for use in finally)
@@ -345,6 +460,20 @@ export const main = async (tmpdir?: string): Promise<string | null> => {
       : platform === "win32"
         ? executableName
         : `./${executableName}`;
+
+    // Resolve "latest" to actual version for consistent cache keys
+    const resolvedCliVersion = await resolveCliVersion(cliVersion);
+
+    // Only use cache if version was successfully resolved (not null)
+    const shouldUseCache =
+      parseBoolean(useCache) && resolvedCliVersion !== null;
+    let cacheRestored = false;
+    if (shouldUseCache) {
+      cacheRestored = await restoreCache(bin, resolvedCliVersion, tmpdir);
+    } else if (parseBoolean(useCache) && resolvedCliVersion === null) {
+      core.info("Caching disabled due to inability to resolve CLI version");
+    }
+
     if (!fs.existsSync(downloadPath)) {
       core.info("Downloading trunk-analytics-cli...");
       const release = await downloadRelease(
@@ -367,6 +496,11 @@ export const main = async (tmpdir?: string): Promise<string | null> => {
         execSync(`tar -xvzf ${release}`, { stdio: "inherit" });
       }
       core.info("Extraction complete");
+
+      // Save to cache if enabled and we didn't restore from cache
+      if (shouldUseCache && !cacheRestored) {
+        await saveCache(bin, resolvedCliVersion, tmpdir);
+      }
     }
     // chmod doesn't work on Windows, but files are executable by default
     if (platform !== "win32") {
