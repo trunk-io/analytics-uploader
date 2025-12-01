@@ -20,6 +20,8 @@ const TELEMETRY_RETRY = {
   maxRetryTime: 10000,
 } satisfies OperationOptions;
 
+const DEFAULT_CLI_VERSION = "0.11.8";
+
 export const FAILURE_PREVIOUS_STEP_CODE = 1;
 
 export class CliFetchError extends Error {
@@ -108,7 +110,6 @@ const downloadRelease = async (
   tmpdir?: string,
   platform?: string,
 ): Promise<string> => {
-  // Get the GitHub token from the environment
   const token = core.getInput("github-token");
   if (!token) {
     core.error(
@@ -120,10 +121,11 @@ const downloadRelease = async (
     auth: token,
   });
 
-  const release =
-    version === "latest"
-      ? await octokit.repos.getLatestRelease({ owner, repo })
-      : await octokit.repos.getReleaseByTag({ owner, repo, tag: version });
+  const release = await octokit.repos.getReleaseByTag({
+    owner,
+    repo,
+    tag: version,
+  });
 
   const assetName =
     platform === "win32"
@@ -292,7 +294,7 @@ export const convertToTelemetry = (apiAddress: string): string => {
   return "https://telemetry.api.trunk.io/v1/flakytests-uploader/upload-metrics";
 };
 
-const resolveCliVersion = async (version: string): Promise<string | null> => {
+const resolveCliVersion = async (version: string): Promise<string> => {
   if (version !== "latest") {
     return version;
   }
@@ -314,15 +316,14 @@ const resolveCliVersion = async (version: string): Promise<string | null> => {
   } catch (error: unknown) {
     if (error instanceof Error) {
       core.warning(
-        `Failed to resolve latest version: ${error.message}. Caching will be disabled.`,
+        `Failed to resolve latest version: ${error.message}. Falling back to version ${DEFAULT_CLI_VERSION}.`,
       );
     } else {
       core.warning(
-        "Failed to resolve latest version. Caching will be disabled.",
+        `Failed to resolve latest version. Falling back to version ${DEFAULT_CLI_VERSION}.`,
       );
     }
-    // Return null to indicate caching should be disabled
-    return null;
+    return DEFAULT_CLI_VERSION;
   }
 };
 
@@ -461,17 +462,12 @@ export const main = async (tmpdir?: string): Promise<string | null> => {
         ? executableName
         : `./${executableName}`;
 
-    // Resolve "latest" to actual version for consistent cache keys
     const resolvedCliVersion = await resolveCliVersion(cliVersion);
 
-    // Only use cache if version was successfully resolved (not null)
-    const shouldUseCache =
-      parseBoolean(useCache) && resolvedCliVersion !== null;
+    const shouldUseCache = parseBoolean(useCache);
     let cacheRestored = false;
     if (shouldUseCache) {
       cacheRestored = await restoreCache(bin, resolvedCliVersion, tmpdir);
-    } else if (parseBoolean(useCache) && resolvedCliVersion === null) {
-      core.info("Caching disabled due to inability to resolve CLI version");
     }
 
     if (!fs.existsSync(downloadPath)) {
@@ -479,7 +475,7 @@ export const main = async (tmpdir?: string): Promise<string | null> => {
       const release = await downloadRelease(
         "trunk-io",
         "analytics-cli",
-        cliVersion,
+        resolvedCliVersion,
         bin,
         tmpdir,
         platform,
