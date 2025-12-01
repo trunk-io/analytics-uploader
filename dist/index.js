@@ -65629,6 +65629,7 @@ const TELEMETRY_RETRY = {
     maxTimeout: 10000,
     maxRetryTime: 10000,
 };
+const DEFAULT_CLI_VERSION = "0.11.8";
 const FAILURE_PREVIOUS_STEP_CODE = 1;
 class CliFetchError extends Error {
     constructor(message, cause) {
@@ -65691,7 +65692,6 @@ const parseBoolean = (input) => {
     return input.toLowerCase() === "true";
 };
 const downloadRelease = async (owner, repo, version, bin, tmpdir, platform) => {
-    // Get the GitHub token from the environment
     const token = core.getInput("github-token");
     if (!token) {
         core.error("GITHUB_TOKEN is not set. Please ensure the job has the necessary permissions. Attempting to run unauthenticated.");
@@ -65699,9 +65699,11 @@ const downloadRelease = async (owner, repo, version, bin, tmpdir, platform) => {
     const octokit = new dist_src_Octokit({
         auth: token,
     });
-    const release = version === "latest"
-        ? await octokit.repos.getLatestRelease({ owner, repo })
-        : await octokit.repos.getReleaseByTag({ owner, repo, tag: version });
+    const release = await octokit.repos.getReleaseByTag({
+        owner,
+        repo,
+        tag: version,
+    });
     const assetName = platform === "win32"
         ? `trunk-analytics-cli-${bin}-experimental.zip`
         : `trunk-analytics-cli-${bin}.tar.gz`;
@@ -65862,13 +65864,12 @@ const resolveCliVersion = async (version) => {
     }
     catch (error) {
         if (error instanceof Error) {
-            core.warning(`Failed to resolve latest version: ${error.message}. Caching will be disabled.`);
+            core.warning(`Failed to resolve latest version: ${error.message}. Falling back to version ${DEFAULT_CLI_VERSION}.`);
         }
         else {
-            core.warning("Failed to resolve latest version. Caching will be disabled.");
+            core.warning(`Failed to resolve latest version. Falling back to version ${DEFAULT_CLI_VERSION}.`);
         }
-        // Return null to indicate caching should be disabled
-        return null;
+        return DEFAULT_CLI_VERSION;
     }
 };
 const restoreCache = async (bin, cliVersion, tmpdir) => {
@@ -65965,20 +65966,15 @@ const main = async (tmpdir) => {
             : platform === "win32"
                 ? executableName
                 : `./${executableName}`;
-        // Resolve "latest" to actual version for consistent cache keys
         const resolvedCliVersion = await resolveCliVersion(cliVersion);
-        // Only use cache if version was successfully resolved (not null)
-        const shouldUseCache = parseBoolean(useCache) && resolvedCliVersion !== null;
+        const shouldUseCache = parseBoolean(useCache);
         let cacheRestored = false;
-        if (shouldUseCache && resolvedCliVersion !== null) {
+        if (shouldUseCache) {
             cacheRestored = await restoreCache(bin, resolvedCliVersion, tmpdir);
-        }
-        else if (parseBoolean(useCache) && resolvedCliVersion === null) {
-            core.info("Caching disabled due to inability to resolve CLI version");
         }
         if (!external_fs_.existsSync(downloadPath)) {
             core.info("Downloading trunk-analytics-cli...");
-            const release = await downloadRelease("trunk-io", "analytics-cli", cliVersion, bin, tmpdir, platform);
+            const release = await downloadRelease("trunk-io", "analytics-cli", resolvedCliVersion, bin, tmpdir, platform);
             core.info("Download complete, extracting...");
             if (platform === "win32") {
                 // Extract zip file using PowerShell
@@ -65990,7 +65986,7 @@ const main = async (tmpdir) => {
             }
             core.info("Extraction complete");
             // Save to cache if enabled and we didn't restore from cache
-            if (shouldUseCache && !cacheRestored && resolvedCliVersion !== null) {
+            if (shouldUseCache && !cacheRestored) {
                 await saveCache(bin, resolvedCliVersion, tmpdir);
             }
         }
