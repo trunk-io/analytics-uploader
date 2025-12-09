@@ -178,7 +178,7 @@ const getInputs = (): Record<string, string> => {
       "--use-quarantining",
     ),
     allowMissingJunitFiles: parseBoolIntoFlag(
-      core.getInput("allow-missing-junit-files") || "true",
+      core.getInput("allow-missing-junit-files"),
       "--allow-missing-junit-files",
     ),
     hideBanner: parseBoolIntoFlag(
