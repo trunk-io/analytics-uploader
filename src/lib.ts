@@ -162,10 +162,11 @@ const downloadRelease = async (
 };
 
 const getInputs = (): Record<string, string> => {
+  const tokenInput = core.getInput("token");
   return {
     junitPaths: core.getInput("junit-paths"),
     orgSlug: core.getInput("org-slug"),
-    token: core.getInput("token"),
+    token: tokenInput ? tokenInput : (process.env.TRUNK_API_TOKEN ?? ""),
     repoHeadBranch: core.getInput("repo-head-branch"),
     run: core.getInput("run"),
     repoRoot: core.getInput("repo-root"),
@@ -177,7 +178,7 @@ const getInputs = (): Record<string, string> => {
       "--use-quarantining",
     ),
     allowMissingJunitFiles: parseBoolIntoFlag(
-      core.getInput("allow-missing-junit-files"),
+      core.getInput("allow-missing-junit-files") || "true",
       "--allow-missing-junit-files",
     ),
     hideBanner: parseBoolIntoFlag(

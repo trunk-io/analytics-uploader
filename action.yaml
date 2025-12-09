@@ -53,7 +53,7 @@ inputs:
     description: Set to 'true' if your tests do not require cloning the repository under test,
     required: false
     default: false
-    type: true
+    type: boolean
   previous-step-outcome:
     description: The outcome of the previous step in the workflow. Set this equal to steps.[id].outcome where `[id]` is the id of the corresponding test run.
     required: false
