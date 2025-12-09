@@ -85,24 +85,7 @@ jobs:
 | `show-failure-messages`     | Show failure outputs in upload. This is experimental, do not rely on this.                                                                                                                                 | `false`  |
 | `dry-run`                   | Run without uploading the results to the server. They will instead be dumped to the directory that the action is run in.                                                                                   | `false`  |
 | `use-cache`                 | Enable caching of the trunk-analytics-cli binary to reduce subsequent downloads                                                                                                                            | `false`  |
-| `quarantine`                | Whether or not to allow quarantining of failing tests.                                                                                                                                                     |          |
-| `hide-banner`               | Whether to hide the top level flaky tests banner                                                                                                                                                           |          |
 | `use-uncloned-repo`         | Set to 'true' if your tests do not require cloning the repository under test.                                                                                                                              | `false`  |
-
-### Advanced Parameters
-
-These parameters are automatically populated from GitHub context and typically do not need to be manually configured. They are listed here for completeness and advanced use cases.
-
-| Parameter                   | Description                                              | Default                                               |
-| --------------------------- | -------------------------------------------------------- | ----------------------------------------------------- |
-| `github-token`              | The GitHub token used to create an authenticated client. | `${{ github.token }}`                                 |
-| `pr-title`                  | The Title of the Pull Request (if being run inside one). | `${{ github.event.pull_request.title }}`              |
-| `gh-repo-url`               | The URL of the GitHub repo.                              | `${{ github.event.pull_request.head.repo.html_url }}` |
-| `gh-repo-head-sha`          | The head commit of the pull request.                     | `${{ github.event.pull_request.head.sha }}`           |
-| `gh-repo-head-branch`       | The head branch of the pull request.                     | `${{ github.event.pull_request.head.ref }}`           |
-| `gh-repo-head-commit-epoch` | The commit timestamp.                                    | `${{ github.event.pull_request.updated_at }}`         |
-| `gh-repo-head-author-name`  | The actor triggering the action.                         | `${{ github.actor }}`                                 |
-| `gh-action-ref`             | The ref of the action being used.                        | `${{ github.action_ref }}`                            |
 
 ## Environment Variables
 
