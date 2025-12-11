@@ -37,7 +37,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload results
-        uses: trunk-io/analytics-uploader@v1
+        uses: trunk-io/analytics-uploader@v2
         with:
           # Path to your test results.
           junit-paths: "target/path/**/*_test.xml"
