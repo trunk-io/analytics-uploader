@@ -143,7 +143,7 @@ describe("Arguments", () => {
     await createEchoCli(tmpdir);
     const command = await main(tmpdir);
     expect(command).toMatch(
-      `${tmpdir}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token" --show-failure-messages`,
+      `${tmpdir}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token" --allow-missing-junit-files=true --show-failure-messages`,
     );
     await fs.rm(tmpdir, { recursive: true, force: true });
   });
@@ -173,7 +173,7 @@ describe("Arguments", () => {
     await createEchoCli(tmpdir);
     const command = await main(tmpdir);
     expect(command).toMatch(
-      `${tmpdir}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token" --test-process-exit-code=0 -v`,
+      `${tmpdir}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token" --allow-missing-junit-files=true --test-process-exit-code=0 -v`,
     );
     await fs.rm(tmpdir, { recursive: true, force: true });
   });
@@ -201,7 +201,7 @@ describe("Arguments", () => {
     await createEchoCli(tmpdir);
     const command = await main(tmpdir);
     expect(command).toMatch(
-      `${tmpdir}/trunk-analytics-cli test --junit-paths "junit.xml" --org-url-slug "org" --token "token" -- exit 0`,
+      `${tmpdir}/trunk-analytics-cli test --junit-paths "junit.xml" --org-url-slug "org" --token "token" --allow-missing-junit-files=true -- exit 0`,
     );
     // verify that the CLI is cleaned up after the command is run
     const files = await fs.readdir(tmpdir);
@@ -243,7 +243,7 @@ describe("Arguments", () => {
 
     // Verify dry-run flag is in the command
     expect(command).toMatch(
-      `${tmpdir}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token" --dry-run`,
+      `${tmpdir}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token" --allow-missing-junit-files=true --dry-run`,
     );
 
     // Verify the bundle_upload directory was cleaned up
@@ -251,5 +251,42 @@ describe("Arguments", () => {
     expect(files).toEqual(expect.not.arrayContaining(["bundle_upload"]));
 
     await fs.rm(tmpdir, { recursive: true, force: true });
+  });
+
+  it("Uses TRUNK_API_TOKEN environment variable when token input is not provided", async () => {
+    const oldEnv = process.env.TRUNK_API_TOKEN;
+    process.env.TRUNK_API_TOKEN = "env-token-value";
+
+    core.getInput.mockImplementation((name) => {
+      switch (name) {
+        case "junit-paths":
+          return "junit.xml";
+        case "org-slug":
+          return "org";
+        case "token":
+          return ""; // Not provided as input
+        case "cli-version":
+          return "0.0.0";
+        default:
+          return "";
+      }
+    });
+
+    const tmpdir = await fs.mkdtemp(
+      path.resolve(os.tmpdir(), "trunk-analytics-uploader-test-"),
+    );
+    await createEchoCli(tmpdir);
+    const command = await main(tmpdir);
+    expect(command).toMatch(
+      `${tmpdir}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "env-token-value"`,
+    );
+    await fs.rm(tmpdir, { recursive: true, force: true });
+
+    // Restore environment
+    if (oldEnv !== undefined) {
+      process.env.TRUNK_API_TOKEN = oldEnv;
+    } else {
+      delete process.env.TRUNK_API_TOKEN;
+    }
   });
 });

@@ -72,19 +72,29 @@ jobs:
 
 ### Optional Parameters
 
-| Parameter                   | Description                                                                                                                                  | Default  |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| `repo-head-branch`          | Value to override branch of repository head.                                                                                                 |          |
-| `repo-root`                 | The root directory of the repository.                                                                                                        |          |
-| `run`                       | The command to run before uploading test results.                                                                                            |          |
-| `cli-version`               | The version of the uploader to use.                                                                                                          | `latest` |
-| `allow-missing-junit-files` | Whether or not to allow missing junit files in the upload invocation.                                                                        | `true`   |
-| `variant`                   | User specified variant of a set of tests being uploaded.                                                                                     |          |
-| `verbose`                   | Enable verbose logging                                                                                                                       | `false`  |
-| `previous-step-outcome`     | The outcome of the previous step in the workflow. Set this equal to steps.[id].outcome where `[id]` is the id of the corresponding test run. |          |
-| `show-failure-messages`     | Show failure outputs in upload. This is experimental, do not rely on this.                                                                   | `false`  |
-| `dry-run`                   | Run without uploading the results to the server. They will instead be dumped to the directory that the action is run in.                     | `false`  |
-| `use-cache`                 | Enable caching of the trunk-analytics-cli binary to reduce subsequent downloads                                                              | `false`  |
+| Parameter                   | Description                                                                                                                                                                                                | Default  |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| `repo-head-branch`          | Value to override branch of repository head.                                                                                                                                                               |          |
+| `repo-root`                 | The root directory of the repository.                                                                                                                                                                      |          |
+| `run`                       | The command to run before uploading test results.                                                                                                                                                          |          |
+| `cli-version`               | The version of the uploader to use.                                                                                                                                                                        | `latest` |
+| `allow-missing-junit-files` | Whether or not to allow missing junit files in the upload invocation.                                                                                                                                      | `true`   |
+| `variant`                   | User specified variant of a set of tests being uploaded.                                                                                                                                                   |          |
+| `verbose`                   | Enable verbose logging                                                                                                                                                                                     | `false`  |
+| `previous-step-outcome`     | The outcome of the previous step in the workflow. Valid values: `success`, `skipped`, `failure`, `cancelled`. Set this equal to `steps.[id].outcome` where `[id]` is the id of the corresponding test run. |          |
+| `show-failure-messages`     | Show failure outputs in upload. This is experimental, do not rely on this.                                                                                                                                 | `false`  |
+| `dry-run`                   | Run without uploading the results to the server. They will instead be dumped to the directory that the action is run in.                                                                                   | `false`  |
+| `use-cache`                 | Enable caching of the trunk-analytics-cli binary to reduce subsequent downloads                                                                                                                            | `false`  |
+| `use-uncloned-repo`         | Set to 'true' if your tests do not require cloning the repository under test.                                                                                                                              | `false`  |
+
+## Environment Variables
+
+The following environment variables can be used to configure the action:
+
+| Variable                   | Description                                                                                                                                                         | Default                |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| `TRUNK_API_TOKEN`          | Organization token. Can be used instead of the `token` input parameter. If both are provided, the `token` input takes precedence.                                   |                        |
+| `TRUNK_PUBLIC_API_ADDRESS` | Overrides the default API address for telemetry only. Does not affect the main API endpoint used by the CLI. Useful for custom deployments or staging environments. | `https://api.trunk.io` |
 
 ## Questions
 
