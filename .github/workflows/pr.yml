@@ -126,3 +126,35 @@ jobs:
             exit 1
           fi
           echo "✅ SUCCESS: All CLI artifacts were properly cleaned up"
+
+  test_dist_up_to_date:
+    name: Test Dist Up to Date
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build
+        run: pnpm build
+
+      - name: Verify no changes to dist/index.js
+        run: |
+          if [ -n "$(git diff dist/index.js)" ]; then
+            echo "❌ ERROR: dist/index.js has changes since last build!"
+            echo "Please run 'pnpm build' and commit the changes."
+            exit 1
+          fi
+          echo "✅ SUCCESS: dist/index.js is up to date"
