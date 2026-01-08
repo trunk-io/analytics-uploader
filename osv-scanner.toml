@@ -1,0 +1,14 @@
+[[IgnoredVulns]]
+id = "GHSA-h5c3-5r3r-rr8q"
+ignoreUntil = 2026-06-15
+reason = "Only used for local testing, but we should eventually update @github/local-action to get an updated version"
+
+[[IgnoredVulns]]
+id = "GHSA-xx4v-prfh-6cgc"
+ignoreUntil = 2026-06-15
+reason = "Only used for local testing, but we should eventually update @github/local-action to get an updated version"
+
+[[IgnoredVulns]]
+id = "GHSA-rmvr-2pp2-xj38"
+ignoreUntil = 2026-06-15
+reason = "Only used for local testing, but we should eventually update @github/local-action to get an updated version"

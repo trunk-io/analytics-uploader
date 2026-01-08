@@ -1,29 +1,40 @@
-import * as fs from "node:fs/promises";
-import * as os from "node:os";
 import * as path from "node:path";
 import { jest } from "@jest/globals";
 
+import * as child_process from "../__fixtures__/child_process.js";
+import * as fs_mock from "../__fixtures__/fs.js";
 import * as core from "../__fixtures__/core.js";
 import * as github from "../__fixtures__/github.js";
-import * as nodeFetch from "../__fixtures__/node_fetch.js";
+import globalFetch from "../__fixtures__/global_fetch.js";
 jest.unstable_mockModule("@actions/core", () => core);
 jest.unstable_mockModule("@actions/github", () => github);
-jest.unstable_mockModule("node-fetch", () => nodeFetch);
+jest.unstable_mockModule("node:child_process", () => child_process);
+jest.unstable_mockModule("node:fs", () => fs_mock);
 
-const {
-  parseBoolIntoFlag,
-  main,
-  parsePreviousStepOutcome,
-  fetchApiAddress,
-  convertToTelemetry,
-} = await import("../src/lib.js");
+const { main } = await import("../src/lib.js");
+const { getArgs } = await import("../src/args.js");
+const { fetchApiAddress, convertToTelemetry } = await import(
+  "../src/telemetry.js"
+);
 
-const createEchoCli = async (tmpdir: string) => {
-  await fs.writeFile(
-    path.resolve(tmpdir, "trunk-analytics-cli"),
-    `#!/bin/bash
-      echo -n $@`,
-  );
+const DEFAULT_ARG_INPUTS: Parameters<typeof getArgs>[0] = {
+  run: "",
+  junitPaths: "",
+  xcresultPath: "",
+  bazelBepPath: "",
+  orgSlug: "",
+  token: "",
+  repoHeadBranch: "",
+  repoRoot: "",
+  allowMissingJunitFiles: null,
+  hideBanner: null,
+  quarantine: null,
+  variant: "",
+  useUnclonedRepo: false,
+  previousStepOutcome: "",
+  verbose: false,
+  showFailureMessages: false,
+  dryRun: false,
 };
 
 describe("fetchApiAddress", () => {
@@ -77,45 +88,68 @@ describe("convertToTelemetry", () => {
 
 describe("parseBoolIntoFlag", () => {
   it("returns empty string for undefined input", () => {
-    expect(parseBoolIntoFlag(undefined, "--flag")).toBe("");
+    expect(getArgs(DEFAULT_ARG_INPUTS)).toEqual(["upload"]);
   });
 
   it("returns flag with true for 'true'", () => {
-    expect(parseBoolIntoFlag("true", "--flag")).toBe("--flag=true");
+    expect(getArgs({ ...DEFAULT_ARG_INPUTS, hideBanner: true })).toEqual([
+      "upload",
+      "--hide-banner=true",
+    ]);
   });
 
   it("returns flag with false for 'false'", () => {
-    expect(parseBoolIntoFlag("false", "--flag")).toBe("--flag=false");
+    expect(getArgs({ ...DEFAULT_ARG_INPUTS, hideBanner: false })).toEqual([
+      "upload",
+      "--hide-banner=false",
+    ]);
   });
 
   it("returns empty string for non-boolean input", () => {
-    expect(parseBoolIntoFlag("not-a-boolean", "--flag")).toBe("");
+    expect(getArgs({ ...DEFAULT_ARG_INPUTS, hideBanner: null })).toEqual([
+      "upload",
+    ]);
   });
 });
 
 describe("parsePreviousStepOutcome", () => {
   it("returns 0 for 'success'", () => {
-    expect(parsePreviousStepOutcome("success")).toBe(0);
+    expect(
+      getArgs({ ...DEFAULT_ARG_INPUTS, previousStepOutcome: "success" }),
+    ).toEqual(["upload", '--test-process-exit-code "0"']);
   });
 
   it("returns 0 for 'skipped'", () => {
-    expect(parsePreviousStepOutcome("skipped")).toBe(0);
+    expect(
+      getArgs({ ...DEFAULT_ARG_INPUTS, previousStepOutcome: "skipped" }),
+    ).toEqual(["upload", '--test-process-exit-code "0"']);
   });
 
   it("returns 1 for 'failure'", () => {
-    expect(parsePreviousStepOutcome("failure")).toBe(1);
+    expect(
+      getArgs({ ...DEFAULT_ARG_INPUTS, previousStepOutcome: "failure" }),
+    ).toEqual(["upload", '--test-process-exit-code "1"']);
   });
 
   it("returns 1 for 'cancelled'", () => {
-    expect(parsePreviousStepOutcome("cancelled")).toBe(1);
+    expect(
+      getArgs({ ...DEFAULT_ARG_INPUTS, previousStepOutcome: "cancelled" }),
+    ).toEqual(["upload", '--test-process-exit-code "1"']);
   });
 
   it("throws for invalid value", () => {
-    expect(() => parsePreviousStepOutcome("not-a-status")).toThrow();
+    expect(() =>
+      getArgs({ ...DEFAULT_ARG_INPUTS, previousStepOutcome: "not-a-status" }),
+    ).toThrow();
   });
 });
 
 describe("Arguments", () => {
+  beforeEach(() => {
+    jest.resetModules();
+    jest.spyOn(global, "fetch").mockImplementation(globalFetch);
+  });
+
   afterEach(() => {
     jest.resetAllMocks();
   });
@@ -137,15 +171,12 @@ describe("Arguments", () => {
           return "";
       }
     });
-    const tmpdir = await fs.mkdtemp(
-      path.resolve(os.tmpdir(), "trunk-analytics-uploader-test-"),
+    const parentPath = "/made/up/path";
+    await main(parentPath);
+    expect(child_process.execSync).toHaveBeenCalledTimes(3);
+    expect(child_process.execSync.mock.calls[2][0]).toMatch(
+      `${parentPath}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token" --show-failure-messages`,
     );
-    await createEchoCli(tmpdir);
-    const command = await main(tmpdir);
-    expect(command).toMatch(
-      `${tmpdir}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token" --show-failure-messages`,
-    );
-    await fs.rm(tmpdir, { recursive: true, force: true });
   });
 
   it("Forwards inputs with previous step outcome - upload", async () => {
@@ -167,15 +198,12 @@ describe("Arguments", () => {
           return "";
       }
     });
-    const tmpdir = await fs.mkdtemp(
-      path.resolve(os.tmpdir(), "trunk-analytics-uploader-test-"),
+    const parentPath = "/made/up/path";
+    await main(parentPath);
+    expect(child_process.execSync).toHaveBeenCalledTimes(3);
+    expect(child_process.execSync.mock.calls[2][0]).toMatch(
+      `${parentPath}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token" --test-process-exit-code "0" -v`,
     );
-    await createEchoCli(tmpdir);
-    const command = await main(tmpdir);
-    expect(command).toMatch(
-      `${tmpdir}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token" --test-process-exit-code=0 -v`,
-    );
-    await fs.rm(tmpdir, { recursive: true, force: true });
   });
 
   it("Forwards inputs - test", async () => {
@@ -195,18 +223,16 @@ describe("Arguments", () => {
           return "";
       }
     });
-    const tmpdir = await fs.mkdtemp(
-      path.resolve(os.tmpdir(), "trunk-analytics-uploader-test-"),
+    fs_mock.existsSync.mockReturnValue(true);
+    const parentPath = "/made/up/path";
+    await main(parentPath);
+    expect(child_process.execSync).toHaveBeenCalledTimes(2);
+    expect(child_process.execSync.mock.calls[1][0]).toMatch(
+      `${parentPath}/trunk-analytics-cli test --junit-paths "junit.xml" --org-url-slug "org" --token "token" -- exit 0`,
     );
-    await createEchoCli(tmpdir);
-    const command = await main(tmpdir);
-    expect(command).toMatch(
-      `${tmpdir}/trunk-analytics-cli test --junit-paths "junit.xml" --org-url-slug "org" --token "token" -- exit 0`,
+    expect(fs_mock.unlinkSync).toHaveBeenCalledWith(
+      path.join(parentPath, "trunk-analytics-cli"),
     );
-    // verify that the CLI is cleaned up after the command is run
-    const files = await fs.readdir(tmpdir);
-    expect(files).toEqual(expect.not.arrayContaining(["trunk-analytics-cli"]));
-    await fs.rm(tmpdir, { recursive: true, force: true });
   });
 
   it("Forwards dry-run flag and cleans up bundle_upload directory", async () => {
@@ -226,30 +252,18 @@ describe("Arguments", () => {
           return "";
       }
     });
-    const tmpdir = await fs.mkdtemp(
-      path.resolve(os.tmpdir(), "trunk-analytics-uploader-test-"),
-    );
-    await createEchoCli(tmpdir);
-
-    // Create a bundle_upload directory to simulate dry-run output
-    const bundleUploadDir = path.join(tmpdir, "bundle_upload");
-    await fs.mkdir(bundleUploadDir);
-    await fs.writeFile(path.join(bundleUploadDir, "test.txt"), "test content");
-
-    // Verify the directory exists before running the command
-    expect(await fs.stat(bundleUploadDir)).toBeTruthy();
-
-    const command = await main(tmpdir);
-
+    fs_mock.existsSync.mockImplementation(() => true);
+    const parentPath = "/made/up/path";
+    await main(parentPath);
     // Verify dry-run flag is in the command
-    expect(command).toMatch(
-      `${tmpdir}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token" --dry-run`,
+    expect(child_process.execSync).toHaveBeenCalledTimes(2);
+    expect(child_process.execSync.mock.calls[1][0]).toMatch(
+      `${parentPath}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token" --dry-run`,
     );
 
-    // Verify the bundle_upload directory was cleaned up
-    const files = await fs.readdir(tmpdir);
-    expect(files).toEqual(expect.not.arrayContaining(["bundle_upload"]));
-
-    await fs.rm(tmpdir, { recursive: true, force: true });
+    expect(fs_mock.rmSync).toHaveBeenCalledWith(
+      path.join(parentPath, "bundle_upload"),
+      { recursive: true, force: true },
+    );
   });
 });

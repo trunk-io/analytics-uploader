@@ -4,8 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "ncc build src/index.ts -o dist",
+    "build": "rm -rf dist && ncc build src/index.ts -o dist",
     "clean": "rm -rf dist",
+    "local-action": "local-action . src/local-action.ts .env",
     "test": "NODE_OPTIONS=\"$NODE_OPTIONS --experimental-vm-modules\" jest"
   },
   "dependencies": {
@@ -13,10 +14,7 @@
     "@actions/core": "^1.11.1",
     "@actions/github": "^6.0.0",
     "@jest/globals": "^29.7.0",
-    "@octokit/rest": "^21.1.1",
     "@vercel/ncc": "^0.38.3",
-    "node-fetch": "^3.3.2",
-    "octokit": "^5.0.3",
     "promise-retry": "^2.0.1",
     "protobufjs": "^7.5.3",
     "retry": "^0.13.1",
@@ -24,6 +22,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.16.0",
+    "@github/local-action": "^6.0.2",
     "@types/eslint__js": "^8.42.3",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.7.9",
@@ -36,6 +35,7 @@
     "protoc-gen-js": "3.21.4-4",
     "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.18.0"
   }

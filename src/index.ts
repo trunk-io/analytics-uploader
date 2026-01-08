@@ -1,2 +1,3 @@
 import { main } from "./lib";
-await main();
+
+await main(process.cwd());
