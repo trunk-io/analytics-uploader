@@ -20,7 +20,7 @@ const TELEMETRY_RETRY = {
   maxRetryTime: 10000,
 } satisfies OperationOptions;
 
-const DEFAULT_CLI_VERSION = "0.12.1";
+const DEFAULT_CLI_VERSION = "0.12.2";
 
 export const FAILURE_PREVIOUS_STEP_CODE = 1;
 

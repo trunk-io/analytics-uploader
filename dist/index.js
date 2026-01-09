@@ -65629,7 +65629,7 @@ const TELEMETRY_RETRY = {
     maxTimeout: 10000,
     maxRetryTime: 10000,
 };
-const DEFAULT_CLI_VERSION = "0.12.1";
+const DEFAULT_CLI_VERSION = "0.12.2";
 const FAILURE_PREVIOUS_STEP_CODE = 1;
 class CliFetchError extends Error {
     constructor(message, cause) {
