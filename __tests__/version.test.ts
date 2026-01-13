@@ -1,6 +1,6 @@
 export {};
 
-const { semVerFromRef } = await import("../src/lib.js");
+const { semVerFromRef } = await import("../src/telemetry.js");
 
 describe("semVerFromRef", () => {
   it("Extracts major, minor, and patch when present", () => {

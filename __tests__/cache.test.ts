@@ -1,16 +1,18 @@
-import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { jest } from "@jest/globals";
 
+import * as child_process from "../__fixtures__/child_process.js";
+import * as fs_mock from "../__fixtures__/fs.js";
 import * as core from "../__fixtures__/core.js";
 import * as github from "../__fixtures__/github.js";
-import * as nodeFetch from "../__fixtures__/node_fetch.js";
 import * as cache from "../__fixtures__/cache.js";
+import globalFetch from "../__fixtures__/global_fetch.js";
 jest.unstable_mockModule("@actions/core", () => core);
 jest.unstable_mockModule("@actions/github", () => github);
-jest.unstable_mockModule("node-fetch", () => nodeFetch);
 jest.unstable_mockModule("@actions/cache", () => cache);
+jest.unstable_mockModule("node:child_process", () => child_process);
+jest.unstable_mockModule("node:fs", () => fs_mock);
 
 const { main } = await import("../src/lib.js");
 
@@ -26,16 +28,11 @@ const getExpectedBin = (): string => {
   throw new Error(`Unsupported OS (${platform}, ${arch})`);
 };
 
-const createEchoCli = async (tmpdir: string) => {
-  await fs.writeFile(
-    path.resolve(tmpdir, "trunk-analytics-cli"),
-    `#!/bin/bash
-      echo -n $@`,
-  );
-  await fs.chmod(path.resolve(tmpdir, "trunk-analytics-cli"), 0o755);
-};
-
 describe("Cache functionality", () => {
+  beforeEach(() => {
+    jest.spyOn(global, "fetch").mockImplementation(globalFetch);
+  });
+
   afterEach(() => {
     jest.resetAllMocks();
     cache.restoreCache.mockReset();
@@ -59,19 +56,14 @@ describe("Cache functionality", () => {
           return "";
       }
     });
-
-    const tmpdir = await fs.mkdtemp(
-      path.resolve(os.tmpdir(), "trunk-analytics-uploader-test-"),
-    );
-
-    const binaryPath = path.join(tmpdir, "trunk-analytics-cli");
+    fs_mock.existsSync.mockReturnValue(true);
+    const parentPath = "/made/up/path";
+    const binaryPath = path.join(parentPath, "trunk-analytics-cli");
     const expectedBin = getExpectedBin();
     const expectedCacheKey = `trunk-analytics-cli-${expectedBin}-0.0.0`;
     cache.restoreCache.mockResolvedValue(expectedCacheKey);
 
-    await createEchoCli(tmpdir);
-
-    const command = await main(tmpdir);
+    await main(parentPath);
 
     expect(cache.restoreCache).toHaveBeenCalledTimes(1);
     expect(cache.restoreCache).toHaveBeenCalledWith(
@@ -81,11 +73,10 @@ describe("Cache functionality", () => {
 
     expect(cache.saveCache).not.toHaveBeenCalled();
 
-    expect(command).toMatch(
-      `${tmpdir}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token"`,
+    expect(child_process.execSync).toHaveBeenCalledTimes(2);
+    expect(child_process.execSync.mock.calls[1][0]).toMatch(
+      `${parentPath}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token"`,
     );
-
-    await fs.rm(tmpdir, { recursive: true, force: true });
   });
 
   it("attempts cache restore when use-cache is true and cache miss", async () => {
@@ -105,22 +96,16 @@ describe("Cache functionality", () => {
           return "";
       }
     });
-
-    const tmpdir = await fs.mkdtemp(
-      path.resolve(os.tmpdir(), "trunk-analytics-uploader-test-"),
-    );
-
     cache.restoreCache.mockResolvedValue(undefined);
 
     // Create the binary file to skip the download (like other tests do)
     // Note: cache.saveCache would be called after a real download, but since
     // we're creating the binary to skip download, it won't be called here.
     // The cache save functionality is tested in the "handles cache restore failure" test.
-    await createEchoCli(tmpdir);
+    const parentPath = "/made/up/path";
+    await main(parentPath);
 
-    const command = await main(tmpdir);
-
-    const binaryPath = path.join(tmpdir, "trunk-analytics-cli");
+    const binaryPath = path.join(parentPath, "trunk-analytics-cli");
     const expectedBin = getExpectedBin();
     const expectedCacheKey = `trunk-analytics-cli-${expectedBin}-0.0.0`;
     expect(cache.restoreCache).toHaveBeenCalledTimes(1);
@@ -129,11 +114,10 @@ describe("Cache functionality", () => {
       expectedCacheKey,
     );
 
-    expect(command).toMatch(
-      `${tmpdir}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token"`,
+    expect(child_process.execSync).toHaveBeenCalledTimes(3);
+    expect(child_process.execSync.mock.calls[2][0]).toMatch(
+      `${parentPath}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token"`,
     );
-
-    await fs.rm(tmpdir, { recursive: true, force: true });
   });
 
   it("does not use cache when use-cache is false", async () => {
@@ -154,22 +138,16 @@ describe("Cache functionality", () => {
       }
     });
 
-    const tmpdir = await fs.mkdtemp(
-      path.resolve(os.tmpdir(), "trunk-analytics-uploader-test-"),
-    );
-
-    await createEchoCli(tmpdir);
-
-    const command = await main(tmpdir);
+    const parentPath = "/made/up/path";
+    await main(parentPath);
 
     expect(cache.restoreCache).not.toHaveBeenCalled();
     expect(cache.saveCache).not.toHaveBeenCalled();
 
-    expect(command).toMatch(
-      `${tmpdir}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token"`,
+    expect(child_process.execSync).toHaveBeenCalledTimes(3);
+    expect(child_process.execSync.mock.calls[2][0]).toMatch(
+      `${parentPath}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token"`,
     );
-
-    await fs.rm(tmpdir, { recursive: true, force: true });
   });
 
   it("does not use cache when use-cache is invalid value", async () => {
@@ -190,22 +168,16 @@ describe("Cache functionality", () => {
       }
     });
 
-    const tmpdir = await fs.mkdtemp(
-      path.resolve(os.tmpdir(), "trunk-analytics-uploader-test-"),
-    );
-
-    await createEchoCli(tmpdir);
-
-    const command = await main(tmpdir);
+    const parentPath = "/made/up/path";
+    await main(parentPath);
 
     expect(cache.restoreCache).not.toHaveBeenCalled();
     expect(cache.saveCache).not.toHaveBeenCalled();
 
-    expect(command).toMatch(
-      `${tmpdir}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token"`,
+    expect(child_process.execSync).toHaveBeenCalledTimes(3);
+    expect(child_process.execSync.mock.calls[2][0]).toMatch(
+      `${parentPath}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token"`,
     );
-
-    await fs.rm(tmpdir, { recursive: true, force: true });
   });
 
   it("does not use cache when use-cache is not set", async () => {
@@ -224,22 +196,16 @@ describe("Cache functionality", () => {
       }
     });
 
-    const tmpdir = await fs.mkdtemp(
-      path.resolve(os.tmpdir(), "trunk-analytics-uploader-test-"),
-    );
-
-    await createEchoCli(tmpdir);
-
-    const command = await main(tmpdir);
+    const parentPath = "/made/up/path";
+    await main(parentPath);
 
     expect(cache.restoreCache).not.toHaveBeenCalled();
     expect(cache.saveCache).not.toHaveBeenCalled();
 
-    expect(command).toMatch(
-      `${tmpdir}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token"`,
+    expect(child_process.execSync).toHaveBeenCalledTimes(3);
+    expect(child_process.execSync.mock.calls[2][0]).toMatch(
+      `${parentPath}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token"`,
     );
-
-    await fs.rm(tmpdir, { recursive: true, force: true });
   });
 
   it("handles cache restore failure gracefully and saves to cache", async () => {
@@ -259,23 +225,11 @@ describe("Cache functionality", () => {
           return "";
       }
     });
-
-    const tmpdir = await fs.mkdtemp(
-      path.resolve(os.tmpdir(), "trunk-analytics-uploader-test-"),
-    );
-
     cache.restoreCache.mockRejectedValue(new Error("Cache restore failed"));
-
-    const tarballPath = path.join(
-      tmpdir,
-      "trunk-analytics-cli-x86_64-unknown-linux.tar.gz",
-    );
-    await fs.writeFile(tarballPath, "fake tarball");
-    await createEchoCli(tmpdir);
-
     cache.saveCache.mockResolvedValue(undefined);
 
-    const command = await main(tmpdir);
+    const parentPath = "/made/up/path";
+    await main(parentPath);
 
     expect(cache.restoreCache).toHaveBeenCalledTimes(1);
 
@@ -287,11 +241,10 @@ describe("Cache functionality", () => {
       expect.stringContaining("Cache restore failed"),
     );
 
-    expect(command).toMatch(
-      `${tmpdir}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token"`,
+    expect(child_process.execSync).toHaveBeenCalledTimes(3);
+    expect(child_process.execSync.mock.calls[2][0]).toMatch(
+      `${parentPath}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token"`,
     );
-
-    await fs.rm(tmpdir, { recursive: true, force: true });
   });
 
   it("handles cache save failure gracefully", async () => {
@@ -311,28 +264,15 @@ describe("Cache functionality", () => {
           return "";
       }
     });
-
-    const tmpdir = await fs.mkdtemp(
-      path.resolve(os.tmpdir(), "trunk-analytics-uploader-test-"),
-    );
-
     cache.restoreCache.mockResolvedValue(undefined);
-
-    const tarballPath = path.join(
-      tmpdir,
-      "trunk-analytics-cli-x86_64-unknown-linux.tar.gz",
-    );
-    await fs.writeFile(tarballPath, "fake tarball");
-    await createEchoCli(tmpdir);
-
     cache.saveCache.mockRejectedValue(new Error("Cache save failed"));
 
-    const command = await main(tmpdir);
+    const parentPath = "/made/up/path";
+    await main(parentPath);
 
-    expect(command).toMatch(
-      `${tmpdir}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token"`,
+    expect(child_process.execSync).toHaveBeenCalledTimes(3);
+    expect(child_process.execSync.mock.calls[2][0]).toMatch(
+      `${parentPath}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token"`,
     );
-
-    await fs.rm(tmpdir, { recursive: true, force: true });
   });
 });

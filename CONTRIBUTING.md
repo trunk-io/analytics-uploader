@@ -116,7 +116,13 @@ The pre-commit hook ensures the build is up-to-date, but for local development, 
 
 ### Test Structure
 
-Tests use mocks for GitHub Actions modules (`@actions/core`, `@actions/github`) and `node-fetch` to avoid making real API calls during testing. The test fixtures are located in `__fixtures__/`.
+Tests use mocks for GitHub Actions modules (`@actions/core`, `@actions/github`) and `global.fetch` to avoid making real API calls during testing. The test fixtures are located in `__fixtures__/`.
+
+## Running Locally
+
+Utilizing [`@github/local-action`](https://github.com/github/local-action), this action can be run locally. To do so copy and update `.env.example` to `.env` and then run `pnpm run local-action`. At a minimum, `INPUT_ORG-SLUG` and `INPUT_TOKEN` need to be updated with your own values to complete an upload.
+
+In `.env` inputs for the action can be specified with `INPUT_<UPPERCASE-OF-INPUT-NAME>` e.x. `INPUT_REPO-ROOT` or `INPUT_CLI-VERSION`. See `action.yaml` for the full list of inputs.
 
 ## Development Workflow
 
