@@ -1,14 +1,19 @@
 import * as core from "@actions/core";
 import * as cache from "@actions/cache";
 import * as fs from "node:fs";
+import { backOff } from "exponential-backoff";
 
-import { LATEST_TAG, REPO_RELEASES_URL } from "./constants";
+import {
+  FETCH_WITH_BACK_OFF_CONFIG,
+  LATEST_TAG,
+  REPO_RELEASES_URL,
+} from "./constants";
 import { BinTarget } from "./lib";
 
 const DEFAULT_CLI_VERSION = "0.12.2";
 
-const resolveLatestCliVersion = async (): Promise<string> => {
-  try {
+const fetchWithBackOff = async () =>
+  await backOff(async () => {
     const response = await fetch(`${REPO_RELEASES_URL}/latest`);
     if (!response.ok) {
       throw new Error(
@@ -19,6 +24,12 @@ const resolveLatestCliVersion = async (): Promise<string> => {
     if (!actualVersion) {
       throw new Error("Failed to resolve latest version");
     }
+    return actualVersion;
+  }, FETCH_WITH_BACK_OFF_CONFIG);
+
+const resolveLatestCliVersion = async (): Promise<string> => {
+  try {
+    const actualVersion = await fetchWithBackOff();
     core.info(`Resolved "${LATEST_TAG}" to version: ${actualVersion}`);
     return actualVersion;
   } catch (error: unknown) {

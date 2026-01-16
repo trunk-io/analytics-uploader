@@ -7,9 +7,14 @@ import { Buffer } from "node:buffer";
 
 import { cacheFactory } from "./cache";
 import { sendTelemetry } from "./telemetry";
-import { REPO_RELEASES_URL, LATEST_TAG } from "./constants";
+import {
+  REPO_RELEASES_URL,
+  LATEST_TAG,
+  FETCH_WITH_BACK_OFF_CONFIG,
+} from "./constants";
 import { getInputs, validateInputs } from "./inputs";
 import { getArgs, getEnvVars } from "./args";
+import { backOff } from "exponential-backoff";
 
 const PLATFORM = os.platform();
 const IS_WINDOWS = PLATFORM === "win32";
@@ -66,6 +71,27 @@ const getReleaseArtifactName = (binTarget: BinTarget) =>
     ? `trunk-analytics-cli-${binTarget}-experimental.zip`
     : `trunk-analytics-cli-${binTarget}.tar.gz`;
 
+const fetchWithBackOff = async (downloadUrl: string) =>
+  await backOff(async () => {
+    const response = await fetch(downloadUrl);
+
+    if (!response.ok) {
+      if (response.status === 403 || response.status === 429) {
+        throw new CliFetchError(
+          "Github rate limits prevented fetching analytics-cli release. Hint: You may need to cache the analytics-cli.",
+          new Error(
+            `HTTP ${response.status.toString()}: ${response.statusText}`,
+          ),
+        );
+      }
+      throw new Error(
+        `Failed to download release artifact: HTTP ${response.status.toString()} ${response.statusText}`,
+      );
+    }
+
+    return await response.arrayBuffer();
+  }, FETCH_WITH_BACK_OFF_CONFIG);
+
 const downloadRelease = async ({
   cliVersion,
   releaseArtifactName,
@@ -82,21 +108,7 @@ const downloadRelease = async ({
 
   core.info(`Downloading trunk-analytics-cli from ${downloadUrl}...`);
 
-  const response = await fetch(downloadUrl);
-
-  if (!response.ok) {
-    if (response.status === 403 || response.status === 429) {
-      throw new CliFetchError(
-        "Github rate limits prevented fetching analytics-cli release. Hint: You may need to cache the analytics-cli.",
-        new Error(`HTTP ${response.status.toString()}: ${response.statusText}`),
-      );
-    }
-    throw new Error(
-      `Failed to download release artifact: HTTP ${response.status.toString()} ${response.statusText}`,
-    );
-  }
-
-  const buffer = await response.arrayBuffer();
+  const buffer = await fetchWithBackOff(downloadUrl);
   fs.writeFileSync(downloadPath, Buffer.from(buffer));
   core.info(`Downloaded ${releaseArtifactName} from release ${cliVersion}`);
 };

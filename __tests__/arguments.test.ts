@@ -1,11 +1,13 @@
 import * as path from "node:path";
-import { jest } from "@jest/globals";
+import { afterAll, jest } from "@jest/globals";
 
 import * as child_process from "../__fixtures__/child_process.js";
 import * as fs_mock from "../__fixtures__/fs.js";
 import * as core from "../__fixtures__/core.js";
 import * as github from "../__fixtures__/github.js";
-import globalFetch from "../__fixtures__/global_fetch.js";
+import { createMswServer, MSW_MOCKS } from "../__fixtures__/msw.js";
+import { FETCH_WITH_BACK_OFF_CONFIG } from "../src/constants.js";
+
 jest.unstable_mockModule("@actions/core", () => core);
 jest.unstable_mockModule("@actions/github", () => github);
 jest.unstable_mockModule("node:child_process", () => child_process);
@@ -13,9 +15,6 @@ jest.unstable_mockModule("node:fs", () => fs_mock);
 
 const { main } = await import("../src/lib.js");
 const { getArgs } = await import("../src/args.js");
-const { fetchApiAddress, convertToTelemetry } = await import(
-  "../src/telemetry.js"
-);
 
 const DEFAULT_ARG_INPUTS: Parameters<typeof getArgs>[0] = {
   run: "",
@@ -36,55 +35,6 @@ const DEFAULT_ARG_INPUTS: Parameters<typeof getArgs>[0] = {
   showFailureMessages: false,
   dryRun: false,
 };
-
-describe("fetchApiAddress", () => {
-  const oldEnv = process.env;
-
-  beforeEach(() => {
-    jest.resetModules();
-    process.env = oldEnv;
-  });
-
-  afterEach(() => {
-    process.env = oldEnv;
-  });
-
-  it("defaults to prod if there is no address", () => {
-    delete process.env.TRUNK_PUBLIC_API_ADDRESS;
-    expect(fetchApiAddress()).toBe("https://api.trunk.io");
-  });
-
-  it("uses the provided address", () => {
-    process.env.TRUNK_PUBLIC_API_ADDRESS = "https://myFancyDeploy.trunk.ca";
-    expect(fetchApiAddress()).toBe("https://myFancyDeploy.trunk.ca");
-  });
-});
-
-describe("convertToTelemetry", () => {
-  it("falls back to prod when given an invalid address", () => {
-    expect(convertToTelemetry("html://notADomain.oops")).toBe(
-      "https://telemetry.api.trunk.io/v1/flakytests-uploader/upload-metrics",
-    );
-  });
-
-  it("adapts a prod address", () => {
-    expect(convertToTelemetry("https://api.trunk.io")).toBe(
-      "https://telemetry.api.trunk.io/v1/flakytests-uploader/upload-metrics",
-    );
-  });
-
-  it("adapts a prod address with an extra slash", () => {
-    expect(convertToTelemetry("https://api.trunk.io/")).toBe(
-      "https://telemetry.api.trunk.io/v1/flakytests-uploader/upload-metrics",
-    );
-  });
-
-  it("adapts a devenv", () => {
-    expect(convertToTelemetry("https://api.dev1.trunk-staging.io")).toBe(
-      "https://telemetry.api.dev1.trunk-staging.io/v1/flakytests-uploader/upload-metrics",
-    );
-  });
-});
 
 describe("parseBoolIntoFlag", () => {
   it("returns empty string for undefined input", () => {
@@ -145,119 +95,154 @@ describe("parsePreviousStepOutcome", () => {
 });
 
 describe("Arguments", () => {
+  let server: ReturnType<typeof createMswServer>;
+
+  beforeAll(() => {
+    server = createMswServer([]);
+  });
+
   beforeEach(() => {
     jest.resetModules();
-    jest.spyOn(global, "fetch").mockImplementation(globalFetch);
   });
 
   afterEach(() => {
     jest.resetAllMocks();
+    server.resetHandlers();
+  });
+
+  afterAll(() => {
+    server.close();
   });
 
   it("Forwards inputs - upload", async () => {
-    core.getInput.mockImplementation((name) => {
-      switch (name) {
-        case "junit-paths":
-          return "junit.xml";
-        case "org-slug":
-          return "org";
-        case "token":
-          return "token";
-        case "cli-version":
-          return "0.0.0";
-        case "show-failure-messages":
-          return "true";
-        default:
-          return "";
-      }
-    });
+    const cliVersion = "0.0.0";
+    const {
+      handler: repoReleasesLatestDownloadHandler,
+      mock: repoReleasesLatestDownloadMock,
+    } = MSW_MOCKS.repoReleasesVersionDownload(cliVersion)
+      .addSuccessfulResponse()
+      .build();
+    const { handler: telemetryUploadHandler, mock: telemetryUploadMock } =
+      MSW_MOCKS.telemetryUpload().addSuccessfulResponse().build();
+    server.use([repoReleasesLatestDownloadHandler, telemetryUploadHandler]);
+    core.getInput.mockImplementation(
+      (name) =>
+        ({
+          "junit-paths": "junit.xml",
+          "org-slug": "org",
+          token: "token",
+          "cli-version": cliVersion,
+          "show-failure-messages": "true",
+        })[name] ?? "",
+    );
     const parentPath = "/made/up/path";
     await main(parentPath);
     expect(child_process.execSync).toHaveBeenCalledTimes(3);
     expect(child_process.execSync.mock.calls[2][0]).toMatch(
       `${parentPath}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token" --show-failure-messages`,
     );
+    expect(repoReleasesLatestDownloadMock).toHaveBeenCalledTimes(1);
+    expect(telemetryUploadMock).toHaveBeenCalledTimes(1);
   });
 
   it("Forwards inputs with previous step outcome - upload", async () => {
-    core.getInput.mockImplementation((name) => {
-      switch (name) {
-        case "junit-paths":
-          return "junit.xml";
-        case "org-slug":
-          return "org";
-        case "token":
-          return "token";
-        case "cli-version":
-          return "0.0.0";
-        case "previous-step-outcome":
-          return "success";
-        case "verbose":
-          return "true";
-        default:
-          return "";
-      }
-    });
+    const cliVersion = "0.0.0";
+    const {
+      handler: repoReleasesVersionDownloadHandler,
+      mock: repoReleasesVersionDownloadMock,
+    } = MSW_MOCKS.repoReleasesVersionDownload(cliVersion)
+      .addSuccessfulResponse()
+      .build();
+    const { handler: telemetryUploadHandler, mock: telemetryUploadMock } =
+      MSW_MOCKS.telemetryUpload().addSuccessfulResponse().build();
+    server.use([repoReleasesVersionDownloadHandler, telemetryUploadHandler]);
+    core.getInput.mockImplementation(
+      (name) =>
+        ({
+          "junit-paths": "junit.xml",
+          "org-slug": "org",
+          token: "token",
+          "cli-version": cliVersion,
+          "previous-step-outcome": "success",
+          verbose: "true",
+        })[name] ?? "",
+    );
     const parentPath = "/made/up/path";
     await main(parentPath);
     expect(child_process.execSync).toHaveBeenCalledTimes(3);
     expect(child_process.execSync.mock.calls[2][0]).toMatch(
       `${parentPath}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token" --test-process-exit-code "0" -v`,
     );
+    expect(repoReleasesVersionDownloadMock).toHaveBeenCalledTimes(1);
+    expect(telemetryUploadMock).toHaveBeenCalledTimes(1);
   });
 
   it("Forwards inputs - test", async () => {
-    core.getInput.mockImplementation((name) => {
-      switch (name) {
-        case "junit-paths":
-          return "junit.xml";
-        case "org-slug":
-          return "org";
-        case "token":
-          return "token";
-        case "cli-version":
-          return "0.0.0";
-        case "run":
-          return "exit 0";
-        default:
-          return "";
-      }
-    });
-    fs_mock.existsSync.mockReturnValue(true);
+    const cliVersion = "0.0.0";
+    const {
+      handler: repoReleasesVersionDownloadHandler,
+      mock: repoReleasesVersionDownloadMock,
+    } = MSW_MOCKS.repoReleasesVersionDownload(cliVersion)
+      .addSuccessfulResponse()
+      .build();
+    const { handler: telemetryUploadHandler, mock: telemetryUploadMock } =
+      MSW_MOCKS.telemetryUpload().addSuccessfulResponse().build();
+    server.use([repoReleasesVersionDownloadHandler, telemetryUploadHandler]);
+    core.getInput.mockImplementation(
+      (name) =>
+        ({
+          "junit-paths": "junit.xml",
+          "org-slug": "org",
+          token: "token",
+          "cli-version": cliVersion,
+          run: "exit 0",
+        })[name] ?? "",
+    );
+    fs_mock.existsSync.mockReturnValueOnce(false).mockReturnValueOnce(true);
     const parentPath = "/made/up/path";
     await main(parentPath);
-    expect(child_process.execSync).toHaveBeenCalledTimes(2);
-    expect(child_process.execSync.mock.calls[1][0]).toMatch(
+    expect(child_process.execSync).toHaveBeenCalledTimes(3);
+    expect(child_process.execSync.mock.calls[2][0]).toMatch(
       `${parentPath}/trunk-analytics-cli test --junit-paths "junit.xml" --org-url-slug "org" --token "token" -- exit 0`,
     );
     expect(fs_mock.unlinkSync).toHaveBeenCalledWith(
       path.join(parentPath, "trunk-analytics-cli"),
     );
+    expect(repoReleasesVersionDownloadMock).toHaveBeenCalledTimes(1);
+    expect(telemetryUploadMock).toHaveBeenCalledTimes(1);
   });
 
   it("Forwards dry-run flag and cleans up bundle_upload directory", async () => {
-    core.getInput.mockImplementation((name) => {
-      switch (name) {
-        case "junit-paths":
-          return "junit.xml";
-        case "org-slug":
-          return "org";
-        case "token":
-          return "token";
-        case "cli-version":
-          return "0.0.0";
-        case "dry-run":
-          return "true";
-        default:
-          return "";
-      }
-    });
-    fs_mock.existsSync.mockImplementation(() => true);
+    const cliVersion = "0.0.0";
+    const {
+      handler: repoReleasesVersionDownloadHandler,
+      mock: repoReleasesVersionDownloadMock,
+    } = MSW_MOCKS.repoReleasesVersionDownload(cliVersion)
+      .addSuccessfulResponse()
+      .build();
+    const { handler: telemetryUploadHandler, mock: telemetryUploadMock } =
+      MSW_MOCKS.telemetryUpload().addSuccessfulResponse().build();
+    server.use([repoReleasesVersionDownloadHandler, telemetryUploadHandler]);
+    core.getInput.mockImplementation(
+      (name) =>
+        ({
+          "junit-paths": "junit.xml",
+          "org-slug": "org",
+          token: "token",
+          "cli-version": cliVersion,
+          "dry-run": "true",
+        })[name] ?? "",
+    );
+    fs_mock.existsSync
+      .mockReturnValueOnce(false)
+      .mockReturnValueOnce(true)
+      .mockReturnValueOnce(false)
+      .mockReturnValueOnce(true);
     const parentPath = "/made/up/path";
     await main(parentPath);
     // Verify dry-run flag is in the command
-    expect(child_process.execSync).toHaveBeenCalledTimes(2);
-    expect(child_process.execSync.mock.calls[1][0]).toMatch(
+    expect(child_process.execSync).toHaveBeenCalledTimes(3);
+    expect(child_process.execSync.mock.calls[2][0]).toMatch(
       `${parentPath}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token" --dry-run`,
     );
 
@@ -265,5 +250,54 @@ describe("Arguments", () => {
       path.join(parentPath, "bundle_upload"),
       { recursive: true, force: true },
     );
+    expect(repoReleasesVersionDownloadMock).toHaveBeenCalledTimes(1);
+    expect(telemetryUploadMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("Retries latest version fetch when resolving latest", async () => {
+    const cliVersion = "1.0.0";
+    const builder = [
+      ...Array<undefined>(FETCH_WITH_BACK_OFF_CONFIG.numOfAttempts - 1),
+    ].reduce(
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      (acc, _) => acc.addErrorResponse(),
+      MSW_MOCKS.repoReleasesLatestDownload(),
+    );
+    const { handler: repoReleasesLatestHandler, mock: repoReleasesLatestMock } =
+      builder.addSuccessfulResponse(cliVersion).build();
+    const {
+      handler: repoReleasesVersionDownloadHandler,
+      mock: repoReleasesVersionDownloadMock,
+    } = MSW_MOCKS.repoReleasesVersionDownload(cliVersion)
+      .addSuccessfulResponse()
+      .build();
+    const { handler: telemetryUploadHandler, mock: telemetryUploadMock } =
+      MSW_MOCKS.telemetryUpload().addSuccessfulResponse().build();
+    server.use([
+      repoReleasesLatestHandler,
+      repoReleasesVersionDownloadHandler,
+      telemetryUploadHandler,
+    ]);
+    core.getInput.mockImplementation(
+      (name) =>
+        ({
+          "junit-paths": "junit.xml",
+          "org-slug": "org",
+          token: "token",
+          "cli-version": "latest",
+        })[name] ?? "",
+    );
+    fs_mock.existsSync
+      .mockReturnValueOnce(false)
+      .mockReturnValueOnce(true)
+      .mockReturnValueOnce(true)
+      .mockReturnValueOnce(true);
+    const parentPath = "/made/up/path";
+    await main(parentPath);
+    expect(repoReleasesLatestMock).toHaveBeenCalledTimes(
+      FETCH_WITH_BACK_OFF_CONFIG.numOfAttempts,
+    );
+    expect(repoReleasesVersionDownloadMock).toHaveBeenCalledTimes(1);
+    expect(telemetryUploadMock).toHaveBeenCalledTimes(1);
   });
 });

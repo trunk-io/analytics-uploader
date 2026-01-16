@@ -8,10 +8,14 @@ const testDebugLogger: typeof console.log = (...args) => {
   }
 };
 
-export const debug = jest.fn(testDebugLogger);
-export const info = jest.fn(testDebugLogger);
-export const warning = jest.fn(testDebugLogger);
-export const error = jest.fn(testDebugLogger);
-export const getInput = jest.fn();
-export const setOutput = jest.fn();
-export const setFailed = jest.fn();
+export const debug =
+  jest.fn<typeof import("@actions/core").debug>(testDebugLogger);
+export const info =
+  jest.fn<typeof import("@actions/core").info>(testDebugLogger);
+export const warning =
+  jest.fn<typeof import("@actions/core").warning>(testDebugLogger);
+export const error =
+  jest.fn<typeof import("@actions/core").error>(testDebugLogger);
+export const getInput = jest.fn<typeof import("@actions/core").getInput>();
+export const setOutput = jest.fn<typeof import("@actions/core").setOutput>();
+export const setFailed = jest.fn<typeof import("@actions/core").setFailed>();
