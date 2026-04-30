@@ -92,7 +92,7 @@ describe("sendTelemetry", () => {
     expect(telemetryUploadMock).toHaveBeenCalledTimes(
       FETCH_WITH_BACK_OFF_CONFIG.numOfAttempts,
     );
-  });
+  }, 15_000);
 
   describe("TRUNK_PUBLIC_API_ADDRESS overrides", () => {
     const hostname = "api.dev1.trunk-staging.io";

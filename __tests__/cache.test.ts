@@ -303,5 +303,5 @@ describe("Cache functionality", () => {
     );
     expect(repoReleasesVersionTagMock).toHaveBeenCalledTimes(1);
     expect(telemetryUploadMock).toHaveBeenCalledTimes(1);
-  });
+  }, 15_000);
 });

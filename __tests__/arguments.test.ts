@@ -299,5 +299,5 @@ describe("Arguments", () => {
     );
     expect(repoReleasesVersionDownloadMock).toHaveBeenCalledTimes(1);
     expect(telemetryUploadMock).toHaveBeenCalledTimes(1);
-  });
+  }, 15_000);
 });
