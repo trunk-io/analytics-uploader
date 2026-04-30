@@ -290,7 +290,14 @@ describe("Cache functionality", () => {
     cache.restoreCache.mockResolvedValue(undefined);
 
     const parentPath = "/made/up/path";
-    await main(parentPath);
+    jest.useFakeTimers();
+    try {
+      const promise = main(parentPath);
+      await jest.runAllTimersAsync();
+      await promise;
+    } finally {
+      jest.useRealTimers();
+    }
 
     expect(cache.restoreCache).toHaveBeenCalledTimes(1);
     expect(cache.saveCache).toHaveBeenCalledTimes(0);
@@ -303,5 +310,5 @@ describe("Cache functionality", () => {
     );
     expect(repoReleasesVersionTagMock).toHaveBeenCalledTimes(1);
     expect(telemetryUploadMock).toHaveBeenCalledTimes(1);
-  }, 15_000);
+  });
 });
