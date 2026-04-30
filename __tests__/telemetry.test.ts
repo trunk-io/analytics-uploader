@@ -84,10 +84,15 @@ describe("sendTelemetry", () => {
       builder.addSuccessfulResponse().build();
     server.use([telemetryUploadHandler]);
 
-    // Should not throw even though telemetry upload fails
-    await expect(
-      sendTelemetry("test-token", "v1.0.0"),
-    ).resolves.toBeUndefined();
+    jest.useFakeTimers();
+    try {
+      // Should not throw even though telemetry upload fails
+      const promise = sendTelemetry("test-token", "v1.0.0");
+      await jest.runAllTimersAsync();
+      await expect(promise).resolves.toBeUndefined();
+    } finally {
+      jest.useRealTimers();
+    }
 
     expect(telemetryUploadMock).toHaveBeenCalledTimes(
       FETCH_WITH_BACK_OFF_CONFIG.numOfAttempts,

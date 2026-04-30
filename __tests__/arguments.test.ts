@@ -293,7 +293,14 @@ describe("Arguments", () => {
       .mockReturnValueOnce(true)
       .mockReturnValueOnce(true);
     const parentPath = "/made/up/path";
-    await main(parentPath);
+    jest.useFakeTimers();
+    try {
+      const promise = main(parentPath);
+      await jest.runAllTimersAsync();
+      await promise;
+    } finally {
+      jest.useRealTimers();
+    }
     expect(repoReleasesLatestMock).toHaveBeenCalledTimes(
       FETCH_WITH_BACK_OFF_CONFIG.numOfAttempts,
     );
