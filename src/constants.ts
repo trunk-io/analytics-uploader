@@ -10,7 +10,7 @@ export const FETCH_WITH_BACK_OFF_CONFIG = {
   maxDelay: 10_000 /* milliseconds */,
   numOfAttempts: 3,
   retry: () => true,
-  startingDelay: 100 /* milliseconds */,
+  startingDelay: 5_000 /* milliseconds */,
   timeMultiple: 2,
 } as const satisfies Required<BackoffOptions>;
 
