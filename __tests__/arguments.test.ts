@@ -15,6 +15,7 @@ jest.unstable_mockModule("node:fs", () => fs_mock);
 
 const { main } = await import("../src/lib.js");
 const { getArgs } = await import("../src/args.js");
+const { validateInputs } = await import("../src/inputs.js");
 
 const DEFAULT_ARG_INPUTS: Parameters<typeof getArgs>[0] = {
   run: "",
@@ -23,6 +24,7 @@ const DEFAULT_ARG_INPUTS: Parameters<typeof getArgs>[0] = {
   bazelBepPath: "",
   orgSlug: "",
   token: "",
+  publicRepoId: "",
   repoHeadBranch: "",
   repoRoot: "",
   allowMissingJunitFiles: null,
@@ -35,6 +37,35 @@ const DEFAULT_ARG_INPUTS: Parameters<typeof getArgs>[0] = {
   showFailureMessages: false,
   dryRun: false,
 };
+
+const DEFAULT_VALIDATE_INPUTS = {
+  junitPaths: "junit.xml",
+  xcresultPath: "",
+  bazelBepPath: "",
+  orgSlug: "org",
+  token: "",
+  publicRepoId: "",
+};
+
+describe("validateInputs", () => {
+  it("accepts token only", () => {
+    expect(() => {
+      validateInputs({ ...DEFAULT_VALIDATE_INPUTS, token: "tok" });
+    }).not.toThrow();
+  });
+
+  it("accepts publicRepoId only", () => {
+    expect(() => {
+      validateInputs({ ...DEFAULT_VALIDATE_INPUTS, publicRepoId: "repo123" });
+    }).not.toThrow();
+  });
+
+  it("throws when neither token nor publicRepoId is provided", () => {
+    expect(() => {
+      validateInputs(DEFAULT_VALIDATE_INPUTS);
+    }).toThrow("Missing organization token or public repo id");
+  });
+});
 
 describe("parseBoolIntoFlag", () => {
   it("returns empty string for undefined input", () => {

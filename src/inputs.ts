@@ -20,6 +20,7 @@ export const getInputs = () =>
     junitPaths: core.getInput("junit-paths"),
     orgSlug: core.getInput("org-slug"),
     token: core.getInput("token"),
+    publicRepoId: core.getInput("public-repo-id"),
     repoHeadBranch: core.getInput("repo-head-branch"),
     run: core.getInput("run"),
     repoRoot: core.getInput("repo-root"),
@@ -52,7 +53,12 @@ export type Inputs = ReturnType<typeof getInputs>;
 export const validateInputs = (
   inputs: Pick<
     Inputs,
-    "junitPaths" | "xcresultPath" | "bazelBepPath" | "orgSlug" | "token"
+    | "junitPaths"
+    | "xcresultPath"
+    | "bazelBepPath"
+    | "orgSlug"
+    | "token"
+    | "publicRepoId"
   >,
 ) => {
   if (!inputs.junitPaths && !inputs.xcresultPath && !inputs.bazelBepPath) {
@@ -61,7 +67,7 @@ export const validateInputs = (
   if (!inputs.orgSlug) {
     throw new Error("Missing organization url slug");
   }
-  if (!inputs.token) {
-    throw new Error("Missing organization token");
+  if (!inputs.token && !inputs.publicRepoId) {
+    throw new Error("Missing organization token or public repo id");
   }
 };
