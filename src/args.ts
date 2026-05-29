@@ -51,6 +51,7 @@ export type ArgInputs = Pick<
   | "bazelBepPath"
   | "orgSlug"
   | "token"
+  | "publicRepoId"
   | "repoHeadBranch"
   | "repoRoot"
   | "allowMissingJunitFiles"
@@ -72,6 +73,7 @@ export const getArgs = (inputs: ArgInputs) =>
     convertToStringFlag("--bazel-bep-path", inputs.bazelBepPath),
     convertToStringFlag("--org-url-slug", inputs.orgSlug),
     convertToStringFlag("--token", inputs.token),
+    convertToStringFlag("--public-repo-id", inputs.publicRepoId),
     convertToStringFlag("--repo-head-branch", inputs.repoHeadBranch),
     convertToStringFlag("--repo-root", inputs.repoRoot),
     convertBoolIntoFlag(

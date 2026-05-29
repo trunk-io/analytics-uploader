@@ -12,6 +12,9 @@ inputs:
   token:
     description: Organization token. Defaults to TRUNK_API_TOKEN env var.
     required: false
+  public-repo-id:
+    description: Non-secret per-repo identifier. Use instead of token on fork PRs where repo secrets are unavailable. Defaults to TRUNK_PUBLIC_REPO_ID env var.
+    required: false
   repo-head-branch:
     description: Value to override branch of repository head.
     required: false
