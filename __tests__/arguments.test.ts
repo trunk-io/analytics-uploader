@@ -49,21 +49,21 @@ const DEFAULT_VALIDATE_INPUTS = {
 
 describe("validateInputs", () => {
   it("accepts token only", () => {
-    expect(() =>
-      validateInputs({ ...DEFAULT_VALIDATE_INPUTS, token: "tok" }),
-    ).not.toThrow();
+    expect(() => {
+      validateInputs({ ...DEFAULT_VALIDATE_INPUTS, token: "tok" });
+    }).not.toThrow();
   });
 
   it("accepts publicRepoId only", () => {
-    expect(() =>
-      validateInputs({ ...DEFAULT_VALIDATE_INPUTS, publicRepoId: "repo123" }),
-    ).not.toThrow();
+    expect(() => {
+      validateInputs({ ...DEFAULT_VALIDATE_INPUTS, publicRepoId: "repo123" });
+    }).not.toThrow();
   });
 
   it("throws when neither token nor publicRepoId is provided", () => {
-    expect(() => validateInputs(DEFAULT_VALIDATE_INPUTS)).toThrow(
-      "Missing organization token or public repo id",
-    );
+    expect(() => {
+      validateInputs(DEFAULT_VALIDATE_INPUTS);
+    }).toThrow("Missing organization token or public repo id");
   });
 });
 
