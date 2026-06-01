@@ -10,7 +10,7 @@ import {
 } from "./constants";
 import { BinTarget } from "./lib";
 
-const DEFAULT_CLI_VERSION = "0.12.5";
+const DEFAULT_CLI_VERSION = "0.13.0";
 
 const fetchWithBackOff = async () =>
   await backOff(async () => {
