@@ -47,6 +47,9 @@ inputs:
   variant:
     description: User specified variant of a set of tests being uploaded.
     required: false
+  test-collection-short-id:
+    description: Optional 8 character alphanumeric short id for the test collection.
+    required: false
   verbose:
     description: Enable verbose logging
     default: false

@@ -31,6 +31,7 @@ const DEFAULT_ARG_INPUTS: Parameters<typeof getArgs>[0] = {
   hideBanner: null,
   quarantine: null,
   variant: "",
+  testCollectionShortId: "",
   useUnclonedRepo: false,
   previousStepOutcome: "",
   verbose: false,
