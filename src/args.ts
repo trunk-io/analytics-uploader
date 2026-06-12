@@ -106,10 +106,7 @@ export const getArgs = (inputs: ArgInputs) =>
     convertBoolIntoFlag("--hide-banner", inputs.hideBanner),
     convertBoolIntoFlag("--use-quarantining", inputs.quarantine),
     convertToStringFlag("--variant", inputs.variant),
-    convertToStringFlag(
-      "--test-collection-short-id",
-      inputs.testCollectionShortId,
-    ),
+    convertToStringFlag("--test-collection-id", inputs.testCollectionShortId),
     convertBoolIntoBareFlag("--use-uncloned-repo", inputs.useUnclonedRepo),
     convertBoolIntoBareFlag(
       convertToStringFlag(
