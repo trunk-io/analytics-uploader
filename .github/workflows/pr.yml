@@ -81,6 +81,7 @@ jobs:
           token: ${{ secrets.TRUNK_STAGING_ORG_API_TOKEN }}
           allow-missing-junit-files: false
           use-cache: true
+          test-collection-short-id: DqlUb3qM
         env:
           TRUNK_PUBLIC_API_ADDRESS: https://api.trunk-staging.io
 
