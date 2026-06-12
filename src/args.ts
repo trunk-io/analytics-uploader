@@ -64,6 +64,11 @@ export type ArgInputs = Pick<
   | "verbose"
   | "showFailureMessages"
   | "dryRun"
+  | "ghRepoUrl"
+  | "ghRepoHeadSha"
+  | "ghRepoHeadBranch"
+  | "ghRepoHeadCommitEpoch"
+  | "ghRepoHeadAuthorName"
 >;
 
 export const getArgs = (inputs: ArgInputs) =>
@@ -75,7 +80,24 @@ export const getArgs = (inputs: ArgInputs) =>
     convertToStringFlag("--org-url-slug", inputs.orgSlug),
     convertToStringFlag("--token", inputs.token),
     convertToStringFlag("--public-repo-id", inputs.publicRepoId),
-    convertToStringFlag("--repo-head-branch", inputs.repoHeadBranch),
+    // `repo-head-branch` is the user-facing override; `gh-repo-head-branch`
+    // is the PR event default. Pick the override first, fall back to PR data.
+    // The other --repo-head-* flags below have no override input.
+    convertToStringFlag(
+      "--repo-head-branch",
+      inputs.repoHeadBranch || inputs.ghRepoHeadBranch,
+    ),
+    // On a `pull_request` event, `actions/checkout` checks out a synthetic
+    // merge commit, so falling back to `git HEAD` inside the CLI surfaces the
+    // wrong SHA. Forward the PR head metadata as CLI flags when present so
+    // uploads agree with the SHA shown in the GitHub UI.
+    convertToStringFlag("--repo-url", inputs.ghRepoUrl),
+    convertToStringFlag("--repo-head-sha", inputs.ghRepoHeadSha),
+    convertToStringFlag(
+      "--repo-head-commit-epoch",
+      inputs.ghRepoHeadCommitEpoch,
+    ),
+    convertToStringFlag("--repo-head-author-name", inputs.ghRepoHeadAuthorName),
     convertToStringFlag("--repo-root", inputs.repoRoot),
     convertBoolIntoFlag(
       "--allow-missing-junit-files",
@@ -105,23 +127,8 @@ export const getArgs = (inputs: ArgInputs) =>
     convertBoolIntoBareFlag(`-- ${inputs.run}`, Boolean(inputs.run)),
   ].filter(Boolean);
 
-export const getEnvVars = (
-  inputs: Pick<
-    Inputs,
-    | "prTitle"
-    | "ghRepoUrl"
-    | "ghRepoHeadSha"
-    | "ghRepoHeadBranch"
-    | "ghRepoHeadCommitEpoch"
-    | "ghRepoHeadAuthorName"
-  >,
-) =>
+export const getEnvVars = (inputs: Pick<Inputs, "prTitle">) =>
   ({
     ...process.env,
     PR_TITLE: inputs.prTitle,
-    GH_REPO_URL: inputs.ghRepoUrl,
-    GH_REPO_HEAD_SHA: inputs.ghRepoHeadSha,
-    GH_REPO_HEAD_BRANCH: inputs.ghRepoHeadBranch,
-    GH_REPO_HEAD_COMMIT_EPOCH: inputs.ghRepoHeadCommitEpoch,
-    GH_REPO_HEAD_AUTHOR_NAME: inputs.ghRepoHeadAuthorName,
   }) as const satisfies Record<string, string>;
