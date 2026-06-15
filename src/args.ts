@@ -59,6 +59,7 @@ export type ArgInputs = Pick<
   | "quarantine"
   | "variant"
   | "testCollectionShortId"
+  | "useBazelTargetForCodeowners"
   | "useUnclonedRepo"
   | "previousStepOutcome"
   | "verbose"
@@ -107,6 +108,10 @@ export const getArgs = (inputs: ArgInputs) =>
     convertBoolIntoFlag("--use-quarantining", inputs.quarantine),
     convertToStringFlag("--variant", inputs.variant),
     convertToStringFlag("--test-collection-id", inputs.testCollectionShortId),
+    convertBoolIntoBareFlag(
+      "--use-bazel-target-for-codeowners",
+      inputs.useBazelTargetForCodeowners,
+    ),
     convertBoolIntoBareFlag("--use-uncloned-repo", inputs.useUnclonedRepo),
     convertBoolIntoBareFlag(
       convertToStringFlag(
