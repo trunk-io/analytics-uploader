@@ -37,6 +37,11 @@ const DEFAULT_ARG_INPUTS: Parameters<typeof getArgs>[0] = {
   verbose: false,
   showFailureMessages: false,
   dryRun: false,
+  ghRepoUrl: "",
+  ghRepoHeadSha: "",
+  ghRepoHeadBranch: "",
+  ghRepoHeadCommitEpoch: "",
+  ghRepoHeadAuthorName: "",
 };
 
 const DEFAULT_VALIDATE_INPUTS = {
@@ -123,6 +128,45 @@ describe("parsePreviousStepOutcome", () => {
     expect(() =>
       getArgs({ ...DEFAULT_ARG_INPUTS, previousStepOutcome: "not-a-status" }),
     ).toThrow();
+  });
+});
+
+describe("PR head metadata flags", () => {
+  // Regression test: on `pull_request` events `actions/checkout` produces a
+  // merge commit, so the CLI's `git HEAD` fallback returned the wrong SHA.
+  // The action must forward github.event.pull_request.head.* as CLI flags.
+  it("forwards PR head metadata as --repo-* CLI flags", () => {
+    expect(
+      getArgs({
+        ...DEFAULT_ARG_INPUTS,
+        ghRepoUrl: "https://github.com/o/r",
+        ghRepoHeadSha: "abc123def456",
+        ghRepoHeadBranch: "feature-branch",
+        ghRepoHeadCommitEpoch: "1717171717",
+        ghRepoHeadAuthorName: "octocat",
+      }),
+    ).toEqual([
+      "upload",
+      '--repo-head-branch "feature-branch"',
+      '--repo-url "https://github.com/o/r"',
+      '--repo-head-sha "abc123def456"',
+      '--repo-head-commit-epoch "1717171717"',
+      '--repo-head-author-name "octocat"',
+    ]);
+  });
+
+  it("omits --repo-* flags when PR inputs are empty (push event)", () => {
+    expect(getArgs(DEFAULT_ARG_INPUTS)).toEqual(["upload"]);
+  });
+
+  it("prefers user repoHeadBranch override over gh PR branch", () => {
+    expect(
+      getArgs({
+        ...DEFAULT_ARG_INPUTS,
+        repoHeadBranch: "manual-override",
+        ghRepoHeadBranch: "from-pr",
+      }),
+    ).toContain('--repo-head-branch "manual-override"');
   });
 });
 
@@ -282,6 +326,51 @@ describe("Arguments", () => {
       path.join(parentPath, "bundle_upload"),
       { recursive: true, force: true },
     );
+    expect(repoReleasesVersionDownloadMock).toHaveBeenCalledTimes(1);
+    expect(telemetryUploadMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("Forwards PR head metadata from action inputs to the CLI", async () => {
+    const cliVersion = "0.0.0";
+    const {
+      handler: repoReleasesVersionDownloadHandler,
+      mock: repoReleasesVersionDownloadMock,
+    } = MSW_MOCKS.repoReleasesVersionDownload(cliVersion)
+      .addSuccessfulResponse()
+      .build();
+    const { handler: telemetryUploadHandler, mock: telemetryUploadMock } =
+      MSW_MOCKS.telemetryUpload().addSuccessfulResponse().build();
+    server.use([repoReleasesVersionDownloadHandler, telemetryUploadHandler]);
+    core.getInput.mockImplementation(
+      (name) =>
+        ({
+          "junit-paths": "junit.xml",
+          "org-slug": "org",
+          token: "token",
+          "cli-version": cliVersion,
+          "gh-repo-url": "https://github.com/o/r",
+          "gh-repo-head-sha": "abc123def456",
+          "gh-repo-head-branch": "feature-branch",
+          "gh-repo-head-commit-epoch": "1717171717",
+          "gh-repo-head-author-name": "octocat",
+        })[name] ?? "",
+    );
+    const parentPath = "/made/up/path";
+    await main(parentPath);
+    expect(child_process.execSync).toHaveBeenCalledTimes(3);
+    const command = child_process.execSync.mock.calls[2][0];
+    // The CLI consumes these as flags; without them it would fall back to
+    // `git HEAD`, which on a PR event is the synthetic merge commit.
+    expect(command).toMatch('--repo-head-branch "feature-branch"');
+    expect(command).toMatch('--repo-url "https://github.com/o/r"');
+    expect(command).toMatch('--repo-head-sha "abc123def456"');
+    expect(command).toMatch('--repo-head-commit-epoch "1717171717"');
+    expect(command).toMatch('--repo-head-author-name "octocat"');
+    // Old behavior leaked GH_* env vars that the CLI never read; make sure
+    // we didn't regress to that.
+    const env = child_process.execSync.mock.calls[2][1]?.env;
+    expect(env).not.toHaveProperty("GH_REPO_HEAD_SHA");
+    expect(env).not.toHaveProperty("GH_REPO_URL");
     expect(repoReleasesVersionDownloadMock).toHaveBeenCalledTimes(1);
     expect(telemetryUploadMock).toHaveBeenCalledTimes(1);
   });
