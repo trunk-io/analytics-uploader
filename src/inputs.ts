@@ -34,6 +34,9 @@ export const getInputs = () =>
     hideBanner: parseTriState(core.getInput("hide-banner")),
     variant: core.getInput("variant"),
     testCollectionShortId: core.getInput("test-collection-id"),
+    useBazelTargetForCodeowners: parseBoolean(
+      core.getInput("use-bazel-target-for-codeowners"),
+    ),
     useUnclonedRepo: parseBoolean(core.getInput("use-uncloned-repo")),
     previousStepOutcome: core.getInput("previous-step-outcome"),
     prTitle: core.getInput("pr-title"),

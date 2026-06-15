@@ -32,6 +32,7 @@ const DEFAULT_ARG_INPUTS: Parameters<typeof getArgs>[0] = {
   quarantine: null,
   variant: "",
   testCollectionShortId: "",
+  useBazelTargetForCodeowners: false,
   useUnclonedRepo: false,
   previousStepOutcome: "",
   verbose: false,
