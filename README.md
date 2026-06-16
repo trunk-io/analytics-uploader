@@ -78,6 +78,7 @@ jobs:
 | `repo-root`                 | The root directory of the repository.                                                                                                        |          |
 | `run`                       | The command to run before uploading test results.                                                                                            |          |
 | `cli-version`               | The version of the uploader to use.                                                                                                          | `latest` |
+| `use-bazel-target-for-codeowners` | Use the Bazel target label as a fallback path for CODEOWNERS association when no file attribute is present in the JUnit XML. Only relevant when uploading a Bazel BEP file via `bazel-bep-path`. | `false`  |
 | `allow-missing-junit-files` | Whether or not to allow missing junit files in the upload invocation.                                                                        | `true`   |
 | `variant`                   | User specified variant of a set of tests being uploaded.                                                                                     |          |
 | `verbose`                   | Enable verbose logging                                                                                                                       | `false`  |
