@@ -1,6 +1,6 @@
 import * as core from "@actions/core";
 
-import { LATEST_TAG } from "./constants";
+import { LATEST_TAG, SWIFT_TEST_XUNIT_PATHS_ENV } from "./constants";
 
 const parseTriState = (input: string): boolean | null => {
   switch (input.toLowerCase()) {
@@ -27,6 +27,12 @@ export const getInputs = () =>
     cliVersion: core.getInput("cli-version") || LATEST_TAG,
     xcresultPath: core.getInput("xcresult-path"),
     bazelBepPath: core.getInput("bazel-bep-path"),
+    // The CLI reads this env var itself, so callers were setting it directly
+    // long before there was an input. Fall back to it rather than treating
+    // those callers as having supplied no report source at all.
+    swiftTestXunitPaths:
+      core.getInput("swift-test-xunit-paths") ||
+      (process.env[SWIFT_TEST_XUNIT_PATHS_ENV] ?? ""),
     quarantine: parseTriState(core.getInput("quarantine")),
     allowMissingJunitFiles: parseTriState(
       core.getInput("allow-missing-junit-files"),
@@ -60,12 +66,18 @@ export const validateInputs = (
     | "junitPaths"
     | "xcresultPath"
     | "bazelBepPath"
+    | "swiftTestXunitPaths"
     | "orgSlug"
     | "token"
     | "publicRepoId"
   >,
 ) => {
-  if (!inputs.junitPaths && !inputs.xcresultPath && !inputs.bazelBepPath) {
+  if (
+    !inputs.junitPaths &&
+    !inputs.xcresultPath &&
+    !inputs.bazelBepPath &&
+    !inputs.swiftTestXunitPaths
+  ) {
     throw new Error("Missing input files");
   }
   if (!inputs.orgSlug) {

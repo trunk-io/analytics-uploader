@@ -22,6 +22,7 @@ const DEFAULT_ARG_INPUTS: Parameters<typeof getArgs>[0] = {
   junitPaths: "",
   xcresultPath: "",
   bazelBepPath: "",
+  swiftTestXunitPaths: "",
   orgSlug: "",
   token: "",
   publicRepoId: "",
@@ -49,6 +50,7 @@ const DEFAULT_VALIDATE_INPUTS = {
   junitPaths: "junit.xml",
   xcresultPath: "",
   bazelBepPath: "",
+  swiftTestXunitPaths: "",
   orgSlug: "org",
   token: "",
   publicRepoId: "",
@@ -58,6 +60,31 @@ describe("validateInputs", () => {
   it("accepts token only", () => {
     expect(() => {
       validateInputs({ ...DEFAULT_VALIDATE_INPUTS, token: "tok" });
+    }).not.toThrow();
+  });
+
+  it("throws when no report source is provided", () => {
+    expect(() => {
+      validateInputs({
+        ...DEFAULT_VALIDATE_INPUTS,
+        junitPaths: "",
+        token: "tok",
+      });
+    }).toThrow("Missing input files");
+  });
+
+  // Regression test: swift-test-xunit-paths is a report source on its own, and
+  // treating it as absent forced callers to pass a junit glob they did not
+  // want. Naming the same report in both double-uploads every test, so the
+  // glob had to point somewhere that did not exist.
+  it("accepts swiftTestXunitPaths as the only report source", () => {
+    expect(() => {
+      validateInputs({
+        ...DEFAULT_VALIDATE_INPUTS,
+        junitPaths: "",
+        swiftTestXunitPaths: "out-swift-testing.xml",
+        token: "tok",
+      });
     }).not.toThrow();
   });
 
@@ -129,6 +156,20 @@ describe("parsePreviousStepOutcome", () => {
     expect(() =>
       getArgs({ ...DEFAULT_ARG_INPUTS, previousStepOutcome: "not-a-status" }),
     ).toThrow();
+  });
+});
+
+describe("swift test xunit paths", () => {
+  it("forwards swiftTestXunitPaths as a CLI flag", () => {
+    expect(
+      getArgs({
+        ...DEFAULT_ARG_INPUTS,
+        swiftTestXunitPaths: "out-swift-testing.xml,out.xml",
+      }),
+    ).toEqual([
+      "upload",
+      '--swift-test-xunit-paths "out-swift-testing.xml,out.xml"',
+    ]);
   });
 });
 
@@ -219,6 +260,43 @@ describe("Arguments", () => {
       `${parentPath}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token" --show-failure-messages`,
     );
     expect(repoReleasesLatestDownloadMock).toHaveBeenCalledTimes(1);
+    expect(telemetryUploadMock).toHaveBeenCalledTimes(1);
+  });
+
+  // The CLI reads TRUNK_SWIFT_TEST_XUNIT_PATHS itself, so callers set it as an
+  // env var before the input existed. Validation has to see it, or the upload
+  // is rejected for having no report source while the env var names one.
+  it("Accepts swift test xunit paths from the env var alone", async () => {
+    const cliVersion = "0.0.0";
+    const {
+      handler: repoReleasesVersionDownloadHandler,
+      mock: repoReleasesVersionDownloadMock,
+    } = MSW_MOCKS.repoReleasesVersionDownload(cliVersion)
+      .addSuccessfulResponse()
+      .build();
+    const { handler: telemetryUploadHandler, mock: telemetryUploadMock } =
+      MSW_MOCKS.telemetryUpload().addSuccessfulResponse().build();
+    server.use([repoReleasesVersionDownloadHandler, telemetryUploadHandler]);
+    core.getInput.mockImplementation(
+      (name) =>
+        ({
+          "org-slug": "org",
+          token: "token",
+          "cli-version": cliVersion,
+        })[name] ?? "",
+    );
+    process.env.TRUNK_SWIFT_TEST_XUNIT_PATHS = "out-swift-testing.xml";
+    try {
+      const parentPath = "/made/up/path";
+      await main(parentPath);
+      expect(child_process.execSync).toHaveBeenCalledTimes(3);
+      expect(child_process.execSync.mock.calls[2][0]).toMatch(
+        `${parentPath}/trunk-analytics-cli upload --swift-test-xunit-paths "out-swift-testing.xml" --org-url-slug "org" --token "token"`,
+      );
+    } finally {
+      delete process.env.TRUNK_SWIFT_TEST_XUNIT_PATHS;
+    }
+    expect(repoReleasesVersionDownloadMock).toHaveBeenCalledTimes(1);
     expect(telemetryUploadMock).toHaveBeenCalledTimes(1);
   });
 
