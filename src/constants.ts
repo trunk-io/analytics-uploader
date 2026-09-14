@@ -1,6 +1,7 @@
 import type { BackoffOptions } from "exponential-backoff";
 
 export const LATEST_TAG = "latest";
+export const SWIFT_TEST_XUNIT_PATHS_ENV = "TRUNK_SWIFT_TEST_XUNIT_PATHS";
 export const REPO_RELEASES_URL =
   "https://github.com/trunk-io/analytics-cli/releases";
 

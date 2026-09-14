@@ -49,6 +49,7 @@ export type ArgInputs = Pick<
   | "junitPaths"
   | "xcresultPath"
   | "bazelBepPath"
+  | "swiftTestXunitPaths"
   | "orgSlug"
   | "token"
   | "publicRepoId"
@@ -78,6 +79,7 @@ export const getArgs = (inputs: ArgInputs) =>
     convertToStringFlag("--junit-paths", inputs.junitPaths),
     convertToStringFlag("--xcresult-path", inputs.xcresultPath),
     convertToStringFlag("--bazel-bep-path", inputs.bazelBepPath),
+    convertToStringFlag("--swift-test-xunit-paths", inputs.swiftTestXunitPaths),
     convertToStringFlag("--org-url-slug", inputs.orgSlug),
     convertToStringFlag("--token", inputs.token),
     convertToStringFlag("--public-repo-id", inputs.publicRepoId),

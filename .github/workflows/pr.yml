@@ -62,6 +62,11 @@ jobs:
           node-version: "24"
 
       # Do NOT continue-on-error for these uploads (except Windows which is experimental)
+      #
+      # The variant is what keeps the three legs apart: they upload the same
+      # reports, so without it all three collapse into one test and Windows --
+      # the leg allowed to fail -- feeds its flakiness into a row shared with
+      # the other two.
       - name: Trunk Analytics Uploader (Prod)
         uses: ./
         continue-on-error: ${{ matrix.os == 'windows' }}
@@ -71,7 +76,8 @@ jobs:
           token: ${{ secrets.TRUNK_PROD_ORG_API_TOKEN }}
           allow-missing-junit-files: false
           use-cache: true
-          test-collection-id: 7P54Ouzw
+          test-collection-id: of0v4st4
+          variant: ${{ matrix.os }}
 
       - name: Trunk Analytics Uploader (Staging)
         uses: ./
@@ -82,7 +88,8 @@ jobs:
           token: ${{ secrets.TRUNK_STAGING_ORG_API_TOKEN }}
           allow-missing-junit-files: false
           use-cache: true
-          test-collection-id: DqlUb3qM
+          test-collection-id: AzbImDlX
+          variant: ${{ matrix.os }}
         env:
           TRUNK_PUBLIC_API_ADDRESS: https://api.trunk-staging.io
 

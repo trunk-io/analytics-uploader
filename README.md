@@ -57,11 +57,12 @@ jobs:
 
 ### Input Sources (At least one required)
 
-| Parameter        | Description                                             |
-| ---------------- | ------------------------------------------------------- |
-| `junit-paths`    | Comma-separated list of glob paths to junit files.      |
-| `xcresult-path`  | Path to the xcresult directory.                         |
-| `bazel-bep-path` | Path to the bazel BEP file to parse in place of junits. |
+| Parameter                | Description                                                                                                                                                                                                |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `junit-paths`            | Comma-separated list of glob paths to junit files.                                                                                                                                                         |
+| `xcresult-path`          | Path to the xcresult directory.                                                                                                                                                                            |
+| `bazel-bep-path`         | Path to the bazel BEP file to parse in place of junits.                                                                                                                                                    |
+| `swift-test-xunit-paths` | Comma-separated list of files written by `swift test --xunit-output`, whose tests are attributed to the file each is declared in. Takes files, not glob paths. Defaults to `TRUNK_SWIFT_TEST_XUNIT_PATHS`. |
 
 ### Required Parameters
 
