@@ -178,15 +178,31 @@ const previousStepFailed = (previousStepOutcome?: string): boolean => {
   );
 };
 
+/**
+ * What to say when the CLI exits non-zero because the step that ran the tests
+ * did not succeed.
+ *
+ * All this action knows is that outcome — never why — so it must not assert a
+ * cause. "The results contain non-quarantined failures" is wrong every time the
+ * command fails without producing any: no test files matched its filter, a
+ * build or setup error, a crash before results were written. In those runs the
+ * CLI prints "No test failures found, but non zero exit code provided" directly
+ * above this annotation, and the annotation is the only part surfaced in the
+ * GitHub UI — so it contradicted the diagnosis a reader had to open the log to
+ * find.
+ */
+export const testStepFailureMessage = (previousStepOutcome?: string): string =>
+  previousStepOutcome?.toLowerCase() === "cancelled"
+    ? "The step that ran the tests was cancelled -- the uploaded results are likely incomplete."
+    : "The step that ran the tests failed -- see above for details. If no failing tests are listed, it failed without reporting any (for example: no test files matched, or it exited before writing results).";
+
 export const getFailureReason = (
   error: unknown,
   previousStepOutcome?: string,
 ): string | undefined => {
   if (error instanceof Error && error.message.includes("Command failed")) {
     if (previousStepFailed(previousStepOutcome)) {
-      core.setFailed(
-        "The test results you are uploading contain non quarantined test failures -- see above for details.",
-      );
+      core.setFailed(testStepFailureMessage(previousStepOutcome));
       return undefined;
     }
 
