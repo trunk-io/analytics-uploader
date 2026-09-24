@@ -66,10 +66,11 @@ jobs:
 
 ### Required Parameters
 
-| Parameter  | Description                                                                                                                                                        |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `org-slug` | Organization slug.                                                                                                                                                 |
-| `token`    | Organization token. Must be explicitly passed in or defined as an environment variable named `TRUNK_API_TOKEN`. Defaults to the `TRUNK_API_TOKEN` when left empty. |
+| Parameter                 | Description                                                                                                                                                                                |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `org-slug`                | Organization slug.                                                                                                                                                                         |
+| `token`                   | Organization token. Must be explicitly passed in or defined as an environment variable named `TRUNK_API_TOKEN`. Defaults to the `TRUNK_API_TOKEN` when left empty.                         |
+| `allow-forked-pr-uploads` | Upload from a forked pull request, which cannot read repository secrets and so has no `token`. Requires `test-collection-id`; the collection must have forked-PR uploads enabled in Trunk. |
 
 ### Optional Parameters
 

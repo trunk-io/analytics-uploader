@@ -53,6 +53,7 @@ export type ArgInputs = Pick<
   | "orgSlug"
   | "token"
   | "publicRepoId"
+  | "allowForkedPrUploads"
   | "repoHeadBranch"
   | "repoRoot"
   | "allowMissingJunitFiles"
@@ -83,6 +84,10 @@ export const getArgs = (inputs: ArgInputs) =>
     convertToStringFlag("--org-url-slug", inputs.orgSlug),
     convertToStringFlag("--token", inputs.token),
     convertToStringFlag("--public-repo-id", inputs.publicRepoId),
+    convertBoolIntoBareFlag(
+      "--allow-forked-pr-uploads",
+      inputs.allowForkedPrUploads,
+    ),
     // `repo-head-branch` is the user-facing override; `gh-repo-head-branch`
     // is the PR event default. Pick the override first, fall back to PR data.
     // The other --repo-head-* flags below have no override input.
