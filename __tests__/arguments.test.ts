@@ -26,6 +26,7 @@ const DEFAULT_ARG_INPUTS: Parameters<typeof getArgs>[0] = {
   orgSlug: "",
   token: "",
   publicRepoId: "",
+  allowForkedPrUploads: false,
   repoHeadBranch: "",
   repoRoot: "",
   allowMissingJunitFiles: null,
@@ -54,6 +55,7 @@ const DEFAULT_VALIDATE_INPUTS = {
   orgSlug: "org",
   token: "",
   publicRepoId: "",
+  allowForkedPrUploads: false,
 };
 
 describe("validateInputs", () => {
@@ -94,10 +96,33 @@ describe("validateInputs", () => {
     }).not.toThrow();
   });
 
-  it("throws when neither token nor publicRepoId is provided", () => {
+  it("accepts allowForkedPrUploads only", () => {
+    expect(() => {
+      validateInputs({
+        ...DEFAULT_VALIDATE_INPUTS,
+        allowForkedPrUploads: true,
+      });
+    }).not.toThrow();
+  });
+
+  it("throws when no token, publicRepoId, or allowForkedPrUploads is provided", () => {
     expect(() => {
       validateInputs(DEFAULT_VALIDATE_INPUTS);
-    }).toThrow("Missing organization token or public repo id");
+    }).toThrow(
+      "Missing organization token, public repo id, or allow-forked-pr-uploads",
+    );
+  });
+});
+
+describe("allowForkedPrUploads", () => {
+  it("emits the bare flag when set", () => {
+    expect(
+      getArgs({ ...DEFAULT_ARG_INPUTS, allowForkedPrUploads: true }),
+    ).toEqual(["upload", "--allow-forked-pr-uploads"]);
+  });
+
+  it("emits nothing when unset", () => {
+    expect(getArgs(DEFAULT_ARG_INPUTS)).toEqual(["upload"]);
   });
 });
 

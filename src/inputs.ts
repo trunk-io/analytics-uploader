@@ -21,6 +21,9 @@ export const getInputs = () =>
     orgSlug: core.getInput("org-slug"),
     token: core.getInput("token"),
     publicRepoId: core.getInput("public-repo-id"),
+    allowForkedPrUploads: parseBoolean(
+      core.getInput("allow-forked-pr-uploads"),
+    ),
     repoHeadBranch: core.getInput("repo-head-branch"),
     run: core.getInput("run"),
     repoRoot: core.getInput("repo-root"),
@@ -70,6 +73,7 @@ export const validateInputs = (
     | "orgSlug"
     | "token"
     | "publicRepoId"
+    | "allowForkedPrUploads"
   >,
 ) => {
   if (
@@ -83,7 +87,9 @@ export const validateInputs = (
   if (!inputs.orgSlug) {
     throw new Error("Missing organization url slug");
   }
-  if (!inputs.token && !inputs.publicRepoId) {
-    throw new Error("Missing organization token or public repo id");
+  if (!inputs.token && !inputs.publicRepoId && !inputs.allowForkedPrUploads) {
+    throw new Error(
+      "Missing organization token, public repo id, or allow-forked-pr-uploads",
+    );
   }
 };

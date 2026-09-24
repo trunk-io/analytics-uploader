@@ -15,6 +15,11 @@ inputs:
   public-repo-id:
     description: Non-secret per-repo identifier. Use instead of token on fork PRs where repo secrets are unavailable. Defaults to TRUNK_PUBLIC_REPO_ID env var.
     required: false
+  allow-forked-pr-uploads:
+    description: Upload from a forked pull request with no token or public repo id. Requires test-collection-id; the collection must have forked-PR uploads enabled in Trunk.
+    required: false
+    default: false
+    type: boolean
   repo-head-branch:
     description: Value to override branch of repository head.
     required: false
