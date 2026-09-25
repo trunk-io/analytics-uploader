@@ -14,7 +14,7 @@ jest.unstable_mockModule("node:child_process", () => child_process);
 jest.unstable_mockModule("node:fs", () => fs_mock);
 
 const { main } = await import("../src/lib.js");
-const { getArgs } = await import("../src/args.js");
+const { getArgs, getEnvVars } = await import("../src/args.js");
 const { validateInputs } = await import("../src/inputs.js");
 
 const DEFAULT_ARG_INPUTS: Parameters<typeof getArgs>[0] = {
@@ -111,6 +111,26 @@ describe("validateInputs", () => {
     }).toThrow(
       "Missing organization token, public repo id, or allow-forked-pr-uploads",
     );
+  });
+});
+
+describe("getEnvVars", () => {
+  it("exports the fork repo URL as TRUNK_FORK_REPO_URL", () => {
+    expect(
+      getEnvVars({
+        prTitle: "title",
+        ghForkRepoUrl: "https://github.com/someone/fork",
+      }),
+    ).toMatchObject({
+      PR_TITLE: "title",
+      TRUNK_FORK_REPO_URL: "https://github.com/someone/fork",
+    });
+  });
+
+  it("leaves TRUNK_FORK_REPO_URL unset when the head is not a fork", () => {
+    expect(
+      getEnvVars({ prTitle: "title", ghForkRepoUrl: "" }),
+    ).not.toHaveProperty("TRUNK_FORK_REPO_URL");
   });
 });
 

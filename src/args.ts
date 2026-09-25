@@ -98,7 +98,9 @@ export const getArgs = (inputs: ArgInputs) =>
     // On a `pull_request` event, `actions/checkout` checks out a synthetic
     // merge commit, so falling back to `git HEAD` inside the CLI surfaces the
     // wrong SHA. Forward the PR head metadata as CLI flags when present so
-    // uploads agree with the SHA shown in the GitHub UI.
+    // uploads agree with the SHA shown in the GitHub UI. The repo URL is the
+    // *base* repo: the repo name is an input to every test-case id, so a fork
+    // PR's head repo would give its tests a different identity from main.
     convertToStringFlag("--repo-url", inputs.ghRepoUrl),
     convertToStringFlag("--repo-head-sha", inputs.ghRepoHeadSha),
     convertToStringFlag(
@@ -136,8 +138,13 @@ export const getArgs = (inputs: ArgInputs) =>
     convertBoolIntoBareFlag(`-- ${inputs.run}`, Boolean(inputs.run)),
   ].filter(Boolean);
 
-export const getEnvVars = (inputs: Pick<Inputs, "prTitle">) =>
+export const getEnvVars = (inputs: Pick<Inputs, "prTitle" | "ghForkRepoUrl">) =>
   ({
     ...process.env,
     PR_TITLE: inputs.prTitle,
+    // The CLI captures this into bundle metadata; leave it unset rather than
+    // empty so a same-repo PR records no fork at all.
+    ...(inputs.ghForkRepoUrl
+      ? { TRUNK_FORK_REPO_URL: inputs.ghForkRepoUrl }
+      : {}),
   }) as const satisfies Record<string, string>;

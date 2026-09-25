@@ -50,6 +50,7 @@ export const getInputs = () =>
     previousStepOutcome: core.getInput("previous-step-outcome"),
     prTitle: core.getInput("pr-title"),
     ghRepoUrl: core.getInput("gh-repo-url"),
+    ghForkRepoUrl: core.getInput("gh-fork-repo-url"),
     ghRepoHeadSha: core.getInput("gh-repo-head-sha"),
     ghRepoHeadBranch: core.getInput("gh-repo-head-branch"),
     ghRepoHeadCommitEpoch: core.getInput("gh-repo-head-commit-epoch"),

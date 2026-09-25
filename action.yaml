@@ -85,8 +85,11 @@ inputs:
     description: The Title of the Pull Request (if being run inside one)
     default: ${{ github.event.pull_request.title }}
   gh-repo-url:
-    description: The URL of the GitHub repo
-    default: ${{ github.event.pull_request.head.repo.html_url }}
+    description: The URL of the GitHub repo. The base repo, so a fork PR's tests keep the upstream repo's identity.
+    default: ${{ github.event.pull_request.base.repo.html_url }}
+  gh-fork-repo-url:
+    description: The URL of the fork the pull request head lives in, empty unless the head repo differs from the base repo. Exported to the CLI as TRUNK_FORK_REPO_URL.
+    default: ${{ github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name && github.event.pull_request.head.repo.html_url || '' }}
   gh-repo-head-sha:
     description: The head commit of the pull request
     default: ${{ github.event.pull_request.head.sha }}
