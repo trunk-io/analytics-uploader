@@ -138,8 +138,13 @@ export const getArgs = (inputs: ArgInputs) =>
     convertBoolIntoBareFlag(`-- ${inputs.run}`, Boolean(inputs.run)),
   ].filter(Boolean);
 
-export const getEnvVars = (inputs: Pick<Inputs, "prTitle">) =>
+export const getEnvVars = (inputs: Pick<Inputs, "prTitle" | "ghForkRepoUrl">) =>
   ({
     ...process.env,
     PR_TITLE: inputs.prTitle,
+    // The CLI captures this into bundle metadata; leave it unset rather than
+    // empty so a same-repo PR records no fork at all.
+    ...(inputs.ghForkRepoUrl
+      ? { TRUNK_FORK_REPO_URL: inputs.ghForkRepoUrl }
+      : {}),
   }) as const satisfies Record<string, string>;
