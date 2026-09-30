@@ -58,7 +58,7 @@ inputs:
     description: Whether to hide the top level flaky tests banner
     required: false
   variant:
-    description: User specified variant of a set of tests being uploaded.
+    description: User specified variant of a set of tests being uploaded. Not usually necessary; set it only when the same tests run in different environments and should be tracked separately.
     required: false
   test-collection-id:
     description: 8 character alphanumeric ID of the test collection to upload to. Shown on the collection's page in Trunk. Defaults to TRUNK_TEST_COLLECTION_ID env var.
