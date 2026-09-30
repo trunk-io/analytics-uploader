@@ -45,6 +45,9 @@ jobs:
           # To find your org slug, log into app.trunk.io and you should be redirected to a URL like:
           # https://app.trunk.io/my-trunk-org-slug/repo-owner/repo-name/ci-analytics
           org-slug: my-trunk-org-slug
+          # Provide the ID of the Trunk test collection to upload to.
+          # Find it on the collection's page in app.trunk.io → Flaky Tests → Collections.
+          test-collection-id: abcdabcd
           # Provide your Trunk API token as a GitHub secret.
           # You can find Trunk token by navigating to app.trunk.io → Settings → Manage Organization → Organization API Token → View.
           # To add it as a GitHub secret, see https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions.
@@ -69,25 +72,26 @@ jobs:
 | Parameter                 | Description                                                                                                                                                                                |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `org-slug`                | Organization slug.                                                                                                                                                                         |
+| `test-collection-id`      | 8 character alphanumeric ID of the test collection to upload to. Required unless your organization is still migrating from legacy repo uploads.                                            |
 | `token`                   | Organization token. Must be explicitly passed in or defined as an environment variable named `TRUNK_API_TOKEN`. Defaults to the `TRUNK_API_TOKEN` when left empty.                         |
 | `allow-forked-pr-uploads` | Upload from a forked pull request, which cannot read repository secrets and so has no `token`. Requires `test-collection-id`; the collection must have forked-PR uploads enabled in Trunk. |
 
 ### Optional Parameters
 
-| Parameter                         | Description                                                                                                                                                                                      | Default  |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- |
-| `repo-head-branch`                | Value to override branch of repository head.                                                                                                                                                     |          |
-| `repo-root`                       | The root directory of the repository.                                                                                                                                                            |          |
-| `run`                             | The command to run before uploading test results.                                                                                                                                                |          |
-| `cli-version`                     | The version of the uploader to use.                                                                                                                                                              | `latest` |
-| `use-bazel-target-for-codeowners` | Use the Bazel target label as a fallback path for CODEOWNERS association when no file attribute is present in the JUnit XML. Only relevant when uploading a Bazel BEP file via `bazel-bep-path`. | `false`  |
-| `allow-missing-junit-files`       | Whether or not to allow missing junit files in the upload invocation.                                                                                                                            | `true`   |
-| `variant`                         | User specified variant of a set of tests being uploaded.                                                                                                                                         |          |
-| `verbose`                         | Enable verbose logging                                                                                                                                                                           | `false`  |
-| `previous-step-outcome`           | The outcome of the previous step in the workflow. Set this equal to steps.[id].outcome where `[id]` is the id of the corresponding test run.                                                     |          |
-| `show-failure-messages`           | Show failure outputs in upload. This is experimental, do not rely on this.                                                                                                                       | `false`  |
-| `dry-run`                         | Run without uploading the results to the server. They will instead be dumped to the directory that the action is run in.                                                                         | `false`  |
-| `use-cache`                       | Enable caching of the trunk-analytics-cli binary to reduce subsequent downloads                                                                                                                  | `false`  |
+| Parameter                         | Description                                                                                                                                                                                                    | Default  |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| `repo-head-branch`                | Value to override branch of repository head.                                                                                                                                                                   |          |
+| `repo-root`                       | The root directory of the repository.                                                                                                                                                                          |          |
+| `run`                             | The command to run before uploading test results.                                                                                                                                                              |          |
+| `cli-version`                     | The version of the uploader to use.                                                                                                                                                                            | `latest` |
+| `use-bazel-target-for-codeowners` | Use the Bazel target label as a fallback path for CODEOWNERS association when no file attribute is present in the JUnit XML. Only relevant when uploading a Bazel BEP file via `bazel-bep-path`.               | `false`  |
+| `allow-missing-junit-files`       | Whether or not to allow missing junit files in the upload invocation.                                                                                                                                          | `true`   |
+| `variant`                         | User specified variant of a set of tests being uploaded. Not usually necessary: set it only when the same tests run in different environments (for example, iOS and Android) and should be tracked separately. |          |
+| `verbose`                         | Enable verbose logging                                                                                                                                                                                         | `false`  |
+| `previous-step-outcome`           | The outcome of the previous step in the workflow. Set this equal to steps.[id].outcome where `[id]` is the id of the corresponding test run.                                                                   |          |
+| `show-failure-messages`           | Show failure outputs in upload. This is experimental, do not rely on this.                                                                                                                                     | `false`  |
+| `dry-run`                         | Run without uploading the results to the server. They will instead be dumped to the directory that the action is run in.                                                                                       | `false`  |
+| `use-cache`                       | Enable caching of the trunk-analytics-cli binary to reduce subsequent downloads                                                                                                                                | `false`  |
 
 ## Questions
 

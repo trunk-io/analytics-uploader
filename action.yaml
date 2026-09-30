@@ -58,10 +58,10 @@ inputs:
     description: Whether to hide the top level flaky tests banner
     required: false
   variant:
-    description: User specified variant of a set of tests being uploaded.
+    description: User specified variant of a set of tests being uploaded. Not usually necessary; set it only when the same tests run in different environments and should be tracked separately.
     required: false
   test-collection-id:
-    description: Optional 8 character alphanumeric ID for a test collection.
+    description: 8 character alphanumeric ID of the test collection to upload to. Required unless your organization is still migrating from legacy repo uploads.
     required: false
   verbose:
     description: Enable verbose logging
