@@ -61,8 +61,8 @@ inputs:
     description: User specified variant of a set of tests being uploaded.
     required: false
   test-collection-id:
-    description: Optional 8 character alphanumeric ID for a test collection.
-    required: false
+    description: 8 character alphanumeric ID of the test collection to upload to. Shown on the collection's page in Trunk. Defaults to TRUNK_TEST_COLLECTION_ID env var.
+    required: true
   verbose:
     description: Enable verbose logging
     default: false
