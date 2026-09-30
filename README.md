@@ -47,7 +47,7 @@ jobs:
           org-slug: my-trunk-org-slug
           # Provide the ID of the Trunk test collection to upload to.
           # Find it on the collection's page in app.trunk.io → Flaky Tests → Collections.
-          test-collection-id: Ab3Kd9Zq
+          test-collection-id: abcdabcd
           # Provide your Trunk API token as a GitHub secret.
           # You can find Trunk token by navigating to app.trunk.io → Settings → Manage Organization → Organization API Token → View.
           # To add it as a GitHub secret, see https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions.
@@ -72,7 +72,7 @@ jobs:
 | Parameter                 | Description                                                                                                                                                                                |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `org-slug`                | Organization slug.                                                                                                                                                                         |
-| `test-collection-id`      | 8 character alphanumeric ID of the test collection to upload to. Shown on the collection's page in Trunk. Defaults to the `TRUNK_TEST_COLLECTION_ID` env var.                              |
+| `test-collection-id`      | 8 character alphanumeric ID of the test collection to upload to. Required for new setups.                                                                                                  |
 | `token`                   | Organization token. Must be explicitly passed in or defined as an environment variable named `TRUNK_API_TOKEN`. Defaults to the `TRUNK_API_TOKEN` when left empty.                         |
 | `allow-forked-pr-uploads` | Upload from a forked pull request, which cannot read repository secrets and so has no `token`. Requires `test-collection-id`; the collection must have forked-PR uploads enabled in Trunk. |
 
