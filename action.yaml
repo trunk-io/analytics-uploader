@@ -61,7 +61,7 @@ inputs:
     description: User specified variant of a set of tests being uploaded. Not usually necessary; set it only when the same tests run in different environments and should be tracked separately.
     required: false
   test-collection-id:
-    description: 8 character alphanumeric ID of the test collection to upload to. Required for new setups.
+    description: 8 character alphanumeric ID of the test collection to upload to. Required unless your organization is still migrating from legacy repo uploads.
     required: false
   verbose:
     description: Enable verbose logging
