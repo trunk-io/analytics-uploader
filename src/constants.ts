@@ -7,7 +7,7 @@ export const RELEASES_URL = "https://trunk.io/releases/analytics-cli/prod";
 export const GITHUB_RELEASES_URL =
   "https://github.com/trunk-io/analytics-cli/releases";
 // Used when `latest` cannot be resolved, so a transient channel.json failure still uploads.
-export const DEFAULT_CLI_VERSION = "0.15.4";
+export const DEFAULT_CLI_VERSION = "0.16.0";
 
 export const FETCH_WITH_BACK_OFF_CONFIG = {
   delayFirstAttempt: false,
