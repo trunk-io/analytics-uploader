@@ -1,52 +1,10 @@
 import * as core from "@actions/core";
 import * as cache from "@actions/cache";
 import * as fs from "node:fs";
-import { backOff } from "exponential-backoff";
 
-import {
-  FETCH_WITH_BACK_OFF_CONFIG,
-  LATEST_TAG,
-  REPO_RELEASES_URL,
-} from "./constants";
 import { BinTarget } from "./lib";
 
-const DEFAULT_CLI_VERSION = "0.15.4";
-
-const fetchWithBackOff = async () =>
-  await backOff(async () => {
-    const response = await fetch(`${REPO_RELEASES_URL}/latest`);
-    if (!response.ok) {
-      throw new Error(
-        `Failed to fetch latest release: HTTP ${response.status.toString()} ${response.statusText}`,
-      );
-    }
-    const actualVersion = response.url.split("/").pop();
-    if (!actualVersion) {
-      throw new Error("Failed to resolve latest version");
-    }
-    return actualVersion;
-  }, FETCH_WITH_BACK_OFF_CONFIG);
-
-const resolveLatestCliVersion = async (): Promise<string> => {
-  try {
-    const actualVersion = await fetchWithBackOff();
-    core.info(`Resolved "${LATEST_TAG}" to version: ${actualVersion}`);
-    return actualVersion;
-  } catch (error: unknown) {
-    if (error instanceof Error) {
-      core.warning(
-        `Failed to resolve latest version: ${error.message}. Falling back to version ${DEFAULT_CLI_VERSION}.`,
-      );
-    } else {
-      core.warning(
-        `Failed to resolve latest version. Falling back to version ${DEFAULT_CLI_VERSION}.`,
-      );
-    }
-    return DEFAULT_CLI_VERSION;
-  }
-};
-
-export const cacheFactory = async ({
+export const cacheFactory = ({
   shouldUseCache,
   cliVersion,
   binTarget,
@@ -61,11 +19,7 @@ export const cacheFactory = async ({
     return undefined;
   }
 
-  let resolvedCliVersion = cliVersion;
-  if (cliVersion === LATEST_TAG) {
-    resolvedCliVersion = await resolveLatestCliVersion();
-  }
-  const cacheKey = `trunk-analytics-cli-${binTarget}-${resolvedCliVersion}`;
+  const cacheKey = `trunk-analytics-cli-${binTarget}-${cliVersion}`;
   const cachePaths = [binPath];
 
   let cacheRestored = false;

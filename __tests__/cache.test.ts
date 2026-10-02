@@ -7,7 +7,11 @@ import * as fs_mock from "../__fixtures__/fs.js";
 import * as core from "../__fixtures__/core.js";
 import * as github from "../__fixtures__/github.js";
 import * as cache from "../__fixtures__/cache.js";
-import { createMswServer, MSW_MOCKS } from "../__fixtures__/msw.js";
+import {
+  createMswServer,
+  MSW_MOCKS,
+  releasesManifestHandler,
+} from "../__fixtures__/msw.js";
 import { FETCH_WITH_BACK_OFF_CONFIG } from "../src/constants.js";
 
 jest.unstable_mockModule("@actions/core", () => core);
@@ -88,15 +92,17 @@ describe("Cache functionality", () => {
 
   it("attempts cache restore when use-cache is true and cache miss", async () => {
     const cliVersion = "0.0.0";
-    const {
-      handler: repoReleasesVersionDownloadHandler,
-      mock: repoReleasesVersionDownloadMock,
-    } = MSW_MOCKS.repoReleasesVersionDownload(cliVersion)
-      .addSuccessfulResponse()
-      .build();
+    const { handler: artifactDownloadHandler, mock: artifactDownloadMock } =
+      MSW_MOCKS.releasesArtifactDownload(cliVersion)
+        .addSuccessfulResponse()
+        .build();
     const { handler: telemetryUploadHandler, mock: telemetryUploadMock } =
       MSW_MOCKS.telemetryUpload().addSuccessfulResponse().build();
-    server.use([repoReleasesVersionDownloadHandler, telemetryUploadHandler]);
+    server.use([
+      releasesManifestHandler(cliVersion),
+      artifactDownloadHandler,
+      telemetryUploadHandler,
+    ]);
     core.getInput.mockImplementation(
       (name) =>
         ({
@@ -125,7 +131,7 @@ describe("Cache functionality", () => {
     expect(child_process.execSync.mock.calls[2][0]).toMatch(
       `${parentPath}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token"`,
     );
-    expect(repoReleasesVersionDownloadMock).toHaveBeenCalledTimes(1);
+    expect(artifactDownloadMock).toHaveBeenCalledTimes(1);
     expect(telemetryUploadMock).toHaveBeenCalledTimes(1);
   });
 
@@ -133,15 +139,17 @@ describe("Cache functionality", () => {
     "does not use cache when use-cache is `%s`",
     async (useCache) => {
       const cliVersion = "0.0.0";
-      const {
-        handler: repoReleasesVersionDownloadHandler,
-        mock: repoReleasesVersionDownloadMock,
-      } = MSW_MOCKS.repoReleasesVersionDownload(cliVersion)
-        .addSuccessfulResponse()
-        .build();
+      const { handler: artifactDownloadHandler, mock: artifactDownloadMock } =
+        MSW_MOCKS.releasesArtifactDownload(cliVersion)
+          .addSuccessfulResponse()
+          .build();
       const { handler: telemetryUploadHandler, mock: telemetryUploadMock } =
         MSW_MOCKS.telemetryUpload().addSuccessfulResponse().build();
-      server.use([repoReleasesVersionDownloadHandler, telemetryUploadHandler]);
+      server.use([
+        releasesManifestHandler(cliVersion),
+        artifactDownloadHandler,
+        telemetryUploadHandler,
+      ]);
       core.getInput.mockImplementation(
         (name) =>
           ({
@@ -163,22 +171,24 @@ describe("Cache functionality", () => {
       expect(child_process.execSync.mock.calls[2][0]).toMatch(
         `${parentPath}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token"`,
       );
-      expect(repoReleasesVersionDownloadMock).toHaveBeenCalledTimes(1);
+      expect(artifactDownloadMock).toHaveBeenCalledTimes(1);
       expect(telemetryUploadMock).toHaveBeenCalledTimes(1);
     },
   );
 
   it("handles cache restore failure gracefully and saves to cache", async () => {
     const cliVersion = "0.0.0";
-    const {
-      handler: repoReleasesVersionDownloadHandler,
-      mock: repoReleasesVersionDownloadMock,
-    } = MSW_MOCKS.repoReleasesVersionDownload(cliVersion)
-      .addSuccessfulResponse()
-      .build();
+    const { handler: artifactDownloadHandler, mock: artifactDownloadMock } =
+      MSW_MOCKS.releasesArtifactDownload(cliVersion)
+        .addSuccessfulResponse()
+        .build();
     const { handler: telemetryUploadHandler, mock: telemetryUploadMock } =
       MSW_MOCKS.telemetryUpload().addSuccessfulResponse().build();
-    server.use([repoReleasesVersionDownloadHandler, telemetryUploadHandler]);
+    server.use([
+      releasesManifestHandler(cliVersion),
+      artifactDownloadHandler,
+      telemetryUploadHandler,
+    ]);
     core.getInput.mockImplementation(
       (name) =>
         ({
@@ -205,21 +215,23 @@ describe("Cache functionality", () => {
     expect(child_process.execSync.mock.calls[2][0]).toMatch(
       `${parentPath}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token"`,
     );
-    expect(repoReleasesVersionDownloadMock).toHaveBeenCalledTimes(1);
+    expect(artifactDownloadMock).toHaveBeenCalledTimes(1);
     expect(telemetryUploadMock).toHaveBeenCalledTimes(1);
   });
 
   it("handles cache save failure gracefully", async () => {
     const cliVersion = "0.0.0";
-    const {
-      handler: repoReleasesVersionDownloadHandler,
-      mock: repoReleasesVersionDownloadMock,
-    } = MSW_MOCKS.repoReleasesVersionDownload(cliVersion)
-      .addSuccessfulResponse()
-      .build();
+    const { handler: artifactDownloadHandler, mock: artifactDownloadMock } =
+      MSW_MOCKS.releasesArtifactDownload(cliVersion)
+        .addSuccessfulResponse()
+        .build();
     const { handler: telemetryUploadHandler, mock: telemetryUploadMock } =
       MSW_MOCKS.telemetryUpload().addSuccessfulResponse().build();
-    server.use([repoReleasesVersionDownloadHandler, telemetryUploadHandler]);
+    server.use([
+      releasesManifestHandler(cliVersion),
+      artifactDownloadHandler,
+      telemetryUploadHandler,
+    ]);
     core.getInput.mockImplementation(
       (name) =>
         ({
@@ -246,7 +258,7 @@ describe("Cache functionality", () => {
     expect(child_process.execSync.mock.calls[2][0]).toMatch(
       `${parentPath}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token"`,
     );
-    expect(repoReleasesVersionDownloadMock).toHaveBeenCalledTimes(1);
+    expect(artifactDownloadMock).toHaveBeenCalledTimes(1);
     expect(telemetryUploadMock).toHaveBeenCalledTimes(1);
   });
 
@@ -257,25 +269,14 @@ describe("Cache functionality", () => {
     ].reduce(
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       (acc, _) => acc.addErrorResponse(),
-      MSW_MOCKS.repoReleasesLatestTag(),
+      MSW_MOCKS.releasesChannel(),
     );
-    const {
-      handler: repoReleasesLatestTagHandler,
-      mock: repoReleasesLatestTagMock,
-    } = builder.addSuccessfulResponse(cliVersion).build();
-    const {
-      handler: repoReleasesVersionTagHandler,
-      mock: repoReleasesVersionTagMock,
-    } = MSW_MOCKS.repoReleasesVersionTag(cliVersion)
-      .addSuccessfulResponse()
+    const { handler: channelHandler, mock: channelMock } = builder
+      .addSuccessfulResponse(cliVersion)
       .build();
     const { handler: telemetryUploadHandler, mock: telemetryUploadMock } =
       MSW_MOCKS.telemetryUpload().addSuccessfulResponse().build();
-    server.use([
-      repoReleasesLatestTagHandler,
-      repoReleasesVersionTagHandler,
-      telemetryUploadHandler,
-    ]);
+    server.use([channelHandler, telemetryUploadHandler]);
     core.getInput.mockImplementation(
       (name) =>
         ({
@@ -305,10 +306,13 @@ describe("Cache functionality", () => {
     expect(child_process.execSync.mock.calls[1][0]).toMatch(
       `${parentPath}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token"`,
     );
-    expect(repoReleasesLatestTagMock).toHaveBeenCalledTimes(
+    expect(channelMock).toHaveBeenCalledTimes(
       FETCH_WITH_BACK_OFF_CONFIG.numOfAttempts,
     );
-    expect(repoReleasesVersionTagMock).toHaveBeenCalledTimes(1);
+    expect(cache.restoreCache).toHaveBeenCalledWith(
+      [path.join(parentPath, "trunk-analytics-cli")],
+      `trunk-analytics-cli-${getExpectedBin()}-${cliVersion}`,
+    );
     expect(telemetryUploadMock).toHaveBeenCalledTimes(1);
   });
 });

@@ -8,10 +8,25 @@ import {
 } from "msw";
 import { jest } from "@jest/globals";
 
-import {
-  REPO_RELEASES_URL,
-  TELEMETRY_ENDPOINT_DEFAULT,
-} from "../src/constants";
+import { createHash } from "node:crypto";
+import { RELEASES_URL, TELEMETRY_ENDPOINT_DEFAULT } from "../src/constants";
+
+export const FAKE_BINARY = Buffer.from("fake-binary-data");
+
+const ARTIFACT_NAMES = [
+  "trunk-analytics-cli-aarch64-apple-darwin.tar.gz",
+  "trunk-analytics-cli-x86_64-apple-darwin.tar.gz",
+  "trunk-analytics-cli-aarch64-unknown-linux.tar.gz",
+  "trunk-analytics-cli-x86_64-unknown-linux.tar.gz",
+  "trunk-analytics-cli-x86_64-pc-windows-gnu-experimental.zip",
+];
+
+const manifestFor = (version: string, sha256: string) => ({
+  version,
+  artifacts: Object.fromEntries(
+    ARTIFACT_NAMES.map((name) => [name, { sha256 }]),
+  ),
+});
 
 export const createMswServer = (initialHandlers: HttpHandler[]) => {
   const server = setupServer(...initialHandlers);
@@ -56,7 +71,7 @@ const mockResponseBuilder = <T extends unknown[], U extends unknown[]>({
   errorResponse,
 }: {
   method: keyof typeof http;
-  urlPattern: string;
+  urlPattern: string | RegExp;
   successfulResponse: (
     ...options: T
   ) => ({
@@ -111,62 +126,42 @@ const mockResponseBuilder = <T extends unknown[], U extends unknown[]>({
 };
 
 export const MSW_MOCKS = {
-  repoReleasesLatestTag: () =>
+  releasesChannel: () =>
     mockResponseBuilder({
       method: "get",
-      urlPattern: `${REPO_RELEASES_URL}/latest`,
-      successfulResponse: (version: string) => () =>
-        new HttpResponse(null, {
-          status: 302,
-          headers: {
-            Location: `${REPO_RELEASES_URL}/tag/${version}`,
-          },
-        }),
+      urlPattern: `${RELEASES_URL}/channel.json`,
+      successfulResponse: (latest: string) => () =>
+        HttpResponse.json({ latest }),
       errorResponse: () => () =>
         new HttpResponse(null, {
           status: 500,
           statusText: "Internal Server Error",
         }),
     }),
-  repoReleasesVersionTag: (version: string) =>
+  releasesManifest: (cliVersion: string) =>
     mockResponseBuilder({
       method: "get",
-      urlPattern: `${REPO_RELEASES_URL}/tag/${version}`,
-      successfulResponse: () => () =>
-        new HttpResponse(null, {
-          status: 200,
-        }),
-      errorResponse: () => () =>
-        new HttpResponse(null, {
-          status: 500,
-          statusText: "Internal Server Error",
-        }),
-    }),
-  repoReleasesLatestDownload: () =>
-    mockResponseBuilder({
-      method: "get",
-      urlPattern: `${REPO_RELEASES_URL}/latest/download/:releaseArtifactName`,
+      urlPattern: `${RELEASES_URL}/${cliVersion}/manifest.json`,
       successfulResponse:
-        (version: string) =>
-        ({ params: { releaseArtifactName } }) =>
-          new HttpResponse(null, {
-            status: 302,
-            headers: {
-              Location: `${REPO_RELEASES_URL}/download/${version}/${typeof releaseArtifactName === "string" ? releaseArtifactName : ""}`,
-            },
-          }),
+        (
+          sha256: string = createHash("sha256")
+            .update(FAKE_BINARY)
+            .digest("hex"),
+        ) =>
+        () =>
+          HttpResponse.json(manifestFor(cliVersion, sha256)),
+      // The releases host answers a missing object with 403.
       errorResponse: () => () =>
-        new HttpResponse(null, {
-          status: 500,
-          statusText: "Internal Server Error",
-        }),
+        new HttpResponse(null, { status: 403, statusText: "Forbidden" }),
     }),
-  repoReleasesVersionDownload: (cliVersion: string) =>
+  releasesArtifactDownload: (cliVersion: string) =>
     mockResponseBuilder({
       method: "get",
-      urlPattern: `${REPO_RELEASES_URL}/download/${cliVersion}/:releaseArtifactName`,
+      urlPattern: new RegExp(
+        `^${RELEASES_URL.replace(/[.]/g, "\\.")}/${cliVersion.replace(/[.]/g, "\\.")}/trunk-analytics-cli-[^/]+$`,
+      ),
       successfulResponse: () => () =>
-        new HttpResponse(Buffer.from("fake-binary-data"), {
+        new HttpResponse(FAKE_BINARY, {
           status: 200,
         }),
       errorResponse: () => () =>
@@ -195,3 +190,7 @@ export const MSW_MOCKS = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (...args: any[]) => MockResponseBuilder<any[], any[]>
 >;
+
+export const releasesManifestHandler = (cliVersion: string) =>
+  MSW_MOCKS.releasesManifest(cliVersion).addSuccessfulResponse().build()
+    .handler;

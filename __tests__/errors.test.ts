@@ -3,7 +3,8 @@ import { jest } from "@jest/globals";
 import * as core from "../__fixtures__/core.js";
 jest.mock("@actions/core", () => core);
 
-import { CliFetchError, getFailureReason } from "../src/lib.js";
+import { getFailureReason } from "../src/lib.js";
+import { CliFetchError } from "../src/release.js";
 
 describe("getFailureReason", () => {
   it("given Error with 'Command failed' and our 70 exit code", () => {

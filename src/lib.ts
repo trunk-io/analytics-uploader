@@ -3,18 +3,12 @@ import { execSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as os from "node:os";
-import { Buffer } from "node:buffer";
 
 import { cacheFactory } from "./cache";
 import { sendTelemetry } from "./telemetry";
-import {
-  REPO_RELEASES_URL,
-  LATEST_TAG,
-  FETCH_WITH_BACK_OFF_CONFIG,
-} from "./constants";
+import { CliFetchError, downloadRelease, resolveCliVersion } from "./release";
 import { getInputs, validateInputs } from "./inputs";
 import { getArgs, getEnvVars } from "./args";
-import { backOff } from "exponential-backoff";
 
 const PLATFORM = os.platform();
 const IS_WINDOWS = PLATFORM === "win32";
@@ -28,12 +22,6 @@ const BIN_TARGETS = {
 };
 
 export type BinTarget = (typeof BIN_TARGETS)[keyof typeof BIN_TARGETS];
-
-export class CliFetchError extends Error {
-  constructor(message: string, cause: Error) {
-    super(message, { cause });
-  }
-}
 
 const determineBinTarget = (): BinTarget => {
   const arch = os.arch();
@@ -70,48 +58,6 @@ const getReleaseArtifactName = (binTarget: BinTarget) =>
   IS_WINDOWS
     ? `trunk-analytics-cli-${binTarget}-experimental.zip`
     : `trunk-analytics-cli-${binTarget}.tar.gz`;
-
-const fetchWithBackOff = async (downloadUrl: string) =>
-  await backOff(async () => {
-    const response = await fetch(downloadUrl);
-
-    if (!response.ok) {
-      if (response.status === 403 || response.status === 429) {
-        throw new CliFetchError(
-          "Github rate limits prevented fetching analytics-cli release. Hint: You may need to cache the analytics-cli.",
-          new Error(
-            `HTTP ${response.status.toString()}: ${response.statusText}`,
-          ),
-        );
-      }
-      throw new Error(
-        `Failed to download release artifact: HTTP ${response.status.toString()} ${response.statusText}`,
-      );
-    }
-
-    return await response.arrayBuffer();
-  }, FETCH_WITH_BACK_OFF_CONFIG);
-
-const downloadRelease = async ({
-  cliVersion,
-  releaseArtifactName,
-  downloadPath,
-}: {
-  cliVersion: string;
-  releaseArtifactName: string;
-  downloadPath: string;
-}) => {
-  const downloadUrl =
-    cliVersion === LATEST_TAG
-      ? `${REPO_RELEASES_URL}/latest/download/${releaseArtifactName}`
-      : `${REPO_RELEASES_URL}/download/${cliVersion}/${releaseArtifactName}`;
-
-  core.info(`Downloading trunk-analytics-cli from ${downloadUrl}...`);
-
-  const buffer = await fetchWithBackOff(downloadUrl);
-  fs.writeFileSync(downloadPath, Buffer.from(buffer));
-  core.info(`Downloaded ${releaseArtifactName} from release ${cliVersion}`);
-};
 
 const extractRelease = ({
   downloadPath,
@@ -224,9 +170,10 @@ export const main = async (parentPath: string) => {
     const binTarget = determineBinTarget();
     const releaseArtifactName = getReleaseArtifactName(binTarget);
     downloadPath = path.resolve(parentPath, releaseArtifactName);
-    const cache = await cacheFactory({
+    const cliVersion = await resolveCliVersion(inputs.cliVersion);
+    const cache = cacheFactory({
       shouldUseCache: inputs.useCache,
-      cliVersion: inputs.cliVersion,
+      cliVersion,
       binTarget,
       binPath,
     });
@@ -234,11 +181,10 @@ export const main = async (parentPath: string) => {
     await cache?.restoreCache();
 
     if (!fs.existsSync(binPath)) {
-      await downloadRelease({
-        cliVersion: inputs.cliVersion,
-        releaseArtifactName,
+      fs.writeFileSync(
         downloadPath,
-      });
+        await downloadRelease({ cliVersion, releaseArtifactName }),
+      );
       extractRelease({
         downloadPath,
         parentPath,
