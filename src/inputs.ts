@@ -59,7 +59,7 @@ export const getInputs = () =>
     verbose: parseBoolean(core.getInput("verbose")),
     showFailureMessages: parseBoolean(core.getInput("show-failure-messages")),
     dryRun: parseBoolean(core.getInput("dry-run")),
-    useCache: parseBoolean(core.getInput("use-cache")),
+    useCache: parseBoolean(core.getInput("use-cache") || "true"),
   }) as const;
 
 export type Inputs = ReturnType<typeof getInputs>;
