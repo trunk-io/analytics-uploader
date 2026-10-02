@@ -3,6 +3,9 @@ import type { BackoffOptions } from "exponential-backoff";
 export const LATEST_TAG = "latest";
 export const SWIFT_TEST_XUNIT_PATHS_ENV = "TRUNK_SWIFT_TEST_XUNIT_PATHS";
 export const RELEASES_URL = "https://trunk.io/releases/analytics-cli/prod";
+// The fallback when trunk.io cannot serve the CLI.
+export const GITHUB_RELEASES_URL =
+  "https://github.com/trunk-io/analytics-cli/releases";
 // Used when `latest` cannot be resolved, so a transient channel.json failure still uploads.
 export const DEFAULT_CLI_VERSION = "0.15.4";
 

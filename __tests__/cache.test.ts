@@ -135,7 +135,7 @@ describe("Cache functionality", () => {
     expect(telemetryUploadMock).toHaveBeenCalledTimes(1);
   });
 
-  it.each(["false", "invalid", ""])(
+  it.each(["false", "invalid"])(
     "does not use cache when use-cache is `%s`",
     async (useCache) => {
       const cliVersion = "0.0.0";
@@ -175,6 +175,33 @@ describe("Cache functionality", () => {
       expect(telemetryUploadMock).toHaveBeenCalledTimes(1);
     },
   );
+
+  it("uses the cache when use-cache is not set", async () => {
+    const { handler: telemetryUploadHandler } = MSW_MOCKS.telemetryUpload()
+      .addSuccessfulResponse()
+      .build();
+    server.use([telemetryUploadHandler]);
+    core.getInput.mockImplementation(
+      (name) =>
+        ({
+          "junit-paths": "junit.xml",
+          "org-slug": "org",
+          token: "token",
+          "cli-version": "0.0.0",
+        })[name] ?? "",
+    );
+    fs_mock.existsSync.mockReturnValue(true);
+    const parentPath = "/made/up/path";
+    const expectedCacheKey = `trunk-analytics-cli-${getExpectedBin()}-0.0.0`;
+    cache.restoreCache.mockResolvedValue(expectedCacheKey);
+
+    await main(parentPath);
+
+    expect(cache.restoreCache).toHaveBeenCalledWith(
+      [path.join(parentPath, "trunk-analytics-cli")],
+      expectedCacheKey,
+    );
+  });
 
   it("handles cache restore failure gracefully and saves to cache", async () => {
     const cliVersion = "0.0.0";

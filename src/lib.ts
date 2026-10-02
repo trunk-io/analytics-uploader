@@ -173,7 +173,7 @@ export const main = async (parentPath: string) => {
     const cliVersion = await resolveCliVersion(inputs.cliVersion);
     const cache = cacheFactory({
       shouldUseCache: inputs.useCache,
-      cliVersion,
+      cliVersion: cliVersion.version,
       binTarget,
       binPath,
     });

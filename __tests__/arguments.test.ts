@@ -5,6 +5,7 @@ import * as child_process from "../__fixtures__/child_process.js";
 import * as fs_mock from "../__fixtures__/fs.js";
 import * as core from "../__fixtures__/core.js";
 import * as github from "../__fixtures__/github.js";
+import * as cache from "../__fixtures__/cache.js";
 import {
   createMswServer,
   MSW_MOCKS,
@@ -14,6 +15,7 @@ import { FETCH_WITH_BACK_OFF_CONFIG } from "../src/constants.js";
 
 jest.unstable_mockModule("@actions/core", () => core);
 jest.unstable_mockModule("@actions/github", () => github);
+jest.unstable_mockModule("@actions/cache", () => cache);
 jest.unstable_mockModule("node:child_process", () => child_process);
 jest.unstable_mockModule("node:fs", () => fs_mock);
 
@@ -410,7 +412,11 @@ describe("Arguments", () => {
           run: "exit 0",
         })[name] ?? "",
     );
-    fs_mock.existsSync.mockReturnValueOnce(false).mockReturnValueOnce(true);
+    // The binary is missing, then present for the cache save and for cleanup.
+    fs_mock.existsSync
+      .mockReturnValueOnce(false)
+      .mockReturnValueOnce(true)
+      .mockReturnValueOnce(true);
     const parentPath = "/made/up/path";
     await main(parentPath);
     expect(child_process.execSync).toHaveBeenCalledTimes(3);
@@ -447,8 +453,10 @@ describe("Arguments", () => {
           "dry-run": "true",
         })[name] ?? "",
     );
+    // The binary is missing, then present for the cache save and for cleanup.
     fs_mock.existsSync
       .mockReturnValueOnce(false)
+      .mockReturnValueOnce(true)
       .mockReturnValueOnce(true)
       .mockReturnValueOnce(false)
       .mockReturnValueOnce(true);

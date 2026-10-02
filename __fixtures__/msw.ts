@@ -9,7 +9,11 @@ import {
 import { jest } from "@jest/globals";
 
 import { createHash } from "node:crypto";
-import { RELEASES_URL, TELEMETRY_ENDPOINT_DEFAULT } from "../src/constants";
+import {
+  GITHUB_RELEASES_URL,
+  RELEASES_URL,
+  TELEMETRY_ENDPOINT_DEFAULT,
+} from "../src/constants";
 
 export const FAKE_BINARY = Buffer.from("fake-binary-data");
 
@@ -150,9 +154,9 @@ export const MSW_MOCKS = {
         ) =>
         () =>
           HttpResponse.json(manifestFor(cliVersion, sha256)),
-      // The releases host answers a missing object with 403.
-      errorResponse: () => () =>
-        new HttpResponse(null, { status: 403, statusText: "Forbidden" }),
+      // trunk.io answers a missing object with 403.
+      errorResponse: (status?: number) => () =>
+        new HttpResponse(null, { status: status ?? 403 }),
     }),
   releasesArtifactDownload: (cliVersion: string) =>
     mockResponseBuilder({
@@ -169,6 +173,51 @@ export const MSW_MOCKS = {
           status: 500,
           statusText: "Internal Server Error",
         }),
+    }),
+  githubLatestTag: () =>
+    mockResponseBuilder({
+      method: "get",
+      urlPattern: `${GITHUB_RELEASES_URL}/latest`,
+      successfulResponse: (version: string) => () =>
+        new HttpResponse(null, {
+          status: 302,
+          headers: { Location: `${GITHUB_RELEASES_URL}/tag/${version}` },
+        }),
+      errorResponse: () => () =>
+        new HttpResponse(null, {
+          status: 500,
+          statusText: "Internal Server Error",
+        }),
+    }),
+  githubVersionTag: (version: string) =>
+    mockResponseBuilder({
+      method: "get",
+      urlPattern: `${GITHUB_RELEASES_URL}/tag/${version}`,
+      successfulResponse: () => () => new HttpResponse(null, { status: 200 }),
+      errorResponse: () => () =>
+        new HttpResponse(null, {
+          status: 500,
+          statusText: "Internal Server Error",
+        }),
+    }),
+  githubLatestDownload: () =>
+    mockResponseBuilder({
+      method: "get",
+      urlPattern: `${GITHUB_RELEASES_URL}/latest/download/:releaseArtifactName`,
+      successfulResponse: () => () =>
+        new HttpResponse(FAKE_BINARY, { status: 200 }),
+      errorResponse: () => () =>
+        new HttpResponse(null, { status: 403, statusText: "Forbidden" }),
+    }),
+  githubVersionDownload: (cliVersion: string) =>
+    mockResponseBuilder({
+      method: "get",
+      urlPattern: `${GITHUB_RELEASES_URL}/download/${cliVersion}/:releaseArtifactName`,
+      successfulResponse: () => () =>
+        new HttpResponse(FAKE_BINARY, { status: 200 }),
+      // GitHub's rate limiting answers 403.
+      errorResponse: () => () =>
+        new HttpResponse(null, { status: 403, statusText: "Forbidden" }),
     }),
   telemetryUpload: (urlPattern: string = TELEMETRY_ENDPOINT_DEFAULT) =>
     mockResponseBuilder({

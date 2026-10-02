@@ -91,7 +91,7 @@ jobs:
 | `previous-step-outcome`           | The outcome of the previous step in the workflow. Set this equal to steps.[id].outcome where `[id]` is the id of the corresponding test run.                                                                   |          |
 | `show-failure-messages`           | Show failure outputs in upload. This is experimental, do not rely on this.                                                                                                                                     | `false`  |
 | `dry-run`                         | Run without uploading the results to the server. They will instead be dumped to the directory that the action is run in.                                                                                       | `false`  |
-| `use-cache`                       | Enable caching of the trunk-analytics-cli binary to reduce subsequent downloads                                                                                                                                | `false`  |
+| `use-cache`                       | Cache the trunk-analytics-cli binary to reduce subsequent downloads. Set to `false` to download it on every run.                                                                                               | `true`   |
 
 ## Questions
 
