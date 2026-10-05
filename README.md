@@ -83,7 +83,7 @@ jobs:
 | `repo-head-branch`                | Value to override branch of repository head.                                                                                                                                                                   |          |
 | `repo-root`                       | The root directory of the repository.                                                                                                                                                                          |          |
 | `run`                             | The command to run before uploading test results.                                                                                                                                                              |          |
-| `cli-version`                     | The version of the uploader to use.                                                                                                                                                                            | `latest` |
+| `cli-version`                     | The version of trunk-analytics-cli to use, downloaded from `trunk.io/releases/analytics-cli`. `latest` resolves to the current release.                                                                        | `latest` |
 | `use-bazel-target-for-codeowners` | Use the Bazel target label as a fallback path for CODEOWNERS association when no file attribute is present in the JUnit XML. Only relevant when uploading a Bazel BEP file via `bazel-bep-path`.               | `false`  |
 | `allow-missing-junit-files`       | Whether or not to allow missing junit files in the upload invocation.                                                                                                                                          | `true`   |
 | `variant`                         | User specified variant of a set of tests being uploaded. Not usually necessary: set it only when the same tests run in different environments (for example, iOS and Android) and should be tracked separately. |          |
@@ -91,7 +91,7 @@ jobs:
 | `previous-step-outcome`           | The outcome of the previous step in the workflow. Set this equal to steps.[id].outcome where `[id]` is the id of the corresponding test run.                                                                   |          |
 | `show-failure-messages`           | Show failure outputs in upload. This is experimental, do not rely on this.                                                                                                                                     | `false`  |
 | `dry-run`                         | Run without uploading the results to the server. They will instead be dumped to the directory that the action is run in.                                                                                       | `false`  |
-| `use-cache`                       | Enable caching of the trunk-analytics-cli binary to reduce subsequent downloads                                                                                                                                | `false`  |
+| `use-cache`                       | Cache the trunk-analytics-cli binary to reduce subsequent downloads. Set to `false` to download it on every run.                                                                                               | `true`   |
 
 ## Questions
 

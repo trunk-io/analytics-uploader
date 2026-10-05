@@ -5,11 +5,17 @@ import * as child_process from "../__fixtures__/child_process.js";
 import * as fs_mock from "../__fixtures__/fs.js";
 import * as core from "../__fixtures__/core.js";
 import * as github from "../__fixtures__/github.js";
-import { createMswServer, MSW_MOCKS } from "../__fixtures__/msw.js";
+import * as cache from "../__fixtures__/cache.js";
+import {
+  createMswServer,
+  MSW_MOCKS,
+  releasesManifestHandler,
+} from "../__fixtures__/msw.js";
 import { FETCH_WITH_BACK_OFF_CONFIG } from "../src/constants.js";
 
 jest.unstable_mockModule("@actions/core", () => core);
 jest.unstable_mockModule("@actions/github", () => github);
+jest.unstable_mockModule("@actions/cache", () => cache);
 jest.unstable_mockModule("node:child_process", () => child_process);
 jest.unstable_mockModule("node:fs", () => fs_mock);
 
@@ -279,15 +285,17 @@ describe("Arguments", () => {
 
   it("Forwards inputs - upload", async () => {
     const cliVersion = "0.0.0";
-    const {
-      handler: repoReleasesLatestDownloadHandler,
-      mock: repoReleasesLatestDownloadMock,
-    } = MSW_MOCKS.repoReleasesVersionDownload(cliVersion)
-      .addSuccessfulResponse()
-      .build();
+    const { handler: artifactDownloadHandler, mock: artifactDownloadMock } =
+      MSW_MOCKS.releasesArtifactDownload(cliVersion)
+        .addSuccessfulResponse()
+        .build();
     const { handler: telemetryUploadHandler, mock: telemetryUploadMock } =
       MSW_MOCKS.telemetryUpload().addSuccessfulResponse().build();
-    server.use([repoReleasesLatestDownloadHandler, telemetryUploadHandler]);
+    server.use([
+      releasesManifestHandler(cliVersion),
+      artifactDownloadHandler,
+      telemetryUploadHandler,
+    ]);
     core.getInput.mockImplementation(
       (name) =>
         ({
@@ -304,7 +312,7 @@ describe("Arguments", () => {
     expect(child_process.execSync.mock.calls[2][0]).toMatch(
       `${parentPath}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token" --show-failure-messages`,
     );
-    expect(repoReleasesLatestDownloadMock).toHaveBeenCalledTimes(1);
+    expect(artifactDownloadMock).toHaveBeenCalledTimes(1);
     expect(telemetryUploadMock).toHaveBeenCalledTimes(1);
   });
 
@@ -313,15 +321,17 @@ describe("Arguments", () => {
   // is rejected for having no report source while the env var names one.
   it("Accepts swift test xunit paths from the env var alone", async () => {
     const cliVersion = "0.0.0";
-    const {
-      handler: repoReleasesVersionDownloadHandler,
-      mock: repoReleasesVersionDownloadMock,
-    } = MSW_MOCKS.repoReleasesVersionDownload(cliVersion)
-      .addSuccessfulResponse()
-      .build();
+    const { handler: artifactDownloadHandler, mock: artifactDownloadMock } =
+      MSW_MOCKS.releasesArtifactDownload(cliVersion)
+        .addSuccessfulResponse()
+        .build();
     const { handler: telemetryUploadHandler, mock: telemetryUploadMock } =
       MSW_MOCKS.telemetryUpload().addSuccessfulResponse().build();
-    server.use([repoReleasesVersionDownloadHandler, telemetryUploadHandler]);
+    server.use([
+      releasesManifestHandler(cliVersion),
+      artifactDownloadHandler,
+      telemetryUploadHandler,
+    ]);
     core.getInput.mockImplementation(
       (name) =>
         ({
@@ -341,21 +351,23 @@ describe("Arguments", () => {
     } finally {
       delete process.env.TRUNK_SWIFT_TEST_XUNIT_PATHS;
     }
-    expect(repoReleasesVersionDownloadMock).toHaveBeenCalledTimes(1);
+    expect(artifactDownloadMock).toHaveBeenCalledTimes(1);
     expect(telemetryUploadMock).toHaveBeenCalledTimes(1);
   });
 
   it("Forwards inputs with previous step outcome - upload", async () => {
     const cliVersion = "0.0.0";
-    const {
-      handler: repoReleasesVersionDownloadHandler,
-      mock: repoReleasesVersionDownloadMock,
-    } = MSW_MOCKS.repoReleasesVersionDownload(cliVersion)
-      .addSuccessfulResponse()
-      .build();
+    const { handler: artifactDownloadHandler, mock: artifactDownloadMock } =
+      MSW_MOCKS.releasesArtifactDownload(cliVersion)
+        .addSuccessfulResponse()
+        .build();
     const { handler: telemetryUploadHandler, mock: telemetryUploadMock } =
       MSW_MOCKS.telemetryUpload().addSuccessfulResponse().build();
-    server.use([repoReleasesVersionDownloadHandler, telemetryUploadHandler]);
+    server.use([
+      releasesManifestHandler(cliVersion),
+      artifactDownloadHandler,
+      telemetryUploadHandler,
+    ]);
     core.getInput.mockImplementation(
       (name) =>
         ({
@@ -373,21 +385,23 @@ describe("Arguments", () => {
     expect(child_process.execSync.mock.calls[2][0]).toMatch(
       `${parentPath}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token" --test-process-exit-code "0" -v`,
     );
-    expect(repoReleasesVersionDownloadMock).toHaveBeenCalledTimes(1);
+    expect(artifactDownloadMock).toHaveBeenCalledTimes(1);
     expect(telemetryUploadMock).toHaveBeenCalledTimes(1);
   });
 
   it("Forwards inputs - test", async () => {
     const cliVersion = "0.0.0";
-    const {
-      handler: repoReleasesVersionDownloadHandler,
-      mock: repoReleasesVersionDownloadMock,
-    } = MSW_MOCKS.repoReleasesVersionDownload(cliVersion)
-      .addSuccessfulResponse()
-      .build();
+    const { handler: artifactDownloadHandler, mock: artifactDownloadMock } =
+      MSW_MOCKS.releasesArtifactDownload(cliVersion)
+        .addSuccessfulResponse()
+        .build();
     const { handler: telemetryUploadHandler, mock: telemetryUploadMock } =
       MSW_MOCKS.telemetryUpload().addSuccessfulResponse().build();
-    server.use([repoReleasesVersionDownloadHandler, telemetryUploadHandler]);
+    server.use([
+      releasesManifestHandler(cliVersion),
+      artifactDownloadHandler,
+      telemetryUploadHandler,
+    ]);
     core.getInput.mockImplementation(
       (name) =>
         ({
@@ -398,7 +412,11 @@ describe("Arguments", () => {
           run: "exit 0",
         })[name] ?? "",
     );
-    fs_mock.existsSync.mockReturnValueOnce(false).mockReturnValueOnce(true);
+    // The binary is missing, then present for the cache save and for cleanup.
+    fs_mock.existsSync
+      .mockReturnValueOnce(false)
+      .mockReturnValueOnce(true)
+      .mockReturnValueOnce(true);
     const parentPath = "/made/up/path";
     await main(parentPath);
     expect(child_process.execSync).toHaveBeenCalledTimes(3);
@@ -408,21 +426,23 @@ describe("Arguments", () => {
     expect(fs_mock.unlinkSync).toHaveBeenCalledWith(
       path.join(parentPath, "trunk-analytics-cli"),
     );
-    expect(repoReleasesVersionDownloadMock).toHaveBeenCalledTimes(1);
+    expect(artifactDownloadMock).toHaveBeenCalledTimes(1);
     expect(telemetryUploadMock).toHaveBeenCalledTimes(1);
   });
 
   it("Forwards dry-run flag and cleans up bundle_upload directory", async () => {
     const cliVersion = "0.0.0";
-    const {
-      handler: repoReleasesVersionDownloadHandler,
-      mock: repoReleasesVersionDownloadMock,
-    } = MSW_MOCKS.repoReleasesVersionDownload(cliVersion)
-      .addSuccessfulResponse()
-      .build();
+    const { handler: artifactDownloadHandler, mock: artifactDownloadMock } =
+      MSW_MOCKS.releasesArtifactDownload(cliVersion)
+        .addSuccessfulResponse()
+        .build();
     const { handler: telemetryUploadHandler, mock: telemetryUploadMock } =
       MSW_MOCKS.telemetryUpload().addSuccessfulResponse().build();
-    server.use([repoReleasesVersionDownloadHandler, telemetryUploadHandler]);
+    server.use([
+      releasesManifestHandler(cliVersion),
+      artifactDownloadHandler,
+      telemetryUploadHandler,
+    ]);
     core.getInput.mockImplementation(
       (name) =>
         ({
@@ -433,8 +453,10 @@ describe("Arguments", () => {
           "dry-run": "true",
         })[name] ?? "",
     );
+    // The binary is missing, then present for the cache save and for cleanup.
     fs_mock.existsSync
       .mockReturnValueOnce(false)
+      .mockReturnValueOnce(true)
       .mockReturnValueOnce(true)
       .mockReturnValueOnce(false)
       .mockReturnValueOnce(true);
@@ -450,21 +472,23 @@ describe("Arguments", () => {
       path.join(parentPath, "bundle_upload"),
       { recursive: true, force: true },
     );
-    expect(repoReleasesVersionDownloadMock).toHaveBeenCalledTimes(1);
+    expect(artifactDownloadMock).toHaveBeenCalledTimes(1);
     expect(telemetryUploadMock).toHaveBeenCalledTimes(1);
   });
 
   it("Forwards PR head metadata from action inputs to the CLI", async () => {
     const cliVersion = "0.0.0";
-    const {
-      handler: repoReleasesVersionDownloadHandler,
-      mock: repoReleasesVersionDownloadMock,
-    } = MSW_MOCKS.repoReleasesVersionDownload(cliVersion)
-      .addSuccessfulResponse()
-      .build();
+    const { handler: artifactDownloadHandler, mock: artifactDownloadMock } =
+      MSW_MOCKS.releasesArtifactDownload(cliVersion)
+        .addSuccessfulResponse()
+        .build();
     const { handler: telemetryUploadHandler, mock: telemetryUploadMock } =
       MSW_MOCKS.telemetryUpload().addSuccessfulResponse().build();
-    server.use([repoReleasesVersionDownloadHandler, telemetryUploadHandler]);
+    server.use([
+      releasesManifestHandler(cliVersion),
+      artifactDownloadHandler,
+      telemetryUploadHandler,
+    ]);
     core.getInput.mockImplementation(
       (name) =>
         ({
@@ -495,7 +519,7 @@ describe("Arguments", () => {
     const env = child_process.execSync.mock.calls[2][1]?.env;
     expect(env).not.toHaveProperty("GH_REPO_HEAD_SHA");
     expect(env).not.toHaveProperty("GH_REPO_URL");
-    expect(repoReleasesVersionDownloadMock).toHaveBeenCalledTimes(1);
+    expect(artifactDownloadMock).toHaveBeenCalledTimes(1);
     expect(telemetryUploadMock).toHaveBeenCalledTimes(1);
   });
 
@@ -506,21 +530,21 @@ describe("Arguments", () => {
     ].reduce(
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       (acc, _) => acc.addErrorResponse(),
-      MSW_MOCKS.repoReleasesLatestDownload(),
+      MSW_MOCKS.releasesChannel(),
     );
-    const { handler: repoReleasesLatestHandler, mock: repoReleasesLatestMock } =
-      builder.addSuccessfulResponse(cliVersion).build();
-    const {
-      handler: repoReleasesVersionDownloadHandler,
-      mock: repoReleasesVersionDownloadMock,
-    } = MSW_MOCKS.repoReleasesVersionDownload(cliVersion)
-      .addSuccessfulResponse()
+    const { handler: channelHandler, mock: channelMock } = builder
+      .addSuccessfulResponse(cliVersion)
       .build();
+    const { handler: artifactDownloadHandler, mock: artifactDownloadMock } =
+      MSW_MOCKS.releasesArtifactDownload(cliVersion)
+        .addSuccessfulResponse()
+        .build();
     const { handler: telemetryUploadHandler, mock: telemetryUploadMock } =
       MSW_MOCKS.telemetryUpload().addSuccessfulResponse().build();
     server.use([
-      repoReleasesLatestHandler,
-      repoReleasesVersionDownloadHandler,
+      channelHandler,
+      releasesManifestHandler(cliVersion),
+      artifactDownloadHandler,
       telemetryUploadHandler,
     ]);
     core.getInput.mockImplementation(
@@ -546,10 +570,10 @@ describe("Arguments", () => {
     } finally {
       jest.useRealTimers();
     }
-    expect(repoReleasesLatestMock).toHaveBeenCalledTimes(
+    expect(channelMock).toHaveBeenCalledTimes(
       FETCH_WITH_BACK_OFF_CONFIG.numOfAttempts,
     );
-    expect(repoReleasesVersionDownloadMock).toHaveBeenCalledTimes(1);
+    expect(artifactDownloadMock).toHaveBeenCalledTimes(1);
     expect(telemetryUploadMock).toHaveBeenCalledTimes(1);
   });
 });
