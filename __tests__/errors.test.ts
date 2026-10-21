@@ -37,10 +37,20 @@ describe("getFailureReason", () => {
   });
 
   it("given Error with 'Command failed' and the previous step failed", () => {
+    // A command that matched no test files exits non-zero having produced
+    // none, so the annotation must not claim the results contain failing tests.
     const actual = getFailureReason(commandFailed(1), "failure");
     expect(actual).toBe(undefined);
     expect(core.setFailed).toHaveBeenCalledWith(
-      "The test results you are uploading contain non quarantined test failures -- see above for details.",
+      "The step that ran the tests failed -- see above for details. If no failing tests are listed, it failed without reporting any (for example: no test files matched, or it exited before writing results).",
+    );
+  });
+
+  it("given Error with 'Command failed' and the previous step cancelled", () => {
+    const actual = getFailureReason(commandFailed(1), "CANCELLED");
+    expect(actual).toBe(undefined);
+    expect(core.setFailed).toHaveBeenCalledWith(
+      "The step that ran the tests was cancelled -- the uploaded results are likely incomplete.",
     );
   });
 

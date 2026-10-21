@@ -125,6 +125,16 @@ const previousStepFailed = (previousStepOutcome?: string): boolean => {
   );
 };
 
+// What to say when the step that ran the tests did not succeed. The action knows that outcome and
+// never why, so this must not assert a cause: "the results contain non quarantined failures" is
+// wrong every time the step fails without producing any (no test files matched, a build or setup
+// error, a crash before results were written), and the annotation is the only part of the failure
+// GitHub shows without opening the log.
+const testStepFailureMessage = (previousStepOutcome?: string): string =>
+  previousStepOutcome?.toLowerCase() === "cancelled"
+    ? "The step that ran the tests was cancelled -- the uploaded results are likely incomplete."
+    : "The step that ran the tests failed -- see above for details. If no failing tests are listed, it failed without reporting any (for example: no test files matched, or it exited before writing results).";
+
 // Exit code 70 (EX_SOFTWARE) is what the cli exits with when it fails on its own (bad token,
 // unreadable repo, no test results when they are required), as opposed to codes like 1, which are
 // the test process's exit code passed through.
@@ -146,9 +156,7 @@ export const getFailureReason = (
       exitCode !== CLI_ERROR_EXIT_CODE &&
       previousStepFailed(previousStepOutcome)
     ) {
-      core.setFailed(
-        "The test results you are uploading contain non quarantined test failures -- see above for details.",
-      );
+      core.setFailed(testStepFailureMessage(previousStepOutcome));
       return undefined;
     }
 
