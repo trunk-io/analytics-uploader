@@ -9,6 +9,7 @@ import { sendTelemetry } from "./telemetry";
 import { CliFetchError, downloadRelease, resolveCliVersion } from "./release";
 import { getInputs, validateInputs } from "./inputs";
 import { getArgs, getEnvVars } from "./args";
+import { logDetail, setVerbose } from "./log";
 
 const PLATFORM = os.platform();
 const IS_WINDOWS = PLATFORM === "win32";
@@ -66,18 +67,18 @@ const extractRelease = ({
   downloadPath: string;
   parentPath: string;
 }) => {
-  core.info(`Extracting ${downloadPath} to ${parentPath}...`);
+  logDetail(`Extracting ${downloadPath} to ${parentPath}...`);
   if (IS_WINDOWS) {
     execSync(
       `powershell -command "Expand-Archive -Path '${downloadPath}' -DestinationPath '${parentPath}' -Force"`,
       { stdio: "inherit" },
     );
   } else {
-    execSync(`tar -xvzf ${downloadPath} -C ${parentPath}`, {
+    execSync(`tar -xzf ${downloadPath} -C ${parentPath}`, {
       stdio: "inherit",
     });
   }
-  core.info("Extraction complete");
+  logDetail("Extraction complete");
 };
 
 const cleanup = ({
@@ -124,12 +125,27 @@ const previousStepFailed = (previousStepOutcome?: string): boolean => {
   );
 };
 
+// Exit code 70 (EX_SOFTWARE) is what the cli exits with when it fails on its own (bad token,
+// unreadable repo, no test results when they are required), as opposed to codes like 1, which are
+// the test process's exit code passed through.
+const CLI_ERROR_EXIT_CODE = 70;
+
+// execSync throws with the exit code on `status`; its message is just "Command failed: <command>".
+const getExitCode = (error: Error): number | undefined => {
+  const { status } = error as { status?: unknown };
+  return typeof status === "number" ? status : undefined;
+};
+
 export const getFailureReason = (
   error: unknown,
   previousStepOutcome?: string,
 ): string | undefined => {
   if (error instanceof Error && error.message.includes("Command failed")) {
-    if (previousStepFailed(previousStepOutcome)) {
+    const exitCode = getExitCode(error);
+    if (
+      exitCode !== CLI_ERROR_EXIT_CODE &&
+      previousStepFailed(previousStepOutcome)
+    ) {
       core.setFailed(
         "The test results you are uploading contain non quarantined test failures -- see above for details.",
       );
@@ -139,10 +155,11 @@ export const getFailureReason = (
     core.setFailed(
       "A failure occurred while executing the command -- see above for details",
     );
-    // Exit code 70 is the system exit that occurs when the cli download/run has actual issues,
-    // as opposed to codes like 1 which are emitted by the cli when tests fail - since tests failing
-    // are not an issue to report, we treat those as a success in telemetry.
-    return error.message.includes("exit code 70") ? error.message : undefined;
+    // Tests failing is not an issue to report, so only the cli's own failures count against it in
+    // telemetry. The error message holds the full command line, --token included, so it is not sent.
+    return exitCode === CLI_ERROR_EXIT_CODE
+      ? `Command failed with exit code ${CLI_ERROR_EXIT_CODE.toString()}`
+      : undefined;
   }
 
   if (error instanceof CliFetchError) {
@@ -162,6 +179,7 @@ export const getFailureReason = (
 
 export const main = async (parentPath: string) => {
   const inputs = getInputs();
+  setVerbose(inputs.verbose);
   const binPath = getBinPath(parentPath);
   let downloadPath: string | undefined;
 
@@ -198,8 +216,8 @@ export const main = async (parentPath: string) => {
     }
 
     try {
-      core.info("Checking trunk-analytics-cli version...");
-      execSync(`${binPath} --version`, { stdio: "inherit" });
+      logDetail("Checking trunk-analytics-cli version...");
+      logDetail(execSync(`${binPath} --version`, { encoding: "utf8" }).trim());
     } catch (error: unknown) {
       if (error instanceof Error) {
         core.warning(`Failed to get version: ${error.message}`);

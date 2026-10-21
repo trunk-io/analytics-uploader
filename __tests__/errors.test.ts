@@ -1,28 +1,55 @@
 import { jest } from "@jest/globals";
 
 import * as core from "../__fixtures__/core.js";
-jest.mock("@actions/core", () => core);
+jest.unstable_mockModule("@actions/core", () => core);
 
-import { getFailureReason } from "../src/lib.js";
-import { CliFetchError } from "../src/release.js";
+const { getFailureReason } = await import("../src/lib.js");
+const { CliFetchError } = await import("../src/release.js");
+
+// The shape execSync throws when the command exits non-zero.
+const commandFailed = (status: number) =>
+  Object.assign(
+    new Error(
+      "Command failed: trunk-analytics-cli upload --token secret-token",
+    ),
+    { status },
+  );
 
 describe("getFailureReason", () => {
+  beforeEach(() => {
+    core.setFailed.mockClear();
+  });
+
   it("given Error with 'Command failed' and our 70 exit code", () => {
-    const expected = "Command failed with exit code 70";
-    const actual = getFailureReason(new Error(expected), "success");
-    expect(actual).toBe(expected);
+    const actual = getFailureReason(commandFailed(70), "success");
+    expect(actual).toBe("Command failed with exit code 70");
+    expect(core.setFailed).toHaveBeenCalledWith(
+      "A failure occurred while executing the command -- see above for details",
+    );
+  });
+
+  it("given Error with 'Command failed' and our 70 exit code, and the previous step failed", () => {
+    const actual = getFailureReason(commandFailed(70), "failure");
+    expect(actual).toBe("Command failed with exit code 70");
+    expect(core.setFailed).toHaveBeenCalledWith(
+      "A failure occurred while executing the command -- see above for details",
+    );
   });
 
   it("given Error with 'Command failed' and the previous step failed", () => {
-    const expected = "Command failed with exit code 1";
-    const actual = getFailureReason(new Error(expected), "failure");
+    const actual = getFailureReason(commandFailed(1), "failure");
     expect(actual).toBe(undefined);
+    expect(core.setFailed).toHaveBeenCalledWith(
+      "The test results you are uploading contain non quarantined test failures -- see above for details.",
+    );
   });
 
   it("given Error with 'Command failed' and the previous step succeeded", () => {
-    const expected = "Command failed with exit code 1";
-    const actual = getFailureReason(new Error(expected), "success");
+    const actual = getFailureReason(commandFailed(1), "success");
     expect(actual).toBe(undefined);
+    expect(core.setFailed).toHaveBeenCalledWith(
+      "A failure occurred while executing the command -- see above for details",
+    );
   });
 
   it("given other Error with an extremely long message", () => {
