@@ -125,26 +125,20 @@ const previousStepFailed = (previousStepOutcome?: string): boolean => {
   );
 };
 
-// What to say when the step that ran the tests did not succeed. The action knows that outcome and
-// never why, so this must not assert a cause: "the results contain non quarantined failures" is
-// wrong every time the step fails without producing any (no test files matched, a build or setup
-// error, a crash before results were written), and the annotation is the only part of the failure
-// GitHub shows without opening the log.
+// The action knows the test step failed, never why, so this must not claim the results have failures.
 const testStepFailureMessage = (previousStepOutcome?: string): string =>
   previousStepOutcome?.toLowerCase() === "cancelled"
     ? "The step that ran the tests was cancelled -- the uploaded results are likely incomplete."
     : "The step that ran the tests failed -- see above for details. If no failing tests are listed, it failed without reporting any (for example: no test files matched, or it exited before writing results).";
 
-// Exit code 70 (EX_SOFTWARE) is what the cli exits with when it fails on its own (bad token,
-// unreadable repo, no test results when they are required), as opposed to codes like 1, which are
-// the test process's exit code passed through.
+// The cli exits 70 when it fails on its own; any other code is the test process's, passed through.
 const CLI_ERROR_EXIT_CODE = 70;
 
-// execSync throws with the exit code on `status`; its message is just "Command failed: <command>".
-const getExitCode = (error: Error): number | undefined => {
-  const { status } = error as { status?: unknown };
-  return typeof status === "number" ? status : undefined;
-};
+// execSync's message never includes the exit code.
+const getExitCode = (error: Error): number | undefined =>
+  "status" in error && typeof error.status === "number"
+    ? error.status
+    : undefined;
 
 export const getFailureReason = (
   error: unknown,
@@ -163,8 +157,7 @@ export const getFailureReason = (
     core.setFailed(
       "A failure occurred while executing the command -- see above for details",
     );
-    // Tests failing is not an issue to report, so only the cli's own failures count against it in
-    // telemetry. The error message holds the full command line, --token included, so it is not sent.
+    // The message holds the command line, --token included, so it can't go to telemetry.
     return exitCode === CLI_ERROR_EXIT_CODE
       ? `Command failed with exit code ${CLI_ERROR_EXIT_CODE.toString()}`
       : undefined;

@@ -37,8 +37,6 @@ describe("getFailureReason", () => {
   });
 
   it("given Error with 'Command failed' and the previous step failed", () => {
-    // A command that matched no test files exits non-zero having produced
-    // none, so the annotation must not claim the results contain failing tests.
     const actual = getFailureReason(commandFailed(1), "failure");
     expect(actual).toBe(undefined);
     expect(core.setFailed).toHaveBeenCalledWith(
