@@ -9,6 +9,7 @@ import { sendTelemetry } from "./telemetry";
 import { CliFetchError, downloadRelease, resolveCliVersion } from "./release";
 import { getInputs, validateInputs } from "./inputs";
 import { getArgs, getEnvVars } from "./args";
+import { logDetail, setVerbose } from "./log";
 
 const PLATFORM = os.platform();
 const IS_WINDOWS = PLATFORM === "win32";
@@ -66,18 +67,18 @@ const extractRelease = ({
   downloadPath: string;
   parentPath: string;
 }) => {
-  core.info(`Extracting ${downloadPath} to ${parentPath}...`);
+  logDetail(`Extracting ${downloadPath} to ${parentPath}...`);
   if (IS_WINDOWS) {
     execSync(
       `powershell -command "Expand-Archive -Path '${downloadPath}' -DestinationPath '${parentPath}' -Force"`,
       { stdio: "inherit" },
     );
   } else {
-    execSync(`tar -xvzf ${downloadPath} -C ${parentPath}`, {
+    execSync(`tar -xzf ${downloadPath} -C ${parentPath}`, {
       stdio: "inherit",
     });
   }
-  core.info("Extraction complete");
+  logDetail("Extraction complete");
 };
 
 const cleanup = ({
@@ -124,25 +125,42 @@ const previousStepFailed = (previousStepOutcome?: string): boolean => {
   );
 };
 
+// The action knows the test step failed, never why, so this must not claim the results have failures.
+const testStepFailureMessage = (previousStepOutcome?: string): string =>
+  previousStepOutcome?.toLowerCase() === "cancelled"
+    ? "The step that ran the tests was cancelled -- the uploaded results are likely incomplete."
+    : "The step that ran the tests failed -- see above for details. If no failing tests are listed, it failed without reporting any (for example: no test files matched, or it exited before writing results).";
+
+// The cli exits 70 when it fails on its own; any other code is the test process's, passed through.
+const CLI_ERROR_EXIT_CODE = 70;
+
+// execSync's message never includes the exit code.
+const getExitCode = (error: Error): number | undefined =>
+  "status" in error && typeof error.status === "number"
+    ? error.status
+    : undefined;
+
 export const getFailureReason = (
   error: unknown,
   previousStepOutcome?: string,
 ): string | undefined => {
   if (error instanceof Error && error.message.includes("Command failed")) {
-    if (previousStepFailed(previousStepOutcome)) {
-      core.setFailed(
-        "The test results you are uploading contain non quarantined test failures -- see above for details.",
-      );
+    const exitCode = getExitCode(error);
+    if (
+      exitCode !== CLI_ERROR_EXIT_CODE &&
+      previousStepFailed(previousStepOutcome)
+    ) {
+      core.setFailed(testStepFailureMessage(previousStepOutcome));
       return undefined;
     }
 
     core.setFailed(
       "A failure occurred while executing the command -- see above for details",
     );
-    // Exit code 70 is the system exit that occurs when the cli download/run has actual issues,
-    // as opposed to codes like 1 which are emitted by the cli when tests fail - since tests failing
-    // are not an issue to report, we treat those as a success in telemetry.
-    return error.message.includes("exit code 70") ? error.message : undefined;
+    // The message holds the command line, --token included, so it can't go to telemetry.
+    return exitCode === CLI_ERROR_EXIT_CODE
+      ? `Command failed with exit code ${CLI_ERROR_EXIT_CODE.toString()}`
+      : undefined;
   }
 
   if (error instanceof CliFetchError) {
@@ -162,6 +180,7 @@ export const getFailureReason = (
 
 export const main = async (parentPath: string) => {
   const inputs = getInputs();
+  setVerbose(inputs.verbose);
   const binPath = getBinPath(parentPath);
   let downloadPath: string | undefined;
 
@@ -198,8 +217,8 @@ export const main = async (parentPath: string) => {
     }
 
     try {
-      core.info("Checking trunk-analytics-cli version...");
-      execSync(`${binPath} --version`, { stdio: "inherit" });
+      logDetail("Checking trunk-analytics-cli version...");
+      logDetail(execSync(`${binPath} --version`, { encoding: "utf8" }).trim());
     } catch (error: unknown) {
       if (error instanceof Error) {
         core.warning(`Failed to get version: ${error.message}`);
