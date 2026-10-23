@@ -10,6 +10,12 @@ import { CliFetchError, downloadRelease, resolveCliVersion } from "./release";
 import { getInputs, validateInputs } from "./inputs";
 import { getArgs, getEnvVars } from "./args";
 import { logDetail, setVerbose } from "./log";
+import {
+  getDefaultSummaryPath,
+  readSummary,
+  Summary,
+  SUMMARY_OUTPUT_FILE_ENV,
+} from "./summary";
 
 const PLATFORM = os.platform();
 const IS_WINDOWS = PLATFORM === "win32";
@@ -84,11 +90,13 @@ const extractRelease = ({
 const cleanup = ({
   binPath,
   downloadPath,
+  summaryPath,
   parentPath,
   dryRun,
 }: {
   binPath: string;
   downloadPath: string;
+  summaryPath?: string | undefined;
   parentPath: string;
   dryRun: boolean;
 }): void => {
@@ -99,6 +107,9 @@ const cleanup = ({
     }
     if (fs.existsSync(downloadPath)) {
       fs.unlinkSync(downloadPath);
+    }
+    if (summaryPath) {
+      fs.rmSync(summaryPath, { force: true });
     }
     const bundleUploadPath = path.resolve(parentPath, "bundle_upload");
     if (dryRun && fs.existsSync(bundleUploadPath)) {
@@ -117,19 +128,36 @@ const cleanup = ({
   }
 };
 
-const previousStepFailed = (previousStepOutcome?: string): boolean => {
-  const previousStepOutcomeLowerCase = previousStepOutcome?.toLowerCase();
-  return (
-    previousStepOutcomeLowerCase === "failure" ||
-    previousStepOutcomeLowerCase === "cancelled"
-  );
+const OUTCOME_MESSAGES: Partial<Record<string, string>> = {
+  NO_TESTS_FOUND:
+    "The step that ran the tests failed without running any tests -- see above for the original failure.",
+  NO_FAILURES_BUT_NON_ZERO_EXIT_CODE:
+    "The step that ran the tests failed, but none of the tests it reported did -- see above for details.",
+  FAILURES_NOT_QUARANTINED:
+    "The test results you are uploading contain non quarantined test failures -- see above for details.",
 };
 
-// The action knows the test step failed, never why, so this must not claim the results have failures.
-const testStepFailureMessage = (previousStepOutcome?: string): string =>
-  previousStepOutcome?.toLowerCase() === "cancelled"
-    ? "The step that ran the tests was cancelled -- the uploaded results are likely incomplete."
-    : "The step that ran the tests failed -- see above for details. If no failing tests are listed, it failed without reporting any (for example: no test files matched, or it exited before writing results).";
+const testStepFailureMessage = (
+  previousStepOutcome?: string,
+  summary?: Summary,
+): string | undefined => {
+  const outcome = previousStepOutcome?.toLowerCase();
+  if (outcome === "cancelled") {
+    return "The step that ran the tests was cancelled -- the uploaded results are likely incomplete.";
+  }
+  const summaryMessage =
+    summary?.type === "UPLOAD" && summary.outcome
+      ? OUTCOME_MESSAGES[summary.outcome]
+      : undefined;
+  if (summaryMessage) {
+    return summaryMessage;
+  }
+  // Without the cli's summary (older versions write none), the action knows the step failed but
+  // not why, so this must not claim the results have failures.
+  return outcome === "failure"
+    ? "The step that ran the tests failed -- see above for details. If no failing tests are listed, it failed without reporting any (for example: no test files matched, or it exited before writing results)."
+    : undefined;
+};
 
 // The cli exits 70 when it fails on its own; any other code is the test process's, passed through.
 const CLI_ERROR_EXIT_CODE = 70;
@@ -143,14 +171,16 @@ const getExitCode = (error: Error): number | undefined =>
 export const getFailureReason = (
   error: unknown,
   previousStepOutcome?: string,
+  summary?: Summary,
 ): string | undefined => {
   if (error instanceof Error && error.message.includes("Command failed")) {
     const exitCode = getExitCode(error);
-    if (
-      exitCode !== CLI_ERROR_EXIT_CODE &&
-      previousStepFailed(previousStepOutcome)
-    ) {
-      core.setFailed(testStepFailureMessage(previousStepOutcome));
+    const testStepMessage =
+      exitCode === CLI_ERROR_EXIT_CODE
+        ? undefined
+        : testStepFailureMessage(previousStepOutcome, summary);
+    if (testStepMessage) {
+      core.setFailed(testStepMessage);
       return undefined;
     }
 
@@ -182,6 +212,9 @@ export const main = async (parentPath: string) => {
   const inputs = getInputs();
   setVerbose(inputs.verbose);
   const binPath = getBinPath(parentPath);
+  // A path the workflow set is its own to keep, so only the default one is cleaned up.
+  const workflowSummaryPath = process.env[SUMMARY_OUTPUT_FILE_ENV] ?? "";
+  const summaryPath = workflowSummaryPath || getDefaultSummaryPath();
   let downloadPath: string | undefined;
 
   try {
@@ -227,16 +260,21 @@ export const main = async (parentPath: string) => {
 
     execSync([binPath, ...getArgs(inputs)].join(" "), {
       stdio: "inherit",
-      env: getEnvVars(inputs),
+      env: getEnvVars(inputs, summaryPath),
     });
     await sendTelemetry(inputs.token, inputs.ghActionRef);
   } catch (error: unknown) {
-    const failureReason = getFailureReason(error, inputs.previousStepOutcome);
+    const failureReason = getFailureReason(
+      error,
+      inputs.previousStepOutcome,
+      readSummary(summaryPath),
+    );
     await sendTelemetry(inputs.token, inputs.ghActionRef, failureReason);
   } finally {
     cleanup({
       binPath,
       downloadPath: downloadPath ?? "",
+      summaryPath: workflowSummaryPath ? undefined : summaryPath,
       parentPath,
       dryRun: inputs.dryRun,
     });

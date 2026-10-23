@@ -123,10 +123,13 @@ describe("validateInputs", () => {
 describe("getEnvVars", () => {
   it("exports the fork repo URL as TRUNK_FORK_REPO_URL", () => {
     expect(
-      getEnvVars({
-        prTitle: "title",
-        ghForkRepoUrl: "https://github.com/someone/fork",
-      }),
+      getEnvVars(
+        {
+          prTitle: "title",
+          ghForkRepoUrl: "https://github.com/someone/fork",
+        },
+        "/tmp/summary.json",
+      ),
     ).toMatchObject({
       PR_TITLE: "title",
       TRUNK_FORK_REPO_URL: "https://github.com/someone/fork",
@@ -135,8 +138,14 @@ describe("getEnvVars", () => {
 
   it("leaves TRUNK_FORK_REPO_URL unset when the head is not a fork", () => {
     expect(
-      getEnvVars({ prTitle: "title", ghForkRepoUrl: "" }),
+      getEnvVars({ prTitle: "title", ghForkRepoUrl: "" }, "/tmp/summary.json"),
     ).not.toHaveProperty("TRUNK_FORK_REPO_URL");
+  });
+
+  it("points the cli's summary at TRUNK_SUMMARY_OUTPUT_FILE", () => {
+    expect(
+      getEnvVars({ prTitle: "title", ghForkRepoUrl: "" }, "/tmp/summary.json"),
+    ).toMatchObject({ TRUNK_SUMMARY_OUTPUT_FILE: "/tmp/summary.json" });
   });
 });
 
