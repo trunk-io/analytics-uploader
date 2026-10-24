@@ -1,74 +1,63 @@
+import { jest } from "@jest/globals";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-import { errorSummary, uploadSummary } from "../__fixtures__/summary.js";
-import { getSummaryPath, readSummary } from "../src/summary.js";
+import { annotateFromCli, getSummaryPath } from "../src/summary.js";
 
-describe("readSummary", () => {
+describe("annotateFromCli", () => {
   let dir: string;
+  let stdout: jest.SpiedFunction<typeof process.stdout.write>;
 
   beforeEach(() => {
-    dir = fs.mkdtempSync(path.join(os.tmpdir(), "summary-test-"));
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), "annotate-test-"));
+    stdout = jest.spyOn(process.stdout, "write").mockImplementation(() => true);
   });
 
   afterEach(() => {
+    stdout.mockRestore();
     fs.rmSync(dir, { recursive: true, force: true });
   });
 
-  const write = (contents: unknown) => {
-    const summaryPath = path.join(dir, "summary.json");
+  // A stand-in cli that logs its arguments, prints `output` and exits with `status`.
+  const fakeCli = (output: string, status: number) => {
+    const cliPath = path.join(dir, "trunk-analytics-cli");
     fs.writeFileSync(
-      summaryPath,
-      typeof contents === "string" ? contents : JSON.stringify(contents),
+      cliPath,
+      `#!/bin/sh\necho "$@" > "${dir}/args"\nprintf '%s' '${output}'\necho "unrecognized subcommand" >&2\nexit ${status.toString()}\n`,
+      { mode: 0o755 },
     );
-    return summaryPath;
+    return cliPath;
   };
 
-  it("reads an upload summary", () => {
-    const summary = uploadSummary("NO_TESTS_FOUND");
-    expect(readSummary(write(summary))).toEqual(summary);
+  it("passes the cli's annotation through", () => {
+    const cliPath = fakeCli("::error::No tests ran\n", 0);
+
+    expect(annotateFromCli(cliPath, "/tmp/summary.json")).toBe(true);
+    expect(stdout).toHaveBeenCalledWith("::error::No tests ran\n");
+    expect(fs.readFileSync(path.join(dir, "args"), "utf8")).toBe(
+      "github-annotations --summary-file /tmp/summary.json\n",
+    );
   });
 
-  it("reads an error summary", () => {
-    const summary = errorSummary();
-    expect(readSummary(write(summary))).toEqual(summary);
+  it("falls back when the cli doesn't have the command", () => {
+    const cliPath = fakeCli("", 2);
+
+    expect(annotateFromCli(cliPath, "/tmp/summary.json")).toBe(false);
+    expect(stdout).not.toHaveBeenCalled();
   });
 
-  it("keeps fields a newer cli added", () => {
-    const summary = { ...uploadSummary("NO_FAILURES"), somethingNew: true };
-    expect(readSummary(write(summary))).toEqual(summary);
+  it("falls back when the cli has nothing to say", () => {
+    const cliPath = fakeCli("", 0);
+
+    expect(annotateFromCli(cliPath, "/tmp/summary.json")).toBe(false);
+    expect(stdout).not.toHaveBeenCalled();
   });
 
-  it("rejects an outcome the schema doesn't list", () => {
-    expect(
-      readSummary(
-        write({ ...uploadSummary("NO_TESTS_FOUND"), outcome: "SOMETHING_NEW" }),
-      ),
-    ).toBe(undefined);
-  });
-
-  it("rejects a summary missing a required field", () => {
-    const summary: Partial<ReturnType<typeof uploadSummary>> =
-      uploadSummary("NO_TESTS_FOUND");
-    delete summary.counts;
-    expect(readSummary(write(summary))).toBe(undefined);
-  });
-
-  it("rejects a schema version it doesn't know", () => {
-    expect(
-      readSummary(
-        write({ ...uploadSummary("NO_TESTS_FOUND"), schemaVersion: 2 }),
-      ),
-    ).toBe(undefined);
-  });
-
-  it("returns nothing when the cli wrote no summary", () => {
-    expect(readSummary(path.join(dir, "missing.json"))).toBe(undefined);
-  });
-
-  it("returns nothing for a summary that isn't JSON", () => {
-    expect(readSummary(write("not json"))).toBe(undefined);
+  it("falls back when there's no cli", () => {
+    expect(annotateFromCli(path.join(dir, "missing"), "/tmp/s.json")).toBe(
+      false,
+    );
   });
 });
 

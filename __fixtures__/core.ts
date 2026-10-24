@@ -19,3 +19,5 @@ export const error =
 export const getInput = jest.fn<typeof import("@actions/core").getInput>();
 export const setOutput = jest.fn<typeof import("@actions/core").setOutput>();
 export const setFailed = jest.fn<typeof import("@actions/core").setFailed>();
+// The real enum's values; the mocked module has no enums of its own.
+export const ExitCode = { Success: 0, Failure: 1 };

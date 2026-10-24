@@ -10,7 +10,7 @@ import { CliFetchError, downloadRelease, resolveCliVersion } from "./release";
 import { getInputs, validateInputs } from "./inputs";
 import { getArgs, getEnvVars } from "./args";
 import { logDetail, setVerbose } from "./log";
-import { getSummaryPath, Outcome, readSummary, Summary } from "./summary";
+import { annotateFromCli, getSummaryPath } from "./summary";
 
 const PLATFORM = os.platform();
 const IS_WINDOWS = PLATFORM === "win32";
@@ -118,38 +118,6 @@ const cleanup = ({
   }
 };
 
-// Outcomes the cli exits 0 for have no message.
-const OUTCOME_MESSAGES: Record<Outcome, string | undefined> = {
-  NO_TESTS_FOUND:
-    "The step that ran the tests failed without running any tests -- see above for the original failure.",
-  NO_FAILURES_BUT_NON_ZERO_EXIT_CODE:
-    "The step that ran the tests failed, but none of the tests it reported did -- see above for details.",
-  FAILURES_NOT_QUARANTINED:
-    "The test results you are uploading contain non quarantined test failures -- see above for details.",
-  ALL_FAILURES_QUARANTINED: undefined,
-  NO_FAILURES: undefined,
-};
-
-const testStepFailureMessage = (
-  previousStepOutcome?: string,
-  summary?: Summary,
-): string | undefined => {
-  const outcome = previousStepOutcome?.toLowerCase();
-  if (outcome === "cancelled") {
-    return "The step that ran the tests was cancelled -- the uploaded results are likely incomplete.";
-  }
-  const summaryMessage =
-    summary?.type === "UPLOAD" ? OUTCOME_MESSAGES[summary.outcome] : undefined;
-  if (summaryMessage) {
-    return summaryMessage;
-  }
-  // Without the cli's summary (older versions write none), the action knows the step failed but
-  // not why, so this must not claim the results have failures.
-  return outcome === "failure"
-    ? "The step that ran the tests failed -- see above for details. If no failing tests are listed, it failed without reporting any (for example: no test files matched, or it exited before writing results)."
-    : undefined;
-};
-
 // The cli exits 70 when it fails on its own; any other code is the test process's, passed through.
 const CLI_ERROR_EXIT_CODE = 70;
 
@@ -159,25 +127,41 @@ const getExitCode = (error: Error): number | undefined =>
     ? error.status
     : undefined;
 
+// For when the cli can't say why it failed: older versions, or a step the cli only saw as failed.
+const fallbackFailureMessage = (
+  exitCode: number | undefined,
+  previousStepOutcome?: string,
+): string => {
+  if (exitCode !== CLI_ERROR_EXIT_CODE) {
+    switch (previousStepOutcome?.toLowerCase()) {
+      case "cancelled":
+        return "The step that ran the tests was cancelled -- the uploaded results are likely incomplete.";
+      // The action knows the step failed but not why, so this must not claim the results have
+      // failures.
+      case "failure":
+        return "The step that ran the tests failed -- see above for details. If no failing tests are listed, it failed without reporting any (for example: no test files matched, or it exited before writing results).";
+    }
+  }
+  return "A failure occurred while executing the command -- see above for details";
+};
+
 export const getFailureReason = (
   error: unknown,
   previousStepOutcome?: string,
-  summary?: Summary,
+  annotateFailure: () => boolean = () => false,
 ): string | undefined => {
   if (error instanceof Error && error.message.includes("Command failed")) {
     const exitCode = getExitCode(error);
-    const testStepMessage =
-      exitCode === CLI_ERROR_EXIT_CODE
-        ? undefined
-        : testStepFailureMessage(previousStepOutcome, summary);
-    if (testStepMessage) {
-      core.setFailed(testStepMessage);
-      return undefined;
+    // The cli gets a cancelled step's exit code as 1, so it would call it a failure.
+    const cancelled =
+      exitCode !== CLI_ERROR_EXIT_CODE &&
+      previousStepOutcome?.toLowerCase() === "cancelled";
+    if (!cancelled && annotateFailure()) {
+      // The cli wrote the step's error annotation; setFailed would add a second one.
+      process.exitCode = core.ExitCode.Failure;
+    } else {
+      core.setFailed(fallbackFailureMessage(exitCode, previousStepOutcome));
     }
-
-    core.setFailed(
-      "A failure occurred while executing the command -- see above for details",
-    );
     // The message holds the command line, --token included, so it can't go to telemetry.
     return exitCode === CLI_ERROR_EXIT_CODE
       ? `Command failed with exit code ${CLI_ERROR_EXIT_CODE.toString()}`
@@ -256,7 +240,7 @@ export const main = async (parentPath: string) => {
     const failureReason = getFailureReason(
       error,
       inputs.previousStepOutcome,
-      readSummary(summaryPath),
+      () => annotateFromCli(binPath, summaryPath),
     );
     await sendTelemetry(inputs.token, inputs.ghActionRef, failureReason);
   } finally {
