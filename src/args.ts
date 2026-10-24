@@ -1,4 +1,5 @@
 import { Inputs } from "./inputs";
+import { SUMMARY_OUTPUT_FILE_ENV } from "./summary";
 
 const convertBoolIntoFlag = <T extends string>(
   flag: T,
@@ -138,10 +139,14 @@ export const getArgs = (inputs: ArgInputs) =>
     convertBoolIntoBareFlag(`-- ${inputs.run}`, Boolean(inputs.run)),
   ].filter(Boolean);
 
-export const getEnvVars = (inputs: Pick<Inputs, "prTitle" | "ghForkRepoUrl">) =>
+export const getEnvVars = (
+  inputs: Pick<Inputs, "prTitle" | "ghForkRepoUrl">,
+  summaryPath: string,
+) =>
   ({
     ...process.env,
     PR_TITLE: inputs.prTitle,
+    [SUMMARY_OUTPUT_FILE_ENV]: summaryPath,
     // The CLI captures this into bundle metadata; leave it unset rather than
     // empty so a same-repo PR records no fork at all.
     ...(inputs.ghForkRepoUrl

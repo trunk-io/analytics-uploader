@@ -20,7 +20,11 @@ jest.unstable_mockModule("node:fs", () => fs_mock);
 
 const { main } = await import("../src/lib.js");
 
-const mockInputs = (cliVersion: string, verbose = false) => {
+const mockInputs = (
+  cliVersion: string,
+  verbose = false,
+  extra: Record<string, string> = {},
+) => {
   core.getInput.mockImplementation(
     (name) =>
       ({
@@ -29,6 +33,7 @@ const mockInputs = (cliVersion: string, verbose = false) => {
         token: "token",
         "cli-version": cliVersion,
         verbose: String(verbose),
+        ...extra,
       })[name] ?? "",
   );
 };
@@ -268,6 +273,46 @@ describe("Downloading the CLI", () => {
       for (const line of SETUP_LINES) {
         expect(core.info).toHaveBeenCalledWith(expect.stringContaining(line));
       }
+    });
+  });
+
+  describe("summary-output-file output", () => {
+    const SUMMARY_PATH = "/made/up/summary.json";
+
+    beforeEach(() => {
+      server.use([
+        MSW_MOCKS.releasesArtifactDownload("1.2.3")
+          .addSuccessfulResponse()
+          .build().handler,
+        releasesManifestHandler("1.2.3"),
+        telemetryHandler(),
+      ]);
+      mockInputs("1.2.3", false, { "summary-output-file": SUMMARY_PATH });
+    });
+
+    it("gives the summary's path when the cli wrote one", async () => {
+      fs_mock.existsSync.mockImplementation((p) => p === SUMMARY_PATH);
+
+      await runMain();
+
+      expect(child_process.execSync).toHaveBeenLastCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          env: expect.objectContaining({
+            TRUNK_SUMMARY_OUTPUT_FILE: SUMMARY_PATH,
+          }) as unknown,
+        }),
+      );
+      expect(core.setOutput).toHaveBeenCalledWith(
+        "summary-output-file",
+        SUMMARY_PATH,
+      );
+    });
+
+    it("is left unset when the cli wrote no summary", async () => {
+      await runMain();
+
+      expect(core.setOutput).not.toHaveBeenCalled();
     });
   });
 

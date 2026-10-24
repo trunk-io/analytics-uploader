@@ -10,6 +10,7 @@ import { CliFetchError, downloadRelease, resolveCliVersion } from "./release";
 import { getInputs, validateInputs } from "./inputs";
 import { getArgs, getEnvVars } from "./args";
 import { logDetail, setVerbose } from "./log";
+import { annotateFromCli, getSummaryPath } from "./summary";
 
 const PLATFORM = os.platform();
 const IS_WINDOWS = PLATFORM === "win32";
@@ -117,20 +118,6 @@ const cleanup = ({
   }
 };
 
-const previousStepFailed = (previousStepOutcome?: string): boolean => {
-  const previousStepOutcomeLowerCase = previousStepOutcome?.toLowerCase();
-  return (
-    previousStepOutcomeLowerCase === "failure" ||
-    previousStepOutcomeLowerCase === "cancelled"
-  );
-};
-
-// The action knows the test step failed, never why, so this must not claim the results have failures.
-const testStepFailureMessage = (previousStepOutcome?: string): string =>
-  previousStepOutcome?.toLowerCase() === "cancelled"
-    ? "The step that ran the tests was cancelled -- the uploaded results are likely incomplete."
-    : "The step that ran the tests failed -- see above for details. If no failing tests are listed, it failed without reporting any (for example: no test files matched, or it exited before writing results).";
-
 // The cli exits 70 when it fails on its own; any other code is the test process's, passed through.
 const CLI_ERROR_EXIT_CODE = 70;
 
@@ -140,23 +127,41 @@ const getExitCode = (error: Error): number | undefined =>
     ? error.status
     : undefined;
 
+// For when the cli can't say why it failed: older versions, or a step the cli only saw as failed.
+const fallbackFailureMessage = (
+  exitCode: number | undefined,
+  previousStepOutcome?: string,
+): string => {
+  if (exitCode !== CLI_ERROR_EXIT_CODE) {
+    switch (previousStepOutcome?.toLowerCase()) {
+      case "cancelled":
+        return "The step that ran the tests was cancelled -- the uploaded results are likely incomplete.";
+      // The action knows the step failed but not why, so this must not claim the results have
+      // failures.
+      case "failure":
+        return "The step that ran the tests failed -- see above for details. If no failing tests are listed, it failed without reporting any (for example: no test files matched, or it exited before writing results).";
+    }
+  }
+  return "A failure occurred while executing the command -- see above for details";
+};
+
 export const getFailureReason = (
   error: unknown,
   previousStepOutcome?: string,
+  annotateFailure: () => boolean = () => false,
 ): string | undefined => {
   if (error instanceof Error && error.message.includes("Command failed")) {
     const exitCode = getExitCode(error);
-    if (
+    // The cli gets a cancelled step's exit code as 1, so it would call it a failure.
+    const cancelled =
       exitCode !== CLI_ERROR_EXIT_CODE &&
-      previousStepFailed(previousStepOutcome)
-    ) {
-      core.setFailed(testStepFailureMessage(previousStepOutcome));
-      return undefined;
+      previousStepOutcome?.toLowerCase() === "cancelled";
+    if (!cancelled && annotateFailure()) {
+      // The cli wrote the step's error annotation; setFailed would add a second one.
+      process.exitCode = core.ExitCode.Failure;
+    } else {
+      core.setFailed(fallbackFailureMessage(exitCode, previousStepOutcome));
     }
-
-    core.setFailed(
-      "A failure occurred while executing the command -- see above for details",
-    );
     // The message holds the command line, --token included, so it can't go to telemetry.
     return exitCode === CLI_ERROR_EXIT_CODE
       ? `Command failed with exit code ${CLI_ERROR_EXIT_CODE.toString()}`
@@ -182,6 +187,7 @@ export const main = async (parentPath: string) => {
   const inputs = getInputs();
   setVerbose(inputs.verbose);
   const binPath = getBinPath(parentPath);
+  const summaryPath = getSummaryPath(inputs.summaryOutputFile);
   let downloadPath: string | undefined;
 
   try {
@@ -227,11 +233,15 @@ export const main = async (parentPath: string) => {
 
     execSync([binPath, ...getArgs(inputs)].join(" "), {
       stdio: "inherit",
-      env: getEnvVars(inputs),
+      env: getEnvVars(inputs, summaryPath),
     });
     await sendTelemetry(inputs.token, inputs.ghActionRef);
   } catch (error: unknown) {
-    const failureReason = getFailureReason(error, inputs.previousStepOutcome);
+    const failureReason = getFailureReason(
+      error,
+      inputs.previousStepOutcome,
+      () => annotateFromCli(binPath, summaryPath),
+    );
     await sendTelemetry(inputs.token, inputs.ghActionRef, failureReason);
   } finally {
     cleanup({
@@ -240,5 +250,8 @@ export const main = async (parentPath: string) => {
       parentPath,
       dryRun: inputs.dryRun,
     });
+    if (fs.existsSync(summaryPath)) {
+      core.setOutput("summary-output-file", summaryPath);
+    }
   }
 };
