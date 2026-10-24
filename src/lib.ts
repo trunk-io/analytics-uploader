@@ -10,12 +10,7 @@ import { CliFetchError, downloadRelease, resolveCliVersion } from "./release";
 import { getInputs, validateInputs } from "./inputs";
 import { getArgs, getEnvVars } from "./args";
 import { logDetail, setVerbose } from "./log";
-import {
-  getDefaultSummaryPath,
-  readSummary,
-  Summary,
-  SUMMARY_OUTPUT_FILE_ENV,
-} from "./summary";
+import { getSummaryPath, Outcome, readSummary, Summary } from "./summary";
 
 const PLATFORM = os.platform();
 const IS_WINDOWS = PLATFORM === "win32";
@@ -90,13 +85,11 @@ const extractRelease = ({
 const cleanup = ({
   binPath,
   downloadPath,
-  summaryPath,
   parentPath,
   dryRun,
 }: {
   binPath: string;
   downloadPath: string;
-  summaryPath?: string | undefined;
   parentPath: string;
   dryRun: boolean;
 }): void => {
@@ -107,9 +100,6 @@ const cleanup = ({
     }
     if (fs.existsSync(downloadPath)) {
       fs.unlinkSync(downloadPath);
-    }
-    if (summaryPath) {
-      fs.rmSync(summaryPath, { force: true });
     }
     const bundleUploadPath = path.resolve(parentPath, "bundle_upload");
     if (dryRun && fs.existsSync(bundleUploadPath)) {
@@ -128,13 +118,16 @@ const cleanup = ({
   }
 };
 
-const OUTCOME_MESSAGES: Partial<Record<string, string>> = {
+// Outcomes the cli exits 0 for have no message.
+const OUTCOME_MESSAGES: Record<Outcome, string | undefined> = {
   NO_TESTS_FOUND:
     "The step that ran the tests failed without running any tests -- see above for the original failure.",
   NO_FAILURES_BUT_NON_ZERO_EXIT_CODE:
     "The step that ran the tests failed, but none of the tests it reported did -- see above for details.",
   FAILURES_NOT_QUARANTINED:
     "The test results you are uploading contain non quarantined test failures -- see above for details.",
+  ALL_FAILURES_QUARANTINED: undefined,
+  NO_FAILURES: undefined,
 };
 
 const testStepFailureMessage = (
@@ -146,9 +139,7 @@ const testStepFailureMessage = (
     return "The step that ran the tests was cancelled -- the uploaded results are likely incomplete.";
   }
   const summaryMessage =
-    summary?.type === "UPLOAD" && summary.outcome
-      ? OUTCOME_MESSAGES[summary.outcome]
-      : undefined;
+    summary?.type === "UPLOAD" ? OUTCOME_MESSAGES[summary.outcome] : undefined;
   if (summaryMessage) {
     return summaryMessage;
   }
@@ -212,9 +203,7 @@ export const main = async (parentPath: string) => {
   const inputs = getInputs();
   setVerbose(inputs.verbose);
   const binPath = getBinPath(parentPath);
-  // A path the workflow set is its own to keep, so only the default one is cleaned up.
-  const workflowSummaryPath = process.env[SUMMARY_OUTPUT_FILE_ENV] ?? "";
-  const summaryPath = workflowSummaryPath || getDefaultSummaryPath();
+  const summaryPath = getSummaryPath(inputs.summaryOutputFile);
   let downloadPath: string | undefined;
 
   try {
@@ -274,9 +263,11 @@ export const main = async (parentPath: string) => {
     cleanup({
       binPath,
       downloadPath: downloadPath ?? "",
-      summaryPath: workflowSummaryPath ? undefined : summaryPath,
       parentPath,
       dryRun: inputs.dryRun,
     });
+    if (fs.existsSync(summaryPath)) {
+      core.setOutput("summary-output-file", summaryPath);
+    }
   }
 };

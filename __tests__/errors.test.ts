@@ -3,6 +3,8 @@ import { jest } from "@jest/globals";
 import * as core from "../__fixtures__/core.js";
 jest.unstable_mockModule("@actions/core", () => core);
 
+import { errorSummary, uploadSummary } from "../__fixtures__/summary.js";
+
 const { getFailureReason } = await import("../src/lib.js");
 const { CliFetchError } = await import("../src/release.js");
 
@@ -45,10 +47,11 @@ describe("getFailureReason", () => {
   });
 
   it("given the cli's summary found no tests", () => {
-    const actual = getFailureReason(commandFailed(1), "failure", {
-      type: "UPLOAD",
-      outcome: "NO_TESTS_FOUND",
-    });
+    const actual = getFailureReason(
+      commandFailed(1),
+      "failure",
+      uploadSummary("NO_TESTS_FOUND"),
+    );
     expect(actual).toBe(undefined);
     expect(core.setFailed).toHaveBeenCalledWith(
       "The step that ran the tests failed without running any tests -- see above for the original failure.",
@@ -56,50 +59,51 @@ describe("getFailureReason", () => {
   });
 
   it("given the cli's summary found failures that weren't quarantined", () => {
-    getFailureReason(commandFailed(1), "failure", {
-      type: "UPLOAD",
-      outcome: "FAILURES_NOT_QUARANTINED",
-    });
+    getFailureReason(
+      commandFailed(1),
+      "failure",
+      uploadSummary("FAILURES_NOT_QUARANTINED"),
+    );
     expect(core.setFailed).toHaveBeenCalledWith(
       "The test results you are uploading contain non quarantined test failures -- see above for details.",
     );
   });
 
   it("given the cli's summary found failures and no previous step outcome", () => {
-    getFailureReason(commandFailed(1), undefined, {
-      type: "UPLOAD",
-      outcome: "FAILURES_NOT_QUARANTINED",
-    });
+    getFailureReason(
+      commandFailed(1),
+      undefined,
+      uploadSummary("FAILURES_NOT_QUARANTINED"),
+    );
     expect(core.setFailed).toHaveBeenCalledWith(
       "The test results you are uploading contain non quarantined test failures -- see above for details.",
     );
   });
 
   it("given the cli's summary found no failing tests", () => {
-    getFailureReason(commandFailed(1), "failure", {
-      type: "UPLOAD",
-      outcome: "NO_FAILURES_BUT_NON_ZERO_EXIT_CODE",
-    });
+    getFailureReason(
+      commandFailed(1),
+      "failure",
+      uploadSummary("NO_FAILURES_BUT_NON_ZERO_EXIT_CODE"),
+    );
     expect(core.setFailed).toHaveBeenCalledWith(
       "The step that ran the tests failed, but none of the tests it reported did -- see above for details.",
     );
   });
 
-  it("given a summary outcome it doesn't know", () => {
-    getFailureReason(commandFailed(1), "failure", {
-      type: "UPLOAD",
-      outcome: "SOMETHING_NEW",
-    });
+  it("given a summary of a run that failed before summarizing tests", () => {
+    getFailureReason(commandFailed(1), "failure", errorSummary());
     expect(core.setFailed).toHaveBeenCalledWith(
       "The step that ran the tests failed -- see above for details. If no failing tests are listed, it failed without reporting any (for example: no test files matched, or it exited before writing results).",
     );
   });
 
   it("given our 70 exit code and a summary", () => {
-    const actual = getFailureReason(commandFailed(70), "failure", {
-      type: "UPLOAD",
-      outcome: "NO_TESTS_FOUND",
-    });
+    const actual = getFailureReason(
+      commandFailed(70),
+      "failure",
+      uploadSummary("NO_TESTS_FOUND"),
+    );
     expect(actual).toBe("Command failed with exit code 70");
     expect(core.setFailed).toHaveBeenCalledWith(
       "A failure occurred while executing the command -- see above for details",
@@ -107,10 +111,11 @@ describe("getFailureReason", () => {
   });
 
   it("given the previous step cancelled and a summary", () => {
-    getFailureReason(commandFailed(1), "cancelled", {
-      type: "UPLOAD",
-      outcome: "NO_TESTS_FOUND",
-    });
+    getFailureReason(
+      commandFailed(1),
+      "cancelled",
+      uploadSummary("NO_TESTS_FOUND"),
+    );
     expect(core.setFailed).toHaveBeenCalledWith(
       "The step that ran the tests was cancelled -- the uploaded results are likely incomplete.",
     );
