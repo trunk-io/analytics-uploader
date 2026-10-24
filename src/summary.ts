@@ -1,16 +1,8 @@
-import * as fs from "node:fs";
+import { execFileSync } from "node:child_process";
 import * as os from "node:os";
 import * as path from "node:path";
-import * as z from "zod";
-
-import summaryJsonSchema from "./summary-schema.json";
-import type { TrunkAnalyticsCLISummary } from "./summary-schema";
-
-export type Summary = TrunkAnalyticsCLISummary;
-export type { Outcome } from "./summary-schema";
 
 export const SUMMARY_OUTPUT_FILE_ENV = "TRUNK_SUMMARY_OUTPUT_FILE";
-const SCHEMA_VERSION = 1;
 
 // The `summary-output-file` input, else a path the workflow already gave the cli, else a file in
 // the job's temp directory, which the runner empties when the job ends.
@@ -22,23 +14,25 @@ export const getSummaryPath = (input: string) =>
     `trunk-analytics-summary-${process.pid.toString()}.json`,
   );
 
-// Checked against the same schema the types are generated from, so the cast below holds. Older cli
-// versions write no summary, and one that doesn't match the schema we were built against means its
-// shape changed under us; both mean no summary.
-export const readSummary = (summaryPath: string): Summary | undefined => {
+// The cli words the failure itself from the summary it wrote, so the action never reads the
+// summary's format. Older cli versions don't have the command; their error is swallowed and the
+// caller falls back to its own message.
+export const annotateFromCli = (
+  binPath: string,
+  summaryPath: string,
+): boolean => {
   try {
-    const schema = z.fromJSONSchema(
-      summaryJsonSchema as z.core.JSONSchema.JSONSchema,
+    const annotations = execFileSync(
+      binPath,
+      ["github-annotations", "--summary-file", summaryPath],
+      { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
     );
-    const result = schema.safeParse(
-      JSON.parse(fs.readFileSync(summaryPath, "utf8")),
-    );
-    if (!result.success) {
-      return undefined;
+    if (!annotations.trim()) {
+      return false;
     }
-    const summary = result.data as Summary;
-    return summary.schemaVersion === SCHEMA_VERSION ? summary : undefined;
+    process.stdout.write(annotations);
+    return true;
   } catch {
-    return undefined;
+    return false;
   }
 };

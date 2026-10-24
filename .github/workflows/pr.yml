@@ -168,18 +168,6 @@ jobs:
           fi
           echo "✅ SUCCESS: dist/index.js is up to date"
 
-      - name: Generate summary types
-        run: pnpm generate:summary-schema
-
-      - name: Verify no changes to src/summary-schema.ts
-        run: |
-          if [ -n "$(git diff src/summary-schema.ts)" ]; then
-            echo "❌ ERROR: src/summary-schema.ts doesn't match src/summary-schema.json!"
-            echo "Please run 'pnpm generate:summary-schema' and commit the changes."
-            exit 1
-          fi
-          echo "✅ SUCCESS: src/summary-schema.ts is up to date"
-
   test_unit_tests:
     name: Test Unit Tests
     runs-on: ubuntu-latest
