@@ -48,6 +48,7 @@ export const getInputs = () =>
     ),
     useUnclonedRepo: parseBoolean(core.getInput("use-uncloned-repo")),
     previousStepOutcome: core.getInput("previous-step-outcome"),
+    summaryOutputFile: core.getInput("summary-output-file"),
     prTitle: core.getInput("pr-title"),
     ghRepoUrl: core.getInput("gh-repo-url"),
     ghForkRepoUrl: core.getInput("gh-fork-repo-url"),

@@ -68,6 +68,9 @@ inputs:
     default: false
     required: false
     type: boolean
+  summary-output-file:
+    description: Path to write the CLI's JSON summary of the run to, such as for a PR comment. Defaults to a file in the job's temp directory; the `summary-output-file` output gives the path either way.
+    required: false
   use-uncloned-repo:
     description: Set to 'true' if your tests do not require cloning the repository under test,
     required: false
@@ -119,6 +122,10 @@ inputs:
     type: boolean
     default: true
     required: false
+
+outputs:
+  summary-output-file:
+    description: Path to the CLI's JSON summary of the run. Set only when the CLI wrote one, which needs a CLI version with `--summary-output-file`.
 
 runs:
   using: node24

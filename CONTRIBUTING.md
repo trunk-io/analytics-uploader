@@ -57,6 +57,16 @@ This command uses `@vercel/ncc` to bundle `src/index.ts` into `dist/index.js`, w
 
 You don't need to manually build before committing, but you may want to build manually to test your changes locally.
 
+### The CLI's Summary Schema
+
+The action reads the JSON summary the CLI writes (`--summary-output-file`). `src/summary-schema.json` is a copy of the CLI's schema for it, and both the types in `src/summary-schema.ts` and the runtime check in `src/summary.ts` come from that file. Don't edit either by hand. When the CLI's schema changes, refresh the copy from a CLI binary and regenerate the types:
+
+```bash
+pnpm generate:summary-schema path/to/trunk-analytics-cli
+```
+
+Without an argument, the script only regenerates the types from the existing copy. CI checks that the types match it.
+
 ## How It Works
 
 ### Architecture Overview
