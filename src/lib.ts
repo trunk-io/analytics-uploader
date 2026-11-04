@@ -231,6 +231,9 @@ export const main = async (parentPath: string) => {
       }
     }
 
+    // A summary from an earlier run at this path would be read as this run's, and the cli doesn't
+    // always write one. It is never removed afterwards: later steps may read it.
+    fs.rmSync(summaryPath, { force: true });
     execSync([binPath, ...getArgs(inputs)].join(" "), {
       stdio: "inherit",
       env: getEnvVars(inputs, summaryPath),

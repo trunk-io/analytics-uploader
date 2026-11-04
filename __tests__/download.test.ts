@@ -314,6 +314,31 @@ describe("Downloading the CLI", () => {
 
       expect(core.setOutput).not.toHaveBeenCalled();
     });
+
+    it("removes an earlier run's summary before the cli runs", async () => {
+      let summaryExists = true;
+      fs_mock.existsSync.mockImplementation(
+        (p) => p === SUMMARY_PATH && summaryExists,
+      );
+      fs_mock.rmSync.mockImplementation((p) => {
+        if (p === SUMMARY_PATH) {
+          summaryExists = false;
+        }
+      });
+
+      await runMain();
+
+      expect(fs_mock.rmSync).toHaveBeenCalledWith(SUMMARY_PATH, {
+        force: true,
+      });
+      const removedAt =
+        fs_mock.rmSync.mock.invocationCallOrder[
+          fs_mock.rmSync.mock.calls.findIndex(([p]) => p === SUMMARY_PATH)
+        ];
+      const ranAt = child_process.execSync.mock.invocationCallOrder.at(-1) ?? 0;
+      expect(removedAt).toBeLessThan(ranAt);
+      expect(core.setOutput).not.toHaveBeenCalled();
+    });
   });
 
   it("keeps the rate-limit hint when GitHub refuses the fallback too", async () => {
