@@ -44,6 +44,51 @@ describe("getFailureReason", () => {
     );
   });
 
+  describe("when the cli annotates the failure", () => {
+    const annotateFailure = jest.fn(() => true);
+
+    afterEach(() => {
+      annotateFailure.mockClear();
+      process.exitCode = undefined;
+    });
+
+    it("fails the step without a second annotation", () => {
+      const actual = getFailureReason(
+        commandFailed(1),
+        "failure",
+        annotateFailure,
+      );
+      expect(actual).toBe(undefined);
+      expect(core.setFailed).not.toHaveBeenCalled();
+      expect(process.exitCode).toBe(1);
+    });
+
+    it("still reports our 70 exit code to telemetry", () => {
+      const actual = getFailureReason(
+        commandFailed(70),
+        "failure",
+        annotateFailure,
+      );
+      expect(actual).toBe("Command failed with exit code 70");
+      expect(core.setFailed).not.toHaveBeenCalled();
+    });
+
+    it("words a cancelled step itself, since the cli saw it as failed", () => {
+      getFailureReason(commandFailed(1), "cancelled", annotateFailure);
+      expect(annotateFailure).not.toHaveBeenCalled();
+      expect(core.setFailed).toHaveBeenCalledWith(
+        "The step that ran the tests was cancelled -- the uploaded results are likely incomplete.",
+      );
+    });
+  });
+
+  it("given the cli can't annotate the failure", () => {
+    getFailureReason(commandFailed(1), "failure", () => false);
+    expect(core.setFailed).toHaveBeenCalledWith(
+      "The step that ran the tests failed -- see above for details. If no failing tests are listed, it failed without reporting any (for example: no test files matched, or it exited before writing results).",
+    );
+  });
+
   it("given Error with 'Command failed' and the previous step cancelled", () => {
     const actual = getFailureReason(commandFailed(1), "CANCELLED");
     expect(actual).toBe(undefined);

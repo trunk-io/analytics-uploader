@@ -92,6 +92,13 @@ jobs:
 | `show-failure-messages`           | Show failure outputs in upload. This is experimental, do not rely on this.                                                                                                                                     | `false`  |
 | `dry-run`                         | Run without uploading the results to the server. They will instead be dumped to the directory that the action is run in.                                                                                       | `false`  |
 | `use-cache`                       | Cache the trunk-analytics-cli binary to reduce subsequent downloads. Set to `false` to download it on every run.                                                                                               | `true`   |
+| `summary-output-file`             | Path to write the CLI's JSON summary of the run to, such as for a PR comment. Defaults to a file in the job's temp directory; the `summary-output-file` output gives the path either way.                      |          |
+
+### Outputs
+
+| Output                | Description                                                                                                                                                                                              |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `summary-output-file` | Path to the CLI's JSON summary of the run. Set only when the CLI wrote one, which needs a CLI version with `--summary-output-file`. Its format is the CLI's `trunk-analytics-cli summary-output-schema`. |
 
 ## Questions
 
