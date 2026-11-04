@@ -3,6 +3,7 @@ import * as cache from "@actions/cache";
 import * as fs from "node:fs";
 
 import { BinTarget } from "./lib";
+import { logDetail } from "./log";
 
 export const cacheFactory = ({
   shouldUseCache,
@@ -28,9 +29,9 @@ export const cacheFactory = ({
       try {
         const cacheKeyFound = await cache.restoreCache(cachePaths, cacheKey);
         if (cacheKeyFound) {
-          core.info(`Cache restored with key: ${cacheKey}`);
+          logDetail(`Cache restored with key: ${cacheKey}`);
           if (fs.existsSync(binPath)) {
-            core.info("Binary found in cache");
+            logDetail("Binary found in cache");
             cacheRestored = true;
           } else {
             core.warning("Cache restored but binary not found, will download");
@@ -49,7 +50,7 @@ export const cacheFactory = ({
     },
     saveCache: async () => {
       if (cacheRestored) {
-        core.info("Cache was already restored, skipping cache save");
+        logDetail("Cache was already restored, skipping cache save");
         return;
       }
       if (!fs.existsSync(binPath)) {
@@ -59,7 +60,7 @@ export const cacheFactory = ({
 
       try {
         await cache.saveCache(cachePaths, cacheKey);
-        core.info(`Cache saved with key: ${cacheKey}`);
+        logDetail(`Cache saved with key: ${cacheKey}`);
       } catch (error: unknown) {
         if (error instanceof Error) {
           core.warning(`Cache save failed: ${error.message}`);

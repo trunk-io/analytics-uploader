@@ -9,6 +9,7 @@ import {
   LATEST_TAG,
   RELEASES_URL,
 } from "./constants";
+import { logDetail } from "./log";
 
 export class CliFetchError extends Error {
   constructor(message: string, cause: Error) {
@@ -122,7 +123,7 @@ const downloadFromTrunk = async (
 ): Promise<Buffer> => {
   const versionUrl = `${RELEASES_URL}/${version}`;
   const downloadUrl = `${versionUrl}/${releaseArtifactName}`;
-  core.info(`Downloading trunk-analytics-cli from ${downloadUrl}...`);
+  logDetail(`Downloading trunk-analytics-cli from ${downloadUrl}...`);
 
   const manifest = (await (
     await fetchFromTrunk(`${versionUrl}/manifest.json`)
@@ -155,7 +156,7 @@ const downloadFromGitHub = async (
   const downloadUrl = fromGitHubLatest
     ? `${GITHUB_RELEASES_URL}/latest/download/${releaseArtifactName}`
     : `${GITHUB_RELEASES_URL}/download/${version}/${releaseArtifactName}`;
-  core.info(`Downloading trunk-analytics-cli from ${downloadUrl}...`);
+  logDetail(`Downloading trunk-analytics-cli from ${downloadUrl}...`);
   return Buffer.from(await (await fetchFromGitHub(downloadUrl)).arrayBuffer());
 };
 
@@ -175,7 +176,7 @@ export const downloadRelease = async ({
     );
     buffer = await downloadFromGitHub(cliVersion, releaseArtifactName);
   }
-  core.info(
+  logDetail(
     `Downloaded ${releaseArtifactName} from release ${cliVersion.version}`,
   );
   return buffer;

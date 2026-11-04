@@ -111,6 +111,9 @@ jobs:
           allow-missing-junit-files: false
           dry-run: true
           use-cache: true
+          test-collection-id: of0v4st4
+          # A dry run uploads nothing, so it only reads the ubuntu leg's quarantine.
+          variant: ubuntu
 
       - name: Verify bundle_upload directory was cleaned up
         run: |

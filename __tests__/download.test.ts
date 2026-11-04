@@ -20,7 +20,7 @@ jest.unstable_mockModule("node:fs", () => fs_mock);
 
 const { main } = await import("../src/lib.js");
 
-const mockInputs = (cliVersion: string) => {
+const mockInputs = (cliVersion: string, verbose = false) => {
   core.getInput.mockImplementation(
     (name) =>
       ({
@@ -28,6 +28,7 @@ const mockInputs = (cliVersion: string) => {
         "org-slug": "org",
         token: "token",
         "cli-version": cliVersion,
+        verbose: String(verbose),
       })[name] ?? "",
   );
 };
@@ -215,6 +216,59 @@ describe("Downloading the CLI", () => {
     );
     expect(githubDownloadMock).toHaveBeenCalledTimes(1);
     expect(core.setFailed).not.toHaveBeenCalled();
+  });
+
+  describe("setup logging", () => {
+    const SETUP_LINES = [
+      "Downloading trunk-analytics-cli from",
+      "Downloaded trunk-analytics-cli-",
+      "Extracting ",
+      "Extraction complete",
+      "Checking trunk-analytics-cli version...",
+      "trunk-analytics-cli 1.2.3",
+    ];
+
+    const useHandlers = () => {
+      server.use([
+        MSW_MOCKS.releasesArtifactDownload("1.2.3")
+          .addSuccessfulResponse()
+          .build().handler,
+        releasesManifestHandler("1.2.3"),
+        telemetryHandler(),
+      ]);
+      child_process.execSync.mockImplementation(((command: string) =>
+        command.endsWith("--version")
+          ? "trunk-analytics-cli 1.2.3\n"
+          : "") as typeof import("node:child_process").execSync);
+    };
+
+    it("keeps download, extraction and version lines out of the log by default", async () => {
+      useHandlers();
+      mockInputs("1.2.3");
+
+      await runMain();
+
+      for (const line of SETUP_LINES) {
+        expect(core.info).not.toHaveBeenCalledWith(
+          expect.stringContaining(line),
+        );
+        expect(core.debug).toHaveBeenCalledWith(expect.stringContaining(line));
+      }
+      expect(core.warning).not.toHaveBeenCalledWith(
+        expect.stringContaining("Failed to get version"),
+      );
+    });
+
+    it("logs download, extraction and version lines when verbose", async () => {
+      useHandlers();
+      mockInputs("1.2.3", true);
+
+      await runMain();
+
+      for (const line of SETUP_LINES) {
+        expect(core.info).toHaveBeenCalledWith(expect.stringContaining(line));
+      }
+    });
   });
 
   it("keeps the rate-limit hint when GitHub refuses the fallback too", async () => {
