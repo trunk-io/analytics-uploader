@@ -140,7 +140,7 @@ export const getArgs = (inputs: ArgInputs) =>
   ].filter(Boolean);
 
 export const getEnvVars = (
-  inputs: Pick<Inputs, "prTitle" | "ghForkRepoUrl">,
+  inputs: Pick<Inputs, "prTitle" | "ghForkRepoUrl" | "githubToken">,
   summaryPath: string,
 ) =>
   ({
@@ -152,4 +152,6 @@ export const getEnvVars = (
     ...(inputs.ghForkRepoUrl
       ? { TRUNK_FORK_REPO_URL: inputs.ghForkRepoUrl }
       : {}),
+    // An env var, never a flag: the command line ends up in error messages.
+    ...(inputs.githubToken ? { GITHUB_TOKEN: inputs.githubToken } : {}),
   }) as const satisfies Record<string, string>;
