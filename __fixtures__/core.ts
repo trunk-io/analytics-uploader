@@ -17,6 +17,7 @@ export const warning =
 export const error =
   jest.fn<typeof import("@actions/core").error>(testDebugLogger);
 export const getInput = jest.fn<typeof import("@actions/core").getInput>();
+export const setSecret = jest.fn<typeof import("@actions/core").setSecret>();
 export const setOutput = jest.fn<typeof import("@actions/core").setOutput>();
 export const setFailed = jest.fn<typeof import("@actions/core").setFailed>();
 // The real enum's values; the mocked module has no enums of its own.

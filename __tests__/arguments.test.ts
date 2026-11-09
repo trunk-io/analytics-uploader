@@ -127,6 +127,7 @@ describe("getEnvVars", () => {
         {
           prTitle: "title",
           ghForkRepoUrl: "https://github.com/someone/fork",
+          githubToken: "",
         },
         "/tmp/summary.json",
       ),
@@ -138,14 +139,43 @@ describe("getEnvVars", () => {
 
   it("leaves TRUNK_FORK_REPO_URL unset when the head is not a fork", () => {
     expect(
-      getEnvVars({ prTitle: "title", ghForkRepoUrl: "" }, "/tmp/summary.json"),
+      getEnvVars(
+        { prTitle: "title", ghForkRepoUrl: "", githubToken: "" },
+        "/tmp/summary.json",
+      ),
     ).not.toHaveProperty("TRUNK_FORK_REPO_URL");
   });
 
   it("points the cli's summary at TRUNK_SUMMARY_OUTPUT_FILE", () => {
     expect(
-      getEnvVars({ prTitle: "title", ghForkRepoUrl: "" }, "/tmp/summary.json"),
+      getEnvVars(
+        { prTitle: "title", ghForkRepoUrl: "", githubToken: "" },
+        "/tmp/summary.json",
+      ),
     ).toMatchObject({ TRUNK_SUMMARY_OUTPUT_FILE: "/tmp/summary.json" });
+  });
+
+  it("exports the github token as GITHUB_TOKEN", () => {
+    expect(
+      getEnvVars(
+        { prTitle: "title", ghForkRepoUrl: "", githubToken: "ghs_job" },
+        "/tmp/summary.json",
+      ),
+    ).toMatchObject({ GITHUB_TOKEN: "ghs_job" });
+  });
+
+  it("leaves an inherited GITHUB_TOKEN alone when the input is empty", () => {
+    process.env.GITHUB_TOKEN = "ghs_ambient";
+    try {
+      expect(
+        getEnvVars(
+          { prTitle: "title", ghForkRepoUrl: "", githubToken: "" },
+          "/tmp/summary.json",
+        ),
+      ).toMatchObject({ GITHUB_TOKEN: "ghs_ambient" });
+    } finally {
+      delete process.env.GITHUB_TOKEN;
+    }
   });
 });
 
@@ -323,6 +353,40 @@ describe("Arguments", () => {
     );
     expect(artifactDownloadMock).toHaveBeenCalledTimes(1);
     expect(telemetryUploadMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("Passes the github token through env, masked and off the command line", async () => {
+    const cliVersion = "0.0.0";
+    const { handler: artifactDownloadHandler } =
+      MSW_MOCKS.releasesArtifactDownload(cliVersion)
+        .addSuccessfulResponse()
+        .build();
+    const { handler: telemetryUploadHandler } = MSW_MOCKS.telemetryUpload()
+      .addSuccessfulResponse()
+      .build();
+    server.use([
+      releasesManifestHandler(cliVersion),
+      artifactDownloadHandler,
+      telemetryUploadHandler,
+    ]);
+    core.getInput.mockImplementation(
+      (name) =>
+        ({
+          "junit-paths": "junit.xml",
+          "org-slug": "org",
+          "allow-forked-pr-uploads": "true",
+          "test-collection-id": "abcd1234",
+          "github-token": "ghs_job",
+          "cli-version": cliVersion,
+        })[name] ?? "",
+    );
+    const parentPath = "/made/up/path";
+    await main(parentPath);
+    expect(core.setSecret).toHaveBeenCalledWith("ghs_job");
+    expect(child_process.execSync).toHaveBeenCalledTimes(3);
+    const [command, options] = child_process.execSync.mock.calls[2];
+    expect(command).not.toContain("ghs_job");
+    expect(options?.env).toMatchObject({ GITHUB_TOKEN: "ghs_job" });
   });
 
   // The CLI reads TRUNK_SWIFT_TEST_XUNIT_PATHS itself, so callers set it as an

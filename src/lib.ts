@@ -185,6 +185,9 @@ export const getFailureReason = (
 
 export const main = async (parentPath: string) => {
   const inputs = getInputs();
+  if (inputs.githubToken) {
+    core.setSecret(inputs.githubToken);
+  }
   setVerbose(inputs.verbose);
   const binPath = getBinPath(parentPath);
   const summaryPath = getSummaryPath(inputs.summaryOutputFile);

@@ -82,7 +82,7 @@ inputs:
   # these are automatically grabbed inputs
   # it is recommended to leave these as is and not specify them when running this action
   github-token:
-    description: The GitHub token used to create an authenticated client
+    description: The job's GitHub token, exported to the CLI as GITHUB_TOKEN. The CLI sends it to Trunk only on a pull request from a fork, with allow-forked-pr-uploads and no token, to log the upload in.
     default: ${{ github.token }}
   pr-title:
     description: The Title of the Pull Request (if being run inside one)

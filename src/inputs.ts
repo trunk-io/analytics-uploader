@@ -24,6 +24,7 @@ export const getInputs = () =>
     allowForkedPrUploads: parseBoolean(
       core.getInput("allow-forked-pr-uploads"),
     ),
+    githubToken: core.getInput("github-token"),
     repoHeadBranch: core.getInput("repo-head-branch"),
     run: core.getInput("run"),
     repoRoot: core.getInput("repo-root"),
