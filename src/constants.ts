@@ -8,7 +8,7 @@ export const GITHUB_RELEASES_URL =
   "https://github.com/trunk-io/analytics-cli/releases";
 // This major version of the action passes flags that analytics-cli 1.0.0 removed.
 export const CLI_MAJOR_VERSION = 0;
-// The last release before 1.0.0. It stands in for `latest` when no pointer resolves, or when the
+// A pinned 0.x release. It stands in for `latest` when no pointer resolves, or when the
 // only pointer that resolves names a newer major.
 export const DEFAULT_CLI_VERSION = "0.17.0";
 
