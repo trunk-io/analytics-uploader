@@ -119,7 +119,58 @@ describe("Downloading the CLI", () => {
     expect(githubDownloadMock).not.toHaveBeenCalled();
   });
 
-  it("installs the last 0.x release when channel.json names 1.0.0", async () => {
+  it("installs the version channel-0.json names, without reading channel.json", async () => {
+    const { handler: majorChannelHandler } = MSW_MOCKS.releasesMajorChannel(0)
+      .addSuccessfulResponse("0.17.4")
+      .build();
+    const { handler: channelHandler, mock: channelMock } =
+      MSW_MOCKS.releasesChannel().addSuccessfulResponse("1.0.0").build();
+    const { handler: artifactDownloadHandler, mock: artifactDownloadMock } =
+      MSW_MOCKS.releasesArtifactDownload("0.17.4")
+        .addSuccessfulResponse()
+        .build();
+    server.use([
+      majorChannelHandler,
+      channelHandler,
+      releasesManifestHandler("0.17.4"),
+      artifactDownloadHandler,
+      telemetryHandler(),
+    ]);
+    mockInputs("latest");
+
+    await runMain();
+
+    expect(core.setFailed).not.toHaveBeenCalled();
+    expect(channelMock).not.toHaveBeenCalled();
+    expect(artifactDownloadMock).toHaveBeenCalledTimes(1);
+    expect(artifactDownloadMock.mock.calls[0][0].url).toMatch(
+      new RegExp(`^${RELEASES_URL}/0\\.17\\.4/trunk-analytics-cli-`),
+    );
+  });
+
+  it("installs the last 0.x release when channel-0.json names 1.0.0", async () => {
+    const { handler: majorChannelHandler } = MSW_MOCKS.releasesMajorChannel(0)
+      .addSuccessfulResponse("1.0.0")
+      .build();
+    const { handler: artifactDownloadHandler, mock: artifactDownloadMock } =
+      MSW_MOCKS.releasesArtifactDownload(DEFAULT_CLI_VERSION)
+        .addSuccessfulResponse()
+        .build();
+    server.use([
+      majorChannelHandler,
+      releasesManifestHandler(DEFAULT_CLI_VERSION),
+      artifactDownloadHandler,
+      telemetryHandler(),
+    ]);
+    mockInputs("latest");
+
+    await runMain();
+
+    expect(core.setFailed).not.toHaveBeenCalled();
+    expect(artifactDownloadMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("installs the last 0.x release when channel-0.json is unpublished and channel.json names 1.0.0", async () => {
     const { handler: channelHandler } = MSW_MOCKS.releasesChannel()
       .addSuccessfulResponse("1.0.0")
       .build();
