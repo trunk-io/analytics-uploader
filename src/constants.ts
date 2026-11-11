@@ -6,7 +6,8 @@ export const RELEASES_URL = "https://trunk.io/releases/analytics-cli/prod";
 // The fallback when trunk.io cannot serve the CLI.
 export const GITHUB_RELEASES_URL =
   "https://github.com/trunk-io/analytics-cli/releases";
-// Used when `latest` cannot be resolved, so a transient channel.json failure still uploads.
+// The last analytics-cli release before 1.0.0. It stands in for `latest` when `latest` cannot be
+// resolved, and when it resolves to 1.0.0 or later, which removes flags this major version passes.
 export const DEFAULT_CLI_VERSION = "0.17.0";
 
 export const FETCH_WITH_BACK_OFF_CONFIG = {

@@ -90,6 +90,20 @@ export interface ResolvedCliVersion {
   fromGitHubLatest: boolean;
 }
 
+const majorVersionOf = (version: string) =>
+  Number.parseInt(version.replace(/^v/, ""), 10);
+
+const keepOnPreOneZero = (resolved: ResolvedCliVersion): ResolvedCliVersion => {
+  const major = majorVersionOf(resolved.version);
+  if (Number.isNaN(major) || major < 1) {
+    return resolved;
+  }
+  core.info(
+    `The latest analytics-cli is ${resolved.version}, but this version of the action supports only analytics-cli 0.x. Using ${DEFAULT_CLI_VERSION}.`,
+  );
+  return { version: DEFAULT_CLI_VERSION, fromGitHubLatest: false };
+};
+
 export const resolveCliVersion = async (
   cliVersion: string,
 ): Promise<ResolvedCliVersion> => {
@@ -99,7 +113,7 @@ export const resolveCliVersion = async (
   try {
     const version = await fetchLatestFromTrunk();
     core.info(`Resolved "${LATEST_TAG}" to version: ${version}`);
-    return { version, fromGitHubLatest: false };
+    return keepOnPreOneZero({ version, fromGitHubLatest: false });
   } catch (trunkError: unknown) {
     core.warning(
       `Failed to resolve the latest version from trunk.io: ${errorMessage(trunkError)}. Falling back to GitHub releases.`,
@@ -108,7 +122,7 @@ export const resolveCliVersion = async (
   try {
     const version = await fetchLatestFromGitHub();
     core.info(`Resolved "${LATEST_TAG}" to version: ${version} (GitHub)`);
-    return { version, fromGitHubLatest: true };
+    return keepOnPreOneZero({ version, fromGitHubLatest: true });
   } catch (githubError: unknown) {
     core.warning(
       `Failed to resolve latest version: ${errorMessage(githubError)}. Falling back to version ${DEFAULT_CLI_VERSION}.`,
