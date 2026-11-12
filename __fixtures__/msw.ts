@@ -32,8 +32,17 @@ const manifestFor = (version: string, sha256: string) => ({
   ),
 });
 
+// Until a suite publishes the per-major pointer, trunk.io answers as it does for a missing object.
+const unpublishedMajorChannelHandler = http.get(
+  `${RELEASES_URL}/channel-0.json`,
+  () => new HttpResponse(null, { status: 403, statusText: "Forbidden" }),
+);
+
 export const createMswServer = (initialHandlers: HttpHandler[]) => {
-  const server = setupServer(...initialHandlers);
+  const server = setupServer(
+    unpublishedMajorChannelHandler,
+    ...initialHandlers,
+  );
   server.listen({
     onUnhandledRequest: "error",
   });
@@ -47,7 +56,11 @@ export const createMswServer = (initialHandlers: HttpHandler[]) => {
     close: () => {
       const allHandlers = server.listHandlers();
       const unusedHandlers = allHandlers.flatMap((handler) =>
-        "isUsed" in handler && !handler.isUsed ? [handler] : [],
+        handler !== unpublishedMajorChannelHandler &&
+        "isUsed" in handler &&
+        !handler.isUsed
+          ? [handler]
+          : [],
       );
       if (unusedHandlers.length > 0) {
         throw new Error(
@@ -130,6 +143,18 @@ const mockResponseBuilder = <T extends unknown[], U extends unknown[]>({
 };
 
 export const MSW_MOCKS = {
+  releasesMajorChannel: (major: number) =>
+    mockResponseBuilder({
+      method: "get",
+      urlPattern: `${RELEASES_URL}/channel-${major.toString()}.json`,
+      successfulResponse: (latest: string) => () =>
+        HttpResponse.json({ latest }),
+      errorResponse: () => () =>
+        new HttpResponse(null, {
+          status: 500,
+          statusText: "Internal Server Error",
+        }),
+    }),
   releasesChannel: () =>
     mockResponseBuilder({
       method: "get",

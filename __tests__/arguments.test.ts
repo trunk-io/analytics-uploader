@@ -597,7 +597,7 @@ describe("Arguments", () => {
   });
 
   it("Retries latest version fetch when resolving latest", async () => {
-    const cliVersion = "1.0.0";
+    const cliVersion = "0.18.0";
     const builder = [
       ...Array<undefined>(FETCH_WITH_BACK_OFF_CONFIG.numOfAttempts - 1),
     ].reduce(

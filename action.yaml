@@ -30,7 +30,7 @@ inputs:
     description: The root directory of the repository.
     required: false
   cli-version:
-    description: The version of trunk-analytics-cli to use, downloaded from trunk.io/releases/analytics-cli. `latest` resolves to the current release.
+    description: The version of trunk-analytics-cli to use, downloaded from trunk.io/releases/analytics-cli. `latest` resolves to the newest 0.x release. analytics-cli 1.0.0 and later need a newer major version of this action.
     required: false
     default: latest
   xcresult-path:

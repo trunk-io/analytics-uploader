@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { backOff } from "exponential-backoff";
 
 import {
+  CLI_MAJOR_VERSION,
   DEFAULT_CLI_VERSION,
   FETCH_WITH_BACK_OFF_CONFIG,
   GITHUB_RELEASES_URL,
@@ -64,11 +65,11 @@ const fetchFromGitHub = async (url: string): Promise<Response> =>
     throw new Error(`Failed to fetch ${url}: ${cause.message}`);
   }, FETCH_WITH_BACK_OFF_CONFIG);
 
-const fetchLatestFromTrunk = async (): Promise<string> => {
-  const response = await fetchFromTrunk(`${RELEASES_URL}/channel.json`);
+const fetchLatestFromTrunk = async (channel: string): Promise<string> => {
+  const response = await fetchFromTrunk(`${RELEASES_URL}/${channel}`);
   const { latest } = (await response.json()) as { latest?: unknown };
   if (typeof latest !== "string" || latest === "") {
-    throw new Error("channel.json has no latest version");
+    throw new Error(`${channel} has no latest version`);
   }
   return latest;
 };
@@ -90,16 +91,42 @@ export interface ResolvedCliVersion {
   fromGitHubLatest: boolean;
 }
 
+const majorVersionOf = (version: string) =>
+  Number.parseInt(version.replace(/^v/, ""), 10);
+
+const keepOnSupportedMajor = (
+  resolved: ResolvedCliVersion,
+): ResolvedCliVersion => {
+  const major = majorVersionOf(resolved.version);
+  if (Number.isNaN(major) || major <= CLI_MAJOR_VERSION) {
+    return resolved;
+  }
+  core.info(
+    `The latest analytics-cli is ${resolved.version}, but this version of the action supports only analytics-cli ${CLI_MAJOR_VERSION.toString()}.x. Using ${DEFAULT_CLI_VERSION}.`,
+  );
+  return { version: DEFAULT_CLI_VERSION, fromGitHubLatest: false };
+};
+
 export const resolveCliVersion = async (
   cliVersion: string,
 ): Promise<ResolvedCliVersion> => {
   if (cliVersion !== LATEST_TAG) {
     return { version: cliVersion, fromGitHubLatest: false };
   }
+  const majorChannel = `channel-${CLI_MAJOR_VERSION.toString()}.json`;
   try {
-    const version = await fetchLatestFromTrunk();
+    const version = await fetchLatestFromTrunk(majorChannel);
     core.info(`Resolved "${LATEST_TAG}" to version: ${version}`);
-    return { version, fromGitHubLatest: false };
+    return keepOnSupportedMajor({ version, fromGitHubLatest: false });
+  } catch (majorChannelError: unknown) {
+    logDetail(
+      `Could not read ${majorChannel} (${errorMessage(majorChannelError)}); using channel.json.`,
+    );
+  }
+  try {
+    const version = await fetchLatestFromTrunk("channel.json");
+    core.info(`Resolved "${LATEST_TAG}" to version: ${version}`);
+    return keepOnSupportedMajor({ version, fromGitHubLatest: false });
   } catch (trunkError: unknown) {
     core.warning(
       `Failed to resolve the latest version from trunk.io: ${errorMessage(trunkError)}. Falling back to GitHub releases.`,
@@ -108,7 +135,7 @@ export const resolveCliVersion = async (
   try {
     const version = await fetchLatestFromGitHub();
     core.info(`Resolved "${LATEST_TAG}" to version: ${version} (GitHub)`);
-    return { version, fromGitHubLatest: true };
+    return keepOnSupportedMajor({ version, fromGitHubLatest: true });
   } catch (githubError: unknown) {
     core.warning(
       `Failed to resolve latest version: ${errorMessage(githubError)}. Falling back to version ${DEFAULT_CLI_VERSION}.`,

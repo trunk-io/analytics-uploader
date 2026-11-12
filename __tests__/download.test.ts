@@ -10,7 +10,11 @@ import {
   MSW_MOCKS,
   releasesManifestHandler,
 } from "../__fixtures__/msw.js";
-import { FETCH_WITH_BACK_OFF_CONFIG, RELEASES_URL } from "../src/constants.js";
+import {
+  DEFAULT_CLI_VERSION,
+  FETCH_WITH_BACK_OFF_CONFIG,
+  RELEASES_URL,
+} from "../src/constants.js";
 
 jest.unstable_mockModule("@actions/core", () => core);
 jest.unstable_mockModule("@actions/github", () => github);
@@ -81,19 +85,19 @@ describe("Downloading the CLI", () => {
 
   it("downloads the version channel.json names and never touches GitHub", async () => {
     const { handler: channelHandler } = MSW_MOCKS.releasesChannel()
-      .addSuccessfulResponse("1.2.3")
+      .addSuccessfulResponse("0.18.3")
       .build();
     const { handler: artifactDownloadHandler, mock: artifactDownloadMock } =
-      MSW_MOCKS.releasesArtifactDownload("1.2.3")
+      MSW_MOCKS.releasesArtifactDownload("0.18.3")
         .addSuccessfulResponse()
         .build();
     const { handler: githubLatestHandler, mock: githubLatestMock } =
-      MSW_MOCKS.githubLatestTag().addSuccessfulResponse("1.2.3").build();
+      MSW_MOCKS.githubLatestTag().addSuccessfulResponse("0.18.3").build();
     const { handler: githubDownloadHandler, mock: githubDownloadMock } =
-      MSW_MOCKS.githubVersionDownload("1.2.3").addSuccessfulResponse().build();
+      MSW_MOCKS.githubVersionDownload("0.18.3").addSuccessfulResponse().build();
     server.use([
       channelHandler,
-      releasesManifestHandler("1.2.3"),
+      releasesManifestHandler("0.18.3"),
       artifactDownloadHandler,
       githubLatestHandler,
       githubDownloadHandler,
@@ -109,10 +113,152 @@ describe("Downloading the CLI", () => {
     );
     expect(artifactDownloadMock).toHaveBeenCalledTimes(1);
     expect(artifactDownloadMock.mock.calls[0][0].url).toMatch(
-      new RegExp(`^${RELEASES_URL}/1\\.2\\.3/trunk-analytics-cli-`),
+      new RegExp(`^${RELEASES_URL}/0\\.18\\.3/trunk-analytics-cli-`),
     );
     expect(githubLatestMock).not.toHaveBeenCalled();
     expect(githubDownloadMock).not.toHaveBeenCalled();
+  });
+
+  it("installs the version channel-0.json names, without reading channel.json", async () => {
+    const { handler: majorChannelHandler } = MSW_MOCKS.releasesMajorChannel(0)
+      .addSuccessfulResponse("0.17.4")
+      .build();
+    const { handler: channelHandler, mock: channelMock } =
+      MSW_MOCKS.releasesChannel().addSuccessfulResponse("1.0.0").build();
+    const { handler: artifactDownloadHandler, mock: artifactDownloadMock } =
+      MSW_MOCKS.releasesArtifactDownload("0.17.4")
+        .addSuccessfulResponse()
+        .build();
+    server.use([
+      majorChannelHandler,
+      channelHandler,
+      releasesManifestHandler("0.17.4"),
+      artifactDownloadHandler,
+      telemetryHandler(),
+    ]);
+    mockInputs("latest");
+
+    await runMain();
+
+    expect(core.setFailed).not.toHaveBeenCalled();
+    expect(channelMock).not.toHaveBeenCalled();
+    expect(artifactDownloadMock).toHaveBeenCalledTimes(1);
+    expect(artifactDownloadMock.mock.calls[0][0].url).toMatch(
+      new RegExp(`^${RELEASES_URL}/0\\.17\\.4/trunk-analytics-cli-`),
+    );
+  });
+
+  it("installs the last 0.x release when channel-0.json names 1.0.0", async () => {
+    const { handler: majorChannelHandler } = MSW_MOCKS.releasesMajorChannel(0)
+      .addSuccessfulResponse("1.0.0")
+      .build();
+    const { handler: artifactDownloadHandler, mock: artifactDownloadMock } =
+      MSW_MOCKS.releasesArtifactDownload(DEFAULT_CLI_VERSION)
+        .addSuccessfulResponse()
+        .build();
+    server.use([
+      majorChannelHandler,
+      releasesManifestHandler(DEFAULT_CLI_VERSION),
+      artifactDownloadHandler,
+      telemetryHandler(),
+    ]);
+    mockInputs("latest");
+
+    await runMain();
+
+    expect(core.setFailed).not.toHaveBeenCalled();
+    expect(artifactDownloadMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("installs the last 0.x release when channel-0.json is unpublished and channel.json names 1.0.0", async () => {
+    const { handler: channelHandler } = MSW_MOCKS.releasesChannel()
+      .addSuccessfulResponse("1.0.0")
+      .build();
+    const { handler: artifactDownloadHandler, mock: artifactDownloadMock } =
+      MSW_MOCKS.releasesArtifactDownload(DEFAULT_CLI_VERSION)
+        .addSuccessfulResponse()
+        .build();
+    server.use([
+      channelHandler,
+      releasesManifestHandler(DEFAULT_CLI_VERSION),
+      artifactDownloadHandler,
+      telemetryHandler(),
+    ]);
+    mockInputs("latest");
+
+    await runMain();
+
+    expect(core.setFailed).not.toHaveBeenCalled();
+    expect(artifactDownloadMock).toHaveBeenCalledTimes(1);
+    expect(artifactDownloadMock.mock.calls[0][0].url).toMatch(
+      new RegExp(
+        `^${RELEASES_URL}/${DEFAULT_CLI_VERSION.replaceAll(".", "\\.")}/trunk-analytics-cli-`,
+      ),
+    );
+  });
+
+  it("installs the last 0.x release by its own tag when GitHub's latest is 1.0.0", async () => {
+    const { handler: channelHandler } = MSW_MOCKS.releasesChannel()
+      .addErrorResponse()
+      .addErrorResponse()
+      .addErrorResponse()
+      .build();
+    const { handler: githubLatestHandler } = MSW_MOCKS.githubLatestTag()
+      .addSuccessfulResponse("1.0.0")
+      .build();
+    const { handler: githubTagHandler } = MSW_MOCKS.githubVersionTag("1.0.0")
+      .addSuccessfulResponse()
+      .build();
+    const { handler: manifestHandler } = MSW_MOCKS.releasesManifest(
+      DEFAULT_CLI_VERSION,
+    )
+      .addErrorResponse()
+      .build();
+    const { handler: githubDownloadHandler, mock: githubDownloadMock } =
+      MSW_MOCKS.githubVersionDownload(DEFAULT_CLI_VERSION)
+        .addSuccessfulResponse()
+        .build();
+    const {
+      handler: githubLatestDownloadHandler,
+      mock: githubLatestDownloadMock,
+    } = MSW_MOCKS.githubLatestDownload().addSuccessfulResponse().build();
+    server.use([
+      channelHandler,
+      githubLatestHandler,
+      githubTagHandler,
+      manifestHandler,
+      githubDownloadHandler,
+      githubLatestDownloadHandler,
+      telemetryHandler(),
+    ]);
+    mockInputs("latest");
+
+    await runMain();
+
+    expect(core.setFailed).not.toHaveBeenCalled();
+    expect(githubDownloadMock).toHaveBeenCalledTimes(1);
+    expect(githubLatestDownloadMock).not.toHaveBeenCalled();
+  });
+
+  it("installs 1.0.0 when cli-version names it", async () => {
+    const { handler: artifactDownloadHandler, mock: artifactDownloadMock } =
+      MSW_MOCKS.releasesArtifactDownload("1.0.0")
+        .addSuccessfulResponse()
+        .build();
+    server.use([
+      releasesManifestHandler("1.0.0"),
+      artifactDownloadHandler,
+      telemetryHandler(),
+    ]);
+    mockInputs("1.0.0");
+
+    await runMain();
+
+    expect(core.setFailed).not.toHaveBeenCalled();
+    expect(artifactDownloadMock).toHaveBeenCalledTimes(1);
+    expect(artifactDownloadMock.mock.calls[0][0].url).toMatch(
+      new RegExp(`^${RELEASES_URL}/1\\.0\\.0/trunk-analytics-cli-`),
+    );
   });
 
   it("falls back to GitHub's pinned download when trunk.io does not have the version", async () => {
@@ -137,13 +283,13 @@ describe("Downloading the CLI", () => {
       ...Array<undefined>(FETCH_WITH_BACK_OFF_CONFIG.numOfAttempts),
     ].reduce(
       (acc) => acc.addErrorResponse(500),
-      MSW_MOCKS.releasesManifest("1.2.3"),
+      MSW_MOCKS.releasesManifest("0.18.3"),
     );
     const { handler: manifestHandler, mock: manifestMock } = builder.build();
     const { handler: githubDownloadHandler, mock: githubDownloadMock } =
-      MSW_MOCKS.githubVersionDownload("1.2.3").addSuccessfulResponse().build();
+      MSW_MOCKS.githubVersionDownload("0.18.3").addSuccessfulResponse().build();
     server.use([manifestHandler, githubDownloadHandler, telemetryHandler()]);
-    mockInputs("1.2.3");
+    mockInputs("0.18.3");
 
     await runMain();
 
@@ -162,12 +308,12 @@ describe("Downloading the CLI", () => {
       .addErrorResponse()
       .build();
     const { handler: githubLatestHandler } = MSW_MOCKS.githubLatestTag()
-      .addSuccessfulResponse("1.2.3")
+      .addSuccessfulResponse("0.18.3")
       .build();
-    const { handler: githubTagHandler } = MSW_MOCKS.githubVersionTag("1.2.3")
+    const { handler: githubTagHandler } = MSW_MOCKS.githubVersionTag("0.18.3")
       .addSuccessfulResponse()
       .build();
-    const { handler: manifestHandler } = MSW_MOCKS.releasesManifest("1.2.3")
+    const { handler: manifestHandler } = MSW_MOCKS.releasesManifest("0.18.3")
       .addErrorResponse()
       .build();
     const {
@@ -191,28 +337,28 @@ describe("Downloading the CLI", () => {
     expect(githubLatestDownloadMock).toHaveBeenCalledTimes(1);
     expect(cache.restoreCache).toHaveBeenCalledWith(
       expect.anything(),
-      expect.stringMatching(/-1\.2\.3$/),
+      expect.stringMatching(/-0\.18\.3$/),
     );
     expect(core.setFailed).not.toHaveBeenCalled();
   });
 
   it("falls back to GitHub when the trunk.io artifact fails its sha256 check", async () => {
-    const { handler: manifestHandler } = MSW_MOCKS.releasesManifest("1.2.3")
+    const { handler: manifestHandler } = MSW_MOCKS.releasesManifest("0.18.3")
       .addSuccessfulResponse("0".repeat(64))
       .build();
     const { handler: artifactDownloadHandler } =
-      MSW_MOCKS.releasesArtifactDownload("1.2.3")
+      MSW_MOCKS.releasesArtifactDownload("0.18.3")
         .addSuccessfulResponse()
         .build();
     const { handler: githubDownloadHandler, mock: githubDownloadMock } =
-      MSW_MOCKS.githubVersionDownload("1.2.3").addSuccessfulResponse().build();
+      MSW_MOCKS.githubVersionDownload("0.18.3").addSuccessfulResponse().build();
     server.use([
       manifestHandler,
       artifactDownloadHandler,
       githubDownloadHandler,
       telemetryHandler(),
     ]);
-    mockInputs("1.2.3");
+    mockInputs("0.18.3");
 
     await runMain();
 
@@ -230,26 +376,26 @@ describe("Downloading the CLI", () => {
       "Extracting ",
       "Extraction complete",
       "Checking trunk-analytics-cli version...",
-      "trunk-analytics-cli 1.2.3",
+      "trunk-analytics-cli 0.18.3",
     ];
 
     const useHandlers = () => {
       server.use([
-        MSW_MOCKS.releasesArtifactDownload("1.2.3")
+        MSW_MOCKS.releasesArtifactDownload("0.18.3")
           .addSuccessfulResponse()
           .build().handler,
-        releasesManifestHandler("1.2.3"),
+        releasesManifestHandler("0.18.3"),
         telemetryHandler(),
       ]);
       child_process.execSync.mockImplementation(((command: string) =>
         command.endsWith("--version")
-          ? "trunk-analytics-cli 1.2.3\n"
+          ? "trunk-analytics-cli 0.18.3\n"
           : "") as typeof import("node:child_process").execSync);
     };
 
     it("keeps download, extraction and version lines out of the log by default", async () => {
       useHandlers();
-      mockInputs("1.2.3");
+      mockInputs("0.18.3");
 
       await runMain();
 
@@ -266,7 +412,7 @@ describe("Downloading the CLI", () => {
 
     it("logs download, extraction and version lines when verbose", async () => {
       useHandlers();
-      mockInputs("1.2.3", true);
+      mockInputs("0.18.3", true);
 
       await runMain();
 
@@ -281,13 +427,13 @@ describe("Downloading the CLI", () => {
 
     beforeEach(() => {
       server.use([
-        MSW_MOCKS.releasesArtifactDownload("1.2.3")
+        MSW_MOCKS.releasesArtifactDownload("0.18.3")
           .addSuccessfulResponse()
           .build().handler,
-        releasesManifestHandler("1.2.3"),
+        releasesManifestHandler("0.18.3"),
         telemetryHandler(),
       ]);
-      mockInputs("1.2.3", false, { "summary-output-file": SUMMARY_PATH });
+      mockInputs("0.18.3", false, { "summary-output-file": SUMMARY_PATH });
     });
 
     it("gives the summary's path when the cli wrote one", async () => {

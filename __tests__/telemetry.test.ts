@@ -37,7 +37,7 @@ describe("sendTelemetry", () => {
       MSW_MOCKS.telemetryUpload().addSuccessfulResponse().build();
     server.use([telemetryUploadHandler]);
 
-    await sendTelemetry("test-token", "v1.2.3");
+    await sendTelemetry("test-token", "v0.18.3");
 
     expect(telemetryUploadMock).toHaveBeenCalledTimes(1);
   });
@@ -152,12 +152,12 @@ describe("sendTelemetry", () => {
     },
     {
       description: "Returns a value for a non-version string",
-      version: "revert-v1.2.3-alpha",
+      version: "revert-v0.18.3-alpha",
       expectedUploaderVersion: {
         major: 0,
         minor: 0,
         patch: 0,
-        suffix: "revert-v1.2.3-alpha",
+        suffix: "revert-v0.18.3-alpha",
       },
     },
     {
