@@ -219,17 +219,43 @@ describe("main", () => {
 
     it("fails when the version has no build for this platform", async () => {
       server.use([
-        MSW_MOCKS.trunkCliManifest("0.0.13")
+        MSW_MOCKS.trunkCliManifest("0.0.14")
           .addSuccessfulResponse(undefined, ["some-other-platform"])
           .build().handler,
       ]);
-      mockInputs({ "trunk-cli-version": "0.0.13" });
+      mockInputs({ "trunk-cli-version": "0.0.14" });
 
       await runMain();
 
       expect(core.setFailed).toHaveBeenCalledWith(
-        `Could not download the trunk CLI 0.0.13: trunk CLI 0.0.13 has no ${PLATFORM} build`,
+        `Could not download the trunk CLI 0.0.14: trunk CLI 0.0.14 has no ${PLATFORM} build`,
       );
+    });
+
+    it("refuses a pinned trunk CLI older than the minimum", async () => {
+      mockInputs({ "trunk-cli-version": "v0.0.13" });
+
+      await runMain();
+
+      expect(core.setFailed).toHaveBeenCalledWith(
+        expect.stringMatching(/^trunk CLI 0\.0\.13 is older than 0\.0\.14/),
+      );
+      expect(child_process.execFileSync).not.toHaveBeenCalled();
+    });
+
+    it("refuses a latest trunk CLI older than the minimum", async () => {
+      server.use([
+        MSW_MOCKS.trunkCliChannel().addSuccessfulResponse("0.0.13").build()
+          .handler,
+      ]);
+      mockInputs({ "trunk-cli-version": "latest" });
+
+      await runMain();
+
+      expect(core.setFailed).toHaveBeenCalledWith(
+        expect.stringMatching(/^trunk CLI 0\.0\.13 is older than 0\.0\.14/),
+      );
+      expect(child_process.execFileSync).not.toHaveBeenCalled();
     });
 
     it("fails when the download does not match the manifest's sha256", async () => {
@@ -321,6 +347,16 @@ describe("main", () => {
 
       expect(flakytestsRun().env).toMatchObject({
         TRUNK_ANALYTICS_CLI_VERSION: "1.0.0-rc.1",
+      });
+    });
+
+    it("drops a leading v from cli-version", async () => {
+      mockInputs({ "cli-version": "v1.0.0" });
+
+      await runMain();
+
+      expect(flakytestsRun().env).toMatchObject({
+        TRUNK_ANALYTICS_CLI_VERSION: "1.0.0",
       });
     });
   });

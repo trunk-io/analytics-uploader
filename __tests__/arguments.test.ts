@@ -89,20 +89,10 @@ describe("validateInputs", () => {
     }).toThrow("Missing token or allow-forked-pr-uploads");
   });
 
-  it("accepts a legacy organization token for an upload", () => {
+  it("refuses a legacy organization token", () => {
     expect(() => {
       validateInputs({ ...DEFAULT_VALIDATE_INPUTS, token: "legacy-token" });
-    }).not.toThrow();
-  });
-
-  it("refuses a legacy organization token with run", () => {
-    expect(() => {
-      validateInputs({
-        ...DEFAULT_VALIDATE_INPUTS,
-        token: "legacy-token",
-        run: "npm test",
-      });
-    }).toThrow("The run input needs a v2 API key");
+    }).toThrow("token must be a v2 API key");
   });
 
   it("accepts run on a fork pull request with no token", () => {

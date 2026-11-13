@@ -31,7 +31,7 @@ inputs:
     required: false
     default: latest
   trunk-cli-version:
-    description: The version of the trunk CLI to install from trunk.io/releases/trunk-cli. `latest` resolves to the newest release on the prod channel.
+    description: The version of the trunk CLI to install from trunk.io/releases/trunk-cli. `latest` resolves to the newest release on the prod channel. Needs 0.0.14 or later.
     required: false
     default: latest
   xcresult-path:

@@ -91,9 +91,9 @@ jobs:
 | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
 | `repo-head-branch`                | Value to override branch of repository head.                                                                                                                                                                   |          |
 | `repo-root`                       | The root directory of the repository.                                                                                                                                                                          |          |
-| `run`                             | The command to run before uploading test results. It runs under `/bin/sh -c` (`cmd.exe /c` on Windows), as in v2, so shell syntax works. Needs a v2 API key as `token`.                                        |          |
+| `run`                             | The command to run before uploading test results. It runs under `/bin/sh -c` (`cmd.exe /c` on Windows), as in v2, so shell syntax works.                                                                       |          |
 | `cli-version`                     | The version of trunk-analytics-cli the trunk CLI runs. `latest` resolves to the newest 1.x release. This version of the action needs analytics-cli 1.x.                                                        | `latest` |
-| `trunk-cli-version`               | The version of the trunk CLI to install from `trunk.io/releases/trunk-cli`. `latest` resolves to the newest release.                                                                                           | `latest` |
+| `trunk-cli-version`               | The version of the trunk CLI to install from `trunk.io/releases/trunk-cli`. `latest` resolves to the newest release. Needs 0.0.14 or later.                                                                    | `latest` |
 | `quarantine`                      | Set to `false` to turn quarantining off for this upload, so every failing test fails the step. Leave it unset (or `true`) to quarantine as configured in Trunk.                                                |          |
 | `use-bazel-target-for-codeowners` | Use the Bazel target label as a fallback path for CODEOWNERS association when no file attribute is present in the JUnit XML. Only relevant when uploading a Bazel BEP file via `bazel-bep-path`.               | `false`  |
 | `allow-missing-junit-files`       | Whether or not to allow missing junit files in the upload invocation.                                                                                                                                          | `true`   |
@@ -113,7 +113,7 @@ jobs:
 
 ## Migrating from v2
 
-- **Credential.** `token` takes a v2 API key (`trunk_v2_...`) with the Upload test results permission, from Settings → Developer → API Keys. An organization token still uploads, but not with `run`. The action no longer reads `TRUNK_API_TOKEN` from the environment: pass the key as `token`.
+- **Credential.** `token` takes a v2 API key (`trunk_v2_...`) with the Upload test results permission, from Settings → Developer → API Keys. The action refuses an organization token; stay on `@v2` to keep using one. The action no longer reads `TRUNK_API_TOKEN` from the environment: pass the key as `token`.
 - **`test-collection-id` is required.** analytics-cli 1.x uploads only to a test collection.
 - **Removed inputs.** `public-repo-id` (use `allow-forked-pr-uploads` on fork pull requests) and `hide-banner`.
 - **`quarantine`.** Only `false` changes anything: it turns quarantining off. `true` is the default and passes nothing.

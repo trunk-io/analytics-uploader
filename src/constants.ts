@@ -11,6 +11,9 @@ export const ANALYTICS_CLI_RELEASES_URL =
 export const CLI_MAJOR_VERSION = 1;
 export const ANALYTICS_CLI_CHANNEL = `channel-${CLI_MAJOR_VERSION.toString()}.json`;
 export const V2_API_KEY_PREFIX = "trunk_v2_";
+// The first trunk CLI release that checks the key at `auth api-key set` and hands
+// analytics-cli 1.x a credential (trunk2#8432, after cli/0.0.13).
+export const MIN_TRUNK_CLI_VERSION = "0.0.14";
 
 export const FETCH_WITH_BACK_OFF_CONFIG = {
   delayFirstAttempt: false,
