@@ -8,6 +8,7 @@ import {
   CLI_MAJOR_VERSION,
   FETCH_WITH_BACK_OFF_CONFIG,
   LATEST_TAG,
+  MIN_TRUNK_CLI_VERSION,
   TRUNK_CLI_RELEASES_URL,
 } from "./constants";
 import { logDetail } from "./log";
@@ -60,22 +61,51 @@ const fetchLatest = async (url: string): Promise<string> => {
 const majorVersionOf = (version: string) =>
   Number.parseInt(version.replace(/^v/, ""), 10);
 
+const releaseParts = (version: string) =>
+  version
+    .split(/[-+]/, 1)[0]
+    .split(".")
+    .map((part) => Number.parseInt(part, 10));
+
+const isOlderThan = (version: string, minimum: string) => {
+  const have = releaseParts(version);
+  const want = releaseParts(minimum);
+  for (let i = 0; i < want.length; i++) {
+    const part = have[i] ?? 0;
+    if (Number.isNaN(part) || part !== want[i]) {
+      return Number.isNaN(part) || part < want[i];
+    }
+  }
+  return false;
+};
+
+const ensureMinimumTrunkCli = (version: string) => {
+  if (isOlderThan(version, MIN_TRUNK_CLI_VERSION)) {
+    throw new CliFetchError(
+      `trunk CLI ${version} is older than ${MIN_TRUNK_CLI_VERSION}, the first release that hands analytics-cli 1.x a credential. Set trunk-cli-version to ${MIN_TRUNK_CLI_VERSION} or later.`,
+      new Error(version),
+    );
+  }
+  return version;
+};
+
 export const resolveTrunkCliVersion = async (
   input: string,
 ): Promise<string> => {
   if (input !== LATEST_TAG) {
-    return input;
+    return ensureMinimumTrunkCli(input);
   }
+  let version: string;
   try {
-    const version = await fetchLatest(`${TRUNK_CLI_RELEASES_URL}/channel.json`);
-    core.info(`Resolved trunk CLI "${LATEST_TAG}" to version: ${version}`);
-    return version;
+    version = await fetchLatest(`${TRUNK_CLI_RELEASES_URL}/channel.json`);
   } catch (error: unknown) {
     throw new CliFetchError(
       `Could not resolve the latest trunk CLI: ${errorMessage(error)}`,
       error,
     );
   }
+  core.info(`Resolved trunk CLI "${LATEST_TAG}" to version: ${version}`);
+  return ensureMinimumTrunkCli(version);
 };
 
 // The trunk CLI would resolve `latest` from channel.json, which can name a 0.x release, and

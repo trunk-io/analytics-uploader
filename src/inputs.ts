@@ -17,6 +17,9 @@ const parseTriState = (input: string): boolean | null => {
   }
 };
 
+// The trunk CLI takes only plain semver, while v2 users wrote tags such as `v0.17.0`.
+const withoutLeadingV = (input: string) => input.replace(/^v(?=\d)/, "");
+
 const parseBoolean = (input: string): boolean => Boolean(parseTriState(input));
 
 export const getInputs = () =>
@@ -31,8 +34,9 @@ export const getInputs = () =>
     repoHeadBranch: core.getInput("repo-head-branch"),
     run: core.getInput("run"),
     repoRoot: core.getInput("repo-root"),
-    cliVersion: core.getInput("cli-version") || LATEST_TAG,
-    trunkCliVersion: core.getInput("trunk-cli-version") || LATEST_TAG,
+    cliVersion: withoutLeadingV(core.getInput("cli-version")) || LATEST_TAG,
+    trunkCliVersion:
+      withoutLeadingV(core.getInput("trunk-cli-version")) || LATEST_TAG,
     xcresultPath: core.getInput("xcresult-path"),
     bazelBepPath: core.getInput("bazel-bep-path"),
     // The CLI reads this env var itself, so callers were setting it directly
@@ -99,15 +103,11 @@ export const validateInputs = (
   if (!inputs.token && !inputs.allowForkedPrUploads) {
     throw new Error("Missing token or allow-forked-pr-uploads");
   }
-  // The trunk CLI hands `test` the stored key itself, and analytics-cli 1.x refuses a legacy
-  // organization token; `upload` gets a JWT, which works for either.
-  if (
-    inputs.run &&
-    inputs.token &&
-    !inputs.token.startsWith(V2_API_KEY_PREFIX)
-  ) {
+  // `upload` alone would still work with an organization token, which the gateway exchanges
+  // for a JWT, but Trunk is retiring that token on v2 and analytics-cli 1.x refuses it.
+  if (inputs.token && !inputs.token.startsWith(V2_API_KEY_PREFIX)) {
     throw new Error(
-      `The run input needs a v2 API key (${V2_API_KEY_PREFIX}...) as token. Create one with the Upload test results permission in Trunk under Settings → Developer → API Keys.`,
+      `token must be a v2 API key (${V2_API_KEY_PREFIX}...). Create one with the Upload test results permission in Trunk under Settings → Developer → API Keys, or stay on analytics-uploader@v2 to keep using the organization token.`,
     );
   }
 };
