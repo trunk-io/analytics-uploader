@@ -3,42 +3,32 @@ import { jest } from "@jest/globals";
 import * as core from "../__fixtures__/core.js";
 jest.unstable_mockModule("@actions/core", () => core);
 
-const { getFailureReason } = await import("../src/lib.js");
+const { CliExitError, handleFailure } = await import("../src/lib.js");
 const { CliFetchError } = await import("../src/release.js");
 
-// The shape execSync throws when the command exits non-zero.
-const commandFailed = (status: number) =>
-  Object.assign(
-    new Error(
-      "Command failed: trunk-analytics-cli upload --token secret-token",
-    ),
-    { status },
-  );
+const runExited = (status: number) => new CliExitError(status);
 
-describe("getFailureReason", () => {
+describe("handleFailure", () => {
   beforeEach(() => {
     core.setFailed.mockClear();
   });
 
-  it("given Error with 'Command failed' and our 70 exit code", () => {
-    const actual = getFailureReason(commandFailed(70), "success");
-    expect(actual).toBe("Command failed with exit code 70");
+  it("given the run exited with our 70 exit code", () => {
+    handleFailure(runExited(70), "success");
     expect(core.setFailed).toHaveBeenCalledWith(
       "A failure occurred while executing the command -- see above for details",
     );
   });
 
-  it("given Error with 'Command failed' and our 70 exit code, and the previous step failed", () => {
-    const actual = getFailureReason(commandFailed(70), "failure");
-    expect(actual).toBe("Command failed with exit code 70");
+  it("given the run exited with our 70 exit code, and the previous step failed", () => {
+    handleFailure(runExited(70), "failure");
     expect(core.setFailed).toHaveBeenCalledWith(
       "A failure occurred while executing the command -- see above for details",
     );
   });
 
-  it("given Error with 'Command failed' and the previous step failed", () => {
-    const actual = getFailureReason(commandFailed(1), "failure");
-    expect(actual).toBe(undefined);
+  it("given the run failed and the previous step failed", () => {
+    handleFailure(runExited(1), "failure");
     expect(core.setFailed).toHaveBeenCalledWith(
       "The step that ran the tests failed -- see above for details. If no failing tests are listed, it failed without reporting any (for example: no test files matched, or it exited before writing results).",
     );
@@ -53,28 +43,18 @@ describe("getFailureReason", () => {
     });
 
     it("fails the step without a second annotation", () => {
-      const actual = getFailureReason(
-        commandFailed(1),
-        "failure",
-        annotateFailure,
-      );
-      expect(actual).toBe(undefined);
+      handleFailure(runExited(1), "failure", annotateFailure);
       expect(core.setFailed).not.toHaveBeenCalled();
       expect(process.exitCode).toBe(1);
     });
 
-    it("still reports our 70 exit code to telemetry", () => {
-      const actual = getFailureReason(
-        commandFailed(70),
-        "failure",
-        annotateFailure,
-      );
-      expect(actual).toBe("Command failed with exit code 70");
+    it("lets the cli annotate its own failure", () => {
+      handleFailure(runExited(70), "failure", annotateFailure);
       expect(core.setFailed).not.toHaveBeenCalled();
     });
 
     it("words a cancelled step itself, since the cli saw it as failed", () => {
-      getFailureReason(commandFailed(1), "cancelled", annotateFailure);
+      handleFailure(runExited(1), "cancelled", annotateFailure);
       expect(annotateFailure).not.toHaveBeenCalled();
       expect(core.setFailed).toHaveBeenCalledWith(
         "The step that ran the tests was cancelled -- the uploaded results are likely incomplete.",
@@ -83,48 +63,51 @@ describe("getFailureReason", () => {
   });
 
   it("given the cli can't annotate the failure", () => {
-    getFailureReason(commandFailed(1), "failure", () => false);
+    handleFailure(runExited(1), "failure", () => false);
     expect(core.setFailed).toHaveBeenCalledWith(
       "The step that ran the tests failed -- see above for details. If no failing tests are listed, it failed without reporting any (for example: no test files matched, or it exited before writing results).",
     );
   });
 
-  it("given Error with 'Command failed' and the previous step cancelled", () => {
-    const actual = getFailureReason(commandFailed(1), "CANCELLED");
-    expect(actual).toBe(undefined);
+  it("given the run failed and the previous step cancelled", () => {
+    handleFailure(runExited(1), "CANCELLED");
     expect(core.setFailed).toHaveBeenCalledWith(
       "The step that ran the tests was cancelled -- the uploaded results are likely incomplete.",
     );
   });
 
-  it("given Error with 'Command failed' and the previous step succeeded", () => {
-    const actual = getFailureReason(commandFailed(1), "success");
-    expect(actual).toBe(undefined);
+  it("given the run failed and the previous step succeeded", () => {
+    handleFailure(runExited(1), "success");
     expect(core.setFailed).toHaveBeenCalledWith(
       "A failure occurred while executing the command -- see above for details",
     );
   });
 
-  it("given other Error with an extremely long message", () => {
-    const expected =
-      "123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 ";
-    const actual = getFailureReason(new Error(expected), "failure");
-    expect(actual).toBe(expected.substring(0, 100));
+  it("given another Error, fails with its message", () => {
+    handleFailure(new Error("Missing test-collection-id"), "failure");
+    expect(core.setFailed).toHaveBeenCalledWith("Missing test-collection-id");
   });
 
   it("given a non-Error", () => {
-    const actual = getFailureReason(
-      { key: "wow something went wrong" },
-      "failure",
-    );
-    expect(actual).toBe("An unknown error occurred");
+    handleFailure({ key: "wow something went wrong" }, "failure");
+    expect(core.setFailed).toHaveBeenCalledWith("An unknown error occurred");
   });
 
   it("when we fail to fetch the cli", () => {
-    const actual = getFailureReason(
+    handleFailure(
       new CliFetchError("test message", new Error("cause")),
       "failure",
     );
-    expect(actual).toBe(undefined);
+    expect(core.setFailed).toHaveBeenCalledWith("test message");
+  });
+
+  it("never annotates a failure that is not the cli's run", () => {
+    const annotateFailure = jest.fn(() => true);
+    handleFailure(
+      new Error("Trunk did not accept the token"),
+      "failure",
+      annotateFailure,
+    );
+    expect(annotateFailure).not.toHaveBeenCalled();
   });
 });

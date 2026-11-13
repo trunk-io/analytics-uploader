@@ -10,13 +10,10 @@ inputs:
     description: Organization slug.
     required: true
   token:
-    description: Organization token. Defaults to TRUNK_API_TOKEN env var.
-    required: false
-  public-repo-id:
-    description: Non-secret per-repo identifier. Use instead of token on fork PRs where repo secrets are unavailable. Defaults to TRUNK_PUBLIC_REPO_ID env var.
+    description: A Trunk v2 API key (trunk_v2_...) with the Upload test results permission, from Settings → Developer → API Keys in the Trunk app. Stored with `trunk auth api-key set` for this step only; never put on a command line. The action does not read the TRUNK_API_TOKEN env var.
     required: false
   allow-forked-pr-uploads:
-    description: Upload from a forked pull request with no token or public repo id. Requires test-collection-id; the collection must have forked-PR uploads enabled in Trunk.
+    description: Upload from a forked pull request, which cannot read repository secrets and so has no token. Uses the job's GitHub token; the collection must have forked-PR uploads enabled in Trunk.
     required: false
     default: false
     type: boolean
@@ -24,13 +21,17 @@ inputs:
     description: Value to override branch of repository head.
     required: false
   run:
-    description: The command to run before uploading test results.
+    description: The command to run before uploading test results, run by `/bin/sh -c` (`cmd.exe /c` on Windows). Needs a v2 API key as token.
     required: false
   repo-root:
     description: The root directory of the repository.
     required: false
   cli-version:
-    description: The version of trunk-analytics-cli to use, downloaded from trunk.io/releases/analytics-cli. `latest` resolves to the newest 0.x release. analytics-cli 1.0.0 and later need a newer major version of this action.
+    description: The version of trunk-analytics-cli the trunk CLI runs. `latest` resolves to the newest 1.x release from trunk.io/releases/analytics-cli/prod/channel-1.json. This version of the action needs 1.x.
+    required: false
+    default: latest
+  trunk-cli-version:
+    description: The version of the trunk CLI to install from trunk.io/releases/trunk-cli. `latest` resolves to the newest release on the prod channel. Needs 0.0.14 or later.
     required: false
     default: latest
   xcresult-path:
@@ -48,21 +49,18 @@ inputs:
     default: false
     type: boolean
   quarantine:
-    description: Whether or not to allow quarantining of failing tests.
+    description: Set to false to turn quarantining off for this upload, so every failing test fails the step. Leave it unset (or true) to quarantine as configured in Trunk.
     required: false
   allow-missing-junit-files:
     description: Whether or not to allow missing junit files in the upload invocation.
     required: false
     default: true
-  hide-banner:
-    description: Whether to hide the top level flaky tests banner
-    required: false
   variant:
     description: User specified variant of a set of tests being uploaded. Not usually necessary; set it only when the same tests run in different environments and should be tracked separately.
     required: false
   test-collection-id:
-    description: 8 character alphanumeric ID of the test collection to upload to. Required unless your organization is still migrating from legacy repo uploads.
-    required: false
+    description: 8 character alphanumeric ID of the test collection to upload to, shown on the collection's page in Trunk.
+    required: true
   verbose:
     description: Enable verbose logging
     default: false
@@ -75,7 +73,7 @@ inputs:
     description: Set to 'true' if your tests do not require cloning the repository under test,
     required: false
     default: false
-    type: true
+    type: boolean
   previous-step-outcome:
     description: The outcome of the previous step in the workflow. Set this equal to steps.[id].outcome where `[id]` is the id of the corresponding test run.
     required: false
@@ -105,9 +103,6 @@ inputs:
   gh-repo-head-author-name:
     description: The actor triggering the action
     default: ${{ github.actor }}
-  gh-action-ref:
-    description: The ref of the action being used
-    default: ${{ github.action_ref }}
   show-failure-messages:
     description: Show failure outputs in upload. This is experimental, do not rely on this.
     type: boolean
@@ -118,14 +113,14 @@ inputs:
     default: false
     required: false
   use-cache:
-    description: Cache the trunk-analytics-cli binary to reduce subsequent downloads. Set to false to download it on every run.
+    description: Cache the trunk CLI and trunk-analytics-cli binaries to reduce subsequent downloads. Set to false to download them on every run.
     type: boolean
     default: true
     required: false
 
 outputs:
   summary-output-file:
-    description: Path to the CLI's JSON summary of the run. Set only when the CLI wrote one, which needs a CLI version with `--summary-output-file`.
+    description: Path to the CLI's JSON summary of the run. Set only when the CLI wrote one.
 
 runs:
   using: node24

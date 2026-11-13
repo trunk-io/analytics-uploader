@@ -10,39 +10,38 @@ import { jest } from "@jest/globals";
 
 import { createHash } from "node:crypto";
 import {
-  GITHUB_RELEASES_URL,
-  RELEASES_URL,
-  TELEMETRY_ENDPOINT_DEFAULT,
+  ANALYTICS_CLI_CHANNEL,
+  ANALYTICS_CLI_RELEASES_URL,
+  TRUNK_CLI_RELEASES_URL,
 } from "../src/constants";
 
 export const FAKE_BINARY = Buffer.from("fake-binary-data");
+export const FAKE_BINARY_SHA256 = createHash("sha256")
+  .update(FAKE_BINARY)
+  .digest("hex");
 
-const ARTIFACT_NAMES = [
-  "trunk-analytics-cli-aarch64-apple-darwin.tar.gz",
-  "trunk-analytics-cli-x86_64-apple-darwin.tar.gz",
-  "trunk-analytics-cli-aarch64-unknown-linux.tar.gz",
-  "trunk-analytics-cli-x86_64-unknown-linux.tar.gz",
-  "trunk-analytics-cli-x86_64-pc-windows-gnu-experimental.zip",
+const TRUNK_CLI_PLATFORMS = [
+  "darwin-arm64",
+  "darwin-x64",
+  "linux-arm64",
+  "linux-x64",
+  "windows-x64",
 ];
 
-const manifestFor = (version: string, sha256: string) => ({
+const manifestFor = (
+  version: string,
+  sha256: string,
+  platforms: string[] = TRUNK_CLI_PLATFORMS,
+) => ({
   version,
-  artifacts: Object.fromEntries(
-    ARTIFACT_NAMES.map((name) => [name, { sha256 }]),
-  ),
+  platforms: Object.fromEntries(platforms.map((name) => [name, { sha256 }])),
 });
 
-// Until a suite publishes the per-major pointer, trunk.io answers as it does for a missing object.
-const unpublishedMajorChannelHandler = http.get(
-  `${RELEASES_URL}/channel-0.json`,
-  () => new HttpResponse(null, { status: 403, statusText: "Forbidden" }),
-);
+const escapeRegExp = (value: string) =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 export const createMswServer = (initialHandlers: HttpHandler[]) => {
-  const server = setupServer(
-    unpublishedMajorChannelHandler,
-    ...initialHandlers,
-  );
+  const server = setupServer(...initialHandlers);
   server.listen({
     onUnhandledRequest: "error",
   });
@@ -56,11 +55,7 @@ export const createMswServer = (initialHandlers: HttpHandler[]) => {
     close: () => {
       const allHandlers = server.listHandlers();
       const unusedHandlers = allHandlers.flatMap((handler) =>
-        handler !== unpublishedMajorChannelHandler &&
-        "isUsed" in handler &&
-        !handler.isUsed
-          ? [handler]
-          : [],
+        "isUsed" in handler && !handler.isUsed ? [handler] : [],
       );
       if (unusedHandlers.length > 0) {
         throw new Error(
@@ -142,121 +137,54 @@ const mockResponseBuilder = <T extends unknown[], U extends unknown[]>({
   return builder;
 };
 
+const serverError = () => () =>
+  new HttpResponse(null, {
+    status: 500,
+    statusText: "Internal Server Error",
+  });
+
+// trunk.io answers a missing object with 403.
+const notPublished = () => () =>
+  new HttpResponse(null, { status: 403, statusText: "Forbidden" });
+
 export const MSW_MOCKS = {
-  releasesMajorChannel: (major: number) =>
+  trunkCliChannel: () =>
     mockResponseBuilder({
       method: "get",
-      urlPattern: `${RELEASES_URL}/channel-${major.toString()}.json`,
+      urlPattern: `${TRUNK_CLI_RELEASES_URL}/channel.json`,
       successfulResponse: (latest: string) => () =>
-        HttpResponse.json({ latest }),
-      errorResponse: () => () =>
-        new HttpResponse(null, {
-          status: 500,
-          statusText: "Internal Server Error",
-        }),
+        HttpResponse.json({ latest, minimum_version: "0.0.0" }),
+      errorResponse: serverError,
     }),
-  releasesChannel: () =>
+  trunkCliManifest: (version: string) =>
     mockResponseBuilder({
       method: "get",
-      urlPattern: `${RELEASES_URL}/channel.json`,
-      successfulResponse: (latest: string) => () =>
-        HttpResponse.json({ latest }),
-      errorResponse: () => () =>
-        new HttpResponse(null, {
-          status: 500,
-          statusText: "Internal Server Error",
-        }),
-    }),
-  releasesManifest: (cliVersion: string) =>
-    mockResponseBuilder({
-      method: "get",
-      urlPattern: `${RELEASES_URL}/${cliVersion}/manifest.json`,
+      urlPattern: `${TRUNK_CLI_RELEASES_URL}/${version}/manifest.json`,
       successfulResponse:
-        (
-          sha256: string = createHash("sha256")
-            .update(FAKE_BINARY)
-            .digest("hex"),
-        ) =>
+        (sha256: string = FAKE_BINARY_SHA256, platforms?: string[]) =>
         () =>
-          HttpResponse.json(manifestFor(cliVersion, sha256)),
-      // trunk.io answers a missing object with 403.
-      errorResponse: (status?: number) => () =>
-        new HttpResponse(null, { status: status ?? 403 }),
+          HttpResponse.json(manifestFor(version, sha256, platforms)),
+      errorResponse: (status?: number) =>
+        status === 500 ? serverError() : notPublished(),
     }),
-  releasesArtifactDownload: (cliVersion: string) =>
+  trunkCliDownload: (version: string) =>
     mockResponseBuilder({
       method: "get",
       urlPattern: new RegExp(
-        `^${RELEASES_URL.replace(/[.]/g, "\\.")}/${cliVersion.replace(/[.]/g, "\\.")}/trunk-analytics-cli-[^/]+$`,
+        `^${escapeRegExp(TRUNK_CLI_RELEASES_URL)}/${escapeRegExp(version)}/trunk-${escapeRegExp(version)}-[^/]+$`,
       ),
       successfulResponse: () => () =>
-        new HttpResponse(FAKE_BINARY, {
-          status: 200,
-        }),
-      errorResponse: () => () =>
-        new HttpResponse(null, {
-          status: 500,
-          statusText: "Internal Server Error",
-        }),
-    }),
-  githubLatestTag: () =>
-    mockResponseBuilder({
-      method: "get",
-      urlPattern: `${GITHUB_RELEASES_URL}/latest`,
-      successfulResponse: (version: string) => () =>
-        new HttpResponse(null, {
-          status: 302,
-          headers: { Location: `${GITHUB_RELEASES_URL}/tag/${version}` },
-        }),
-      errorResponse: () => () =>
-        new HttpResponse(null, {
-          status: 500,
-          statusText: "Internal Server Error",
-        }),
-    }),
-  githubVersionTag: (version: string) =>
-    mockResponseBuilder({
-      method: "get",
-      urlPattern: `${GITHUB_RELEASES_URL}/tag/${version}`,
-      successfulResponse: () => () => new HttpResponse(null, { status: 200 }),
-      errorResponse: () => () =>
-        new HttpResponse(null, {
-          status: 500,
-          statusText: "Internal Server Error",
-        }),
-    }),
-  githubLatestDownload: () =>
-    mockResponseBuilder({
-      method: "get",
-      urlPattern: `${GITHUB_RELEASES_URL}/latest/download/:releaseArtifactName`,
-      successfulResponse: () => () =>
         new HttpResponse(FAKE_BINARY, { status: 200 }),
-      errorResponse: () => () =>
-        new HttpResponse(null, { status: 403, statusText: "Forbidden" }),
+      errorResponse: serverError,
     }),
-  githubVersionDownload: (cliVersion: string) =>
+  analyticsCliChannel: () =>
     mockResponseBuilder({
       method: "get",
-      urlPattern: `${GITHUB_RELEASES_URL}/download/${cliVersion}/:releaseArtifactName`,
-      successfulResponse: () => () =>
-        new HttpResponse(FAKE_BINARY, { status: 200 }),
-      // GitHub's rate limiting answers 403.
-      errorResponse: () => () =>
-        new HttpResponse(null, { status: 403, statusText: "Forbidden" }),
-    }),
-  telemetryUpload: (urlPattern: string = TELEMETRY_ENDPOINT_DEFAULT) =>
-    mockResponseBuilder({
-      method: "post",
-      urlPattern,
-      successfulResponse: () => () =>
-        new HttpResponse(null, {
-          status: 200,
-        }),
-      errorResponse: () => () =>
-        new HttpResponse(null, {
-          status: 500,
-          statusText: "Internal Server Error",
-        }),
+      urlPattern: `${ANALYTICS_CLI_RELEASES_URL}/${ANALYTICS_CLI_CHANNEL}`,
+      successfulResponse: (latest: string) => () =>
+        HttpResponse.json({ latest }),
+      errorResponse: (status?: number) =>
+        status === 500 ? serverError() : notPublished(),
     }),
 } as const satisfies Record<
   string,
@@ -265,6 +193,7 @@ export const MSW_MOCKS = {
   (...args: any[]) => MockResponseBuilder<any[], any[]>
 >;
 
-export const releasesManifestHandler = (cliVersion: string) =>
-  MSW_MOCKS.releasesManifest(cliVersion).addSuccessfulResponse().build()
-    .handler;
+export const trunkCliInstallHandlers = (version: string) => [
+  MSW_MOCKS.trunkCliManifest(version).addSuccessfulResponse().build().handler,
+  MSW_MOCKS.trunkCliDownload(version).addSuccessfulResponse().build().handler,
+];

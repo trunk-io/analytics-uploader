@@ -61,39 +61,43 @@ You don't need to manually build before committing, but you may want to build ma
 
 ### Architecture Overview
 
-The analytics-uploader is a **wrapper around the `trunk-io/analytics-cli`** tool. It provides a GitHub Actions interface for uploading test results to Trunk Analytics.
+v3 of the analytics-uploader is a **wrapper around the trunk CLI** (`trunk flakytests`), which downloads and runs [`trunk-io/analytics-cli`](https://github.com/trunk-io/analytics-cli). It provides a GitHub Actions interface for uploading test results to Trunk Flaky Tests. v2 ran `trunk-analytics-cli` 0.x directly.
 
 ### Key Components
 
-1. **CLI Download and Caching**
-   - The action downloads the `trunk-analytics-cli` binary from GitHub releases (`trunk-io/analytics-cli`)
-   - The binary is downloaded based on the platform and architecture (Linux x64/ARM64, macOS x64/ARM64, Windows x64)
-   - When `use-cache` is enabled, the binary is cached using GitHub Actions cache to reduce download times
-   - The CLI version can be specified via the `cli-version` input (defaults to `latest`)
+1. **Version Resolution** (`src/release.ts`)
+   - `trunk-cli-version: latest` resolves from `trunk.io/releases/trunk-cli/prod/channel.json`.
+   - `cli-version: latest` resolves from `trunk.io/releases/analytics-cli/prod/channel-1.json`, never `channel.json`: the trunk CLI hands a 0.x analytics-cli no credential. If `channel-1.json` is unavailable, the action fails; there is no 0.x fallback. The result is passed to the trunk CLI as `TRUNK_ANALYTICS_CLI_VERSION`.
 
-2. **Flag Parsing and Forwarding**
-   - GitHub Actions inputs are parsed from `action.yaml` and `core.getInput()`
-   - Flags are converted from GitHub Actions input format to CLI flag format
-   - Boolean inputs are converted to flags like `--flag=true` or `--flag=false`
-   - All flags are passed to the underlying `trunk-analytics-cli` binary via command-line arguments
-   - The command is constructed in `src/lib.ts` in the `main()` function
+2. **Trunk CLI Install and Caching** (`src/lib.ts`, `src/cache.ts`)
+   - The action downloads `trunk-<version>-<platform>.tar.gz` (`.zip` on `windows-x64`) and checks its sha256 against the version's `manifest.json`.
+   - Everything lives under `$RUNNER_TEMP/trunk-analytics-uploader`: the trunk CLI, the trunk CLI's cache (`TRUNK_CACHE`, where it keeps analytics-cli), and a credential store per step (`TRUNK_CREDENTIALS_FILE`), removed when the step ends.
+   - With `use-cache`, the trunk CLI and the analytics-cli binary are cached separately, each keyed on platform and version.
+   - `TRUNK_NO_AUTO_UPDATE=1` keeps the trunk CLI from updating itself.
 
-3. **Telemetry Integration**
-   - The action integrates with internal telemetry services to report failures
-   - Failure reasons are captured and reported when the CLI execution fails
-   - Telemetry failures are non-blocking and won't affect the action's execution
+3. **Credentials**
+   - With `token`, the action runs `trunk auth api-key set` with the key in `TRUNK_ORG_API_KEY` and masks it. The trunk CLI checks the key with Trunk and stores it; `trunk flakytests` then hands analytics-cli a credential on `TRUNK_API_TOKEN`.
+   - The key never goes on a command line. The action drops any inherited `TRUNK_API_TOKEN`, so `token` is the only credential.
+   - On a fork pull request (`allow-forked-pr-uploads`, no `token`), the action passes `--allow-forked-pr-uploads` and the job's `GITHUB_TOKEN`.
+
+4. **Flag Forwarding** (`src/args.ts`)
+   - Inputs become an argv array for `trunk flakytests upload|test`, run with `execFileSync` and no shell. String values are passed as `--flag=value`.
+   - `run` is wrapped as `-- /bin/sh -c "<run>"` (`cmd.exe /d /s /c` on Windows), the shell v2's `execSync` used, so shell syntax keeps working.
+
+5. **Failures** (`src/lib.ts`)
+   - analytics-cli exits 70 when it fails on its own; any other exit code is the test run's, passed through by the trunk CLI.
+   - On a failed run, `trunk flakytests github-annotations` words the failure from the summary file; the action falls back to its own message.
+
+The action sends no telemetry of its own.
 
 ### Flag Flow
 
-Here's how flags flow through the system:
-
 1. **GitHub Actions Input** → Defined in `action.yaml` (e.g., `junit-paths`, `org-slug`, `verbose`)
-2. **Input Parsing** → `getInputs()` function in `src/lib.ts` reads inputs via `core.getInput()`
-3. **Flag Conversion** → Boolean inputs are converted using `parseBoolIntoFlag()`, other inputs are formatted as CLI arguments
-4. **Command Construction** → Flags are assembled into a command string in the `main()` function
-5. **CLI Execution** → The command is executed via `execSync()`, passing all flags to the downloaded `trunk-analytics-cli` binary
+2. **Input Parsing** → `getInputs()` in `src/inputs.ts` reads inputs via `core.getInput()`
+3. **Argument Construction** → `getArgs()` in `src/args.ts` turns inputs into an argv array
+4. **CLI Execution** → `main()` in `src/lib.ts` runs `trunk flakytests <args>` with `execFileSync()`
 
-Example: The GitHub Actions input `verbose: true` becomes the CLI flag `-v` in the command.
+Example: The GitHub Actions input `quarantine: false` becomes the CLI flag `--disable-quarantining`.
 
 ## Testing
 
@@ -116,11 +120,11 @@ The pre-commit hook ensures the build is up-to-date, but for local development, 
 
 ### Test Structure
 
-Tests use mocks for GitHub Actions modules (`@actions/core`, `@actions/github`) and `global.fetch` to avoid making real API calls during testing. The test fixtures are located in `__fixtures__/`.
+Tests use mocks for the GitHub Actions modules (`@actions/core`, `@actions/cache`), `node:fs` and `node:child_process`, and [msw](https://mswjs.io/) for every request to trunk.io; an unhandled request fails the test. The test fixtures are located in `__fixtures__/`.
 
 ## Running Locally
 
-Utilizing [`@github/local-action`](https://github.com/github/local-action), this action can be run locally. To do so copy and update `.env.example` to `.env` and then run `pnpm run local-action`. At a minimum, `INPUT_ORG-SLUG` and `INPUT_TOKEN` need to be updated with your own values to complete an upload.
+Utilizing [`@github/local-action`](https://github.com/github/local-action), this action can be run locally. To do so copy and update `.env.example` to `.env` and then run `pnpm run local-action`. At a minimum, `INPUT_ORG-SLUG`, `INPUT_TEST-COLLECTION-ID` and `INPUT_TOKEN` (a v2 API key) need to be updated with your own values to complete an upload.
 
 In `.env` inputs for the action can be specified with `INPUT_<UPPERCASE-OF-INPUT-NAME>` e.x. `INPUT_REPO-ROOT` or `INPUT_CLI-VERSION`. See `action.yaml` for the full list of inputs.
 
@@ -140,28 +144,30 @@ Releases are manually created via the **Releases** tab on GitHub:
 
 1. Go to the repository's Releases page on GitHub
 2. Click "Draft a new release"
-3. Create a new tag (e.g., `v2.0.0`) and generate release notes
+3. Create a new tag (e.g., `v3.0.0`) and generate release notes
 4. Publish the release
 
 ### Updating Major Version Tags
 
-After creating a new release and verifying it works correctly, update the major version tag (e.g., `v2`) to point to the latest release using the **Update release version** workflow:
+After creating a new release and verifying it works correctly, update the major version tag (e.g., `v3`) to point to the latest release using the **Update release version** workflow:
 
 1. Go to the **Actions** tab on GitHub
 2. Select the **Update release version** workflow
 3. Click **Run workflow**
 4. Provide the following inputs:
    - **target**: The tag of the release you just created (e.g., `v1.2.3`)
-   - **major_version**: The major version tag to update (`v1` or `v2`)
+   - **major_version**: The major version tag to update (`v1`, `v2` or `v3`)
 5. Run the workflow
 
-This will move the major version tag (e.g., `v2`) to point to the specified release tag, allowing users to reference the action with a major version that automatically points to the latest release in that version line.
+This will move the major version tag (e.g., `v3`) to point to the specified release tag, allowing users to reference the action with a major version that automatically points to the latest release in that version line.
 
 ## Project Structure
 
 - `src/` - TypeScript source code
   - `index.ts` - Entry point
-  - `lib.ts` - Main logic, CLI download, flag parsing, telemetry
+  - `lib.ts` - Main logic: trunk CLI install, credentials, running `trunk flakytests`, failures
+  - `release.ts` - Version resolution and the trunk CLI download
+  - `args.ts` - Inputs to argv and environment
 - `dist/` - Built JavaScript (generated, do not edit directly)
 - `__tests__/` - Test files
 - `__fixtures__/` - Test mocks and fixtures

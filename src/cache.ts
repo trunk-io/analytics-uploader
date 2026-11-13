@@ -2,72 +2,62 @@ import * as core from "@actions/core";
 import * as cache from "@actions/cache";
 import * as fs from "node:fs";
 
-import { BinTarget } from "./lib";
 import { logDetail } from "./log";
 
+const warn = (what: string, error: unknown) => {
+  core.warning(
+    error instanceof Error
+      ? `${what} failed: ${error.message}`
+      : `${what} failed with unknown error`,
+  );
+};
+
+// One cached binary: `dir` is what is saved and restored, `binPath` the file inside it that
+// must exist for the entry to count.
 export const cacheFactory = ({
   shouldUseCache,
-  cliVersion,
-  binTarget,
+  key,
+  dir,
   binPath,
 }: {
   shouldUseCache: boolean;
-  cliVersion: string;
-  binTarget: BinTarget;
+  key: string;
+  dir: string;
   binPath: string;
 }) => {
   if (!shouldUseCache) {
     return undefined;
   }
 
-  const cacheKey = `trunk-analytics-cli-${binTarget}-${cliVersion}`;
-  const cachePaths = [binPath];
-
+  const cachePaths = [dir];
   let cacheRestored = false;
   return {
     restoreCache: async () => {
       try {
-        const cacheKeyFound = await cache.restoreCache(cachePaths, cacheKey);
-        if (cacheKeyFound) {
-          logDetail(`Cache restored with key: ${cacheKey}`);
-          if (fs.existsSync(binPath)) {
-            logDetail("Binary found in cache");
-            cacheRestored = true;
-          } else {
-            core.warning("Cache restored but binary not found, will download");
-            cacheRestored = false;
-          }
+        const cacheKeyFound = await cache.restoreCache(cachePaths, key);
+        if (!cacheKeyFound) {
           return;
         }
-      } catch (error: unknown) {
-        if (error instanceof Error) {
-          core.warning(`Cache restore failed: ${error.message}`);
+        logDetail(`Cache restored with key: ${key}`);
+        if (fs.existsSync(binPath)) {
+          cacheRestored = true;
         } else {
-          core.warning("Cache restore failed with unknown error");
+          core.warning(`Cache ${key} restored but ${binPath} is missing`);
         }
-        cacheRestored = false;
+      } catch (error: unknown) {
+        warn("Cache restore", error);
       }
     },
     saveCache: async () => {
-      if (cacheRestored) {
-        logDetail("Cache was already restored, skipping cache save");
+      if (cacheRestored || !fs.existsSync(binPath)) {
         return;
       }
-      if (!fs.existsSync(binPath)) {
-        core.warning("Binary not found, skipping cache save");
-        return;
-      }
-
       try {
-        await cache.saveCache(cachePaths, cacheKey);
-        logDetail(`Cache saved with key: ${cacheKey}`);
+        await cache.saveCache(cachePaths, key);
+        logDetail(`Cache saved with key: ${key}`);
       } catch (error: unknown) {
-        if (error instanceof Error) {
-          core.warning(`Cache save failed: ${error.message}`);
-        } else {
-          core.warning("Cache save failed with unknown error");
-        }
-        // Don't throw - cache save failures shouldn't break the action
+        // A cache save failure must not fail the upload.
+        warn("Cache save", error);
       }
     },
   };

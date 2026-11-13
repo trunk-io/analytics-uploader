@@ -63,6 +63,9 @@ jobs:
 
       # Do NOT continue-on-error for these uploads (except Windows which is experimental)
       #
+      # Both token secrets should hold v2 API keys (trunk_v2_...) with the
+      # Upload test results permission, the credential v3 documents.
+      #
       # The variant is what keeps the three legs apart: they upload the same
       # reports, so without it all three collapse into one test and Windows --
       # the leg allowed to fail -- feeds its flakiness into a row shared with
@@ -92,6 +95,8 @@ jobs:
           variant: ${{ matrix.os }}
         env:
           TRUNK_PUBLIC_API_ADDRESS: https://api.trunk-staging.io
+          # Where the trunk CLI checks the key and mints the upload's JWT.
+          TRUNK_API_URL: https://api.trunk-staging.io/v2
 
   test_dry_run_cleanup:
     name: Test Dry Run Cleanup
