@@ -15,17 +15,18 @@ export const getSummaryPath = (input: string) =>
   );
 
 // The cli words the failure itself from the summary it wrote, so the action never reads the
-// summary's format. Older cli versions don't have the command; their error is swallowed and the
-// caller falls back to its own message.
+// summary's format. If the command fails, its error is swallowed and the caller falls back to its
+// own message.
 export const annotateFromCli = (
-  binPath: string,
+  trunkPath: string,
   summaryPath: string,
+  env?: Record<string, string>,
 ): boolean => {
   try {
     const annotations = execFileSync(
-      binPath,
-      ["github-annotations", "--summary-file", summaryPath],
-      { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+      trunkPath,
+      ["flakytests", "github-annotations", "--summary-file", summaryPath],
+      { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], env },
     );
     if (!annotations.trim()) {
       return false;

@@ -1,50 +1,92 @@
-import * as os from "node:os";
 import * as path from "node:path";
 import { jest } from "@jest/globals";
 
 import * as child_process from "../__fixtures__/child_process.js";
 import * as fs_mock from "../__fixtures__/fs.js";
 import * as core from "../__fixtures__/core.js";
-import * as github from "../__fixtures__/github.js";
 import * as cache from "../__fixtures__/cache.js";
 import {
   createMswServer,
   MSW_MOCKS,
-  releasesManifestHandler,
+  trunkCliInstallHandlers,
 } from "../__fixtures__/msw.js";
-import { FETCH_WITH_BACK_OFF_CONFIG } from "../src/constants.js";
 
 jest.unstable_mockModule("@actions/core", () => core);
-jest.unstable_mockModule("@actions/github", () => github);
 jest.unstable_mockModule("@actions/cache", () => cache);
 jest.unstable_mockModule("node:child_process", () => child_process);
 jest.unstable_mockModule("node:fs", () => fs_mock);
 
-const { main } = await import("../src/lib.js");
+const { determinePlatform, main } = await import("../src/lib.js");
 
-// Helper to get the expected binary name based on platform
-const getExpectedBin = (): string => {
-  const platform = os.platform();
-  const arch = os.arch();
-  if (platform === "darwin") {
-    return arch === "arm64" ? "aarch64-apple-darwin" : "x86_64-apple-darwin";
-  } else if (platform === "linux") {
-    return arch === "arm64" ? "aarch64-unknown-linux" : "x86_64-unknown-linux";
-  }
-  throw new Error(`Unsupported OS (${platform}, ${arch})`);
+const WORK_DIR = path.join("/runner/temp", "trunk-analytics-uploader");
+const PLATFORM = determinePlatform();
+const TRUNK_CLI_DIR = path.join(WORK_DIR, "trunk-cli", "0.0.14");
+const TRUNK_CLI_KEY = `trunk-cli-${PLATFORM}-0.0.14`;
+const ANALYTICS_CLI_DIR = path.join(
+  WORK_DIR,
+  "cache",
+  "analytics-cli",
+  "1.0.0",
+);
+const ANALYTICS_CLI_KEY = `trunk-analytics-cli-${PLATFORM}-1.0.0`;
+
+const mockInputs = (useCache: string) => {
+  core.getInput.mockImplementation(
+    (name) =>
+      ({
+        "junit-paths": "junit.xml",
+        "org-slug": "org",
+        token: "trunk_v2_key",
+        "test-collection-id": "abcd1234",
+        "cli-version": "1.0.0",
+        "trunk-cli-version": "0.0.14",
+        "use-cache": useCache,
+      })[name] ?? "",
+  );
+};
+
+// Each binary exists once its cache entry is restored or it is installed.
+const mockBinaries = ({ restored }: { restored: string[] }) => {
+  const present = new Set<string>();
+  cache.restoreCache.mockImplementation((paths, key) => {
+    if (restored.includes(key)) {
+      paths.forEach((p) => present.add(p));
+      return Promise.resolve(key);
+    }
+    return Promise.resolve(undefined);
+  });
+  fs_mock.writeFileSync.mockImplementation(() => {
+    present.add(TRUNK_CLI_DIR);
+  });
+  child_process.execFileSync.mockImplementation(((
+    _file: string,
+    args?: readonly string[],
+  ) => {
+    if (args?.[0] === "flakytests") {
+      present.add(ANALYTICS_CLI_DIR);
+    }
+    return "";
+  }) as typeof import("node:child_process").execFileSync);
+  fs_mock.existsSync.mockImplementation((p) =>
+    [...present].some((dir) => String(p).startsWith(`${dir}${path.sep}`)),
+  );
 };
 
 describe("Cache functionality", () => {
   let server: ReturnType<typeof createMswServer>;
+  const env = { ...process.env };
 
   beforeAll(() => {
     server = createMswServer([]);
   });
 
+  beforeEach(() => {
+    process.env.RUNNER_TEMP = "/runner/temp";
+  });
+
   afterEach(() => {
+    process.env = { ...env };
     jest.resetAllMocks();
-    cache.restoreCache.mockReset();
-    cache.saveCache.mockReset();
     server.resetHandlers();
   });
 
@@ -52,294 +94,122 @@ describe("Cache functionality", () => {
     server.close();
   });
 
-  it("restores binary from cache when use-cache is true and cache hit", async () => {
-    const { handler: telemetryUploadHandler, mock: telemetryUploadMock } =
-      MSW_MOCKS.telemetryUpload().addSuccessfulResponse().build();
-    server.use([telemetryUploadHandler]);
-    core.getInput.mockImplementation(
-      (name) =>
-        ({
-          "junit-paths": "junit.xml",
-          "org-slug": "org",
-          token: "token",
-          "cli-version": "0.0.0",
-          "use-cache": "true",
-        })[name] ?? "",
-    );
-    fs_mock.existsSync.mockReturnValue(true);
-    const parentPath = "/made/up/path";
-    const binaryPath = path.join(parentPath, "trunk-analytics-cli");
-    const expectedBin = getExpectedBin();
-    const expectedCacheKey = `trunk-analytics-cli-${expectedBin}-0.0.0`;
-    cache.restoreCache.mockResolvedValue(expectedCacheKey);
+  it("restores both binaries and downloads nothing on a cache hit", async () => {
+    mockBinaries({ restored: [TRUNK_CLI_KEY, ANALYTICS_CLI_KEY] });
+    mockInputs("true");
 
-    await main(parentPath);
+    await main("/made/up/path");
 
-    expect(cache.restoreCache).toHaveBeenCalledTimes(1);
+    expect(core.setFailed).not.toHaveBeenCalled();
     expect(cache.restoreCache).toHaveBeenCalledWith(
-      [binaryPath],
-      expectedCacheKey,
+      [TRUNK_CLI_DIR],
+      TRUNK_CLI_KEY,
     );
-
+    expect(cache.restoreCache).toHaveBeenCalledWith(
+      [ANALYTICS_CLI_DIR],
+      ANALYTICS_CLI_KEY,
+    );
     expect(cache.saveCache).not.toHaveBeenCalled();
-
-    expect(child_process.execSync).toHaveBeenCalledTimes(2);
-    expect(child_process.execSync.mock.calls[1][0]).toMatch(
-      `${parentPath}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token"`,
-    );
-    expect(telemetryUploadMock).toHaveBeenCalledTimes(1);
   });
 
-  it("attempts cache restore when use-cache is true and cache miss", async () => {
-    const cliVersion = "0.0.0";
-    const { handler: artifactDownloadHandler, mock: artifactDownloadMock } =
-      MSW_MOCKS.releasesArtifactDownload(cliVersion)
-        .addSuccessfulResponse()
-        .build();
-    const { handler: telemetryUploadHandler, mock: telemetryUploadMock } =
-      MSW_MOCKS.telemetryUpload().addSuccessfulResponse().build();
+  it("saves both binaries after a cache miss", async () => {
+    const { handler: downloadHandler, mock: downloadMock } =
+      MSW_MOCKS.trunkCliDownload("0.0.14").addSuccessfulResponse().build();
     server.use([
-      releasesManifestHandler(cliVersion),
-      artifactDownloadHandler,
-      telemetryUploadHandler,
+      MSW_MOCKS.trunkCliManifest("0.0.14").addSuccessfulResponse().build()
+        .handler,
+      downloadHandler,
     ]);
-    core.getInput.mockImplementation(
-      (name) =>
-        ({
-          "junit-paths": "junit.xml",
-          "org-slug": "org",
-          token: "token",
-          "cli-version": cliVersion,
-          "use-cache": "true",
-        })[name] ?? "",
+    mockBinaries({ restored: [] });
+    mockInputs("true");
+
+    await main("/made/up/path");
+
+    expect(core.setFailed).not.toHaveBeenCalled();
+    expect(downloadMock).toHaveBeenCalledTimes(1);
+    expect(cache.saveCache).toHaveBeenCalledWith(
+      [TRUNK_CLI_DIR],
+      TRUNK_CLI_KEY,
     );
-    cache.restoreCache.mockResolvedValue(undefined);
-
-    const parentPath = "/made/up/path";
-    await main(parentPath);
-
-    const binaryPath = path.join(parentPath, "trunk-analytics-cli");
-    const expectedBin = getExpectedBin();
-    const expectedCacheKey = `trunk-analytics-cli-${expectedBin}-0.0.0`;
-    expect(cache.restoreCache).toHaveBeenCalledTimes(1);
-    expect(cache.restoreCache).toHaveBeenCalledWith(
-      [binaryPath],
-      expectedCacheKey,
-    );
-
-    expect(child_process.execSync).toHaveBeenCalledTimes(3);
-    expect(child_process.execSync.mock.calls[2][0]).toMatch(
-      `${parentPath}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token"`,
-    );
-    expect(artifactDownloadMock).toHaveBeenCalledTimes(1);
-    expect(telemetryUploadMock).toHaveBeenCalledTimes(1);
-  });
-
-  it.each(["false", "invalid"])(
-    "does not use cache when use-cache is `%s`",
-    async (useCache) => {
-      const cliVersion = "0.0.0";
-      const { handler: artifactDownloadHandler, mock: artifactDownloadMock } =
-        MSW_MOCKS.releasesArtifactDownload(cliVersion)
-          .addSuccessfulResponse()
-          .build();
-      const { handler: telemetryUploadHandler, mock: telemetryUploadMock } =
-        MSW_MOCKS.telemetryUpload().addSuccessfulResponse().build();
-      server.use([
-        releasesManifestHandler(cliVersion),
-        artifactDownloadHandler,
-        telemetryUploadHandler,
-      ]);
-      core.getInput.mockImplementation(
-        (name) =>
-          ({
-            "junit-paths": "junit.xml",
-            "org-slug": "org",
-            token: "token",
-            "cli-version": cliVersion,
-            "use-cache": useCache,
-          })[name] ?? "",
-      );
-
-      const parentPath = "/made/up/path";
-      await main(parentPath);
-
-      expect(cache.restoreCache).not.toHaveBeenCalled();
-      expect(cache.saveCache).not.toHaveBeenCalled();
-
-      expect(child_process.execSync).toHaveBeenCalledTimes(3);
-      expect(child_process.execSync.mock.calls[2][0]).toMatch(
-        `${parentPath}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token"`,
-      );
-      expect(artifactDownloadMock).toHaveBeenCalledTimes(1);
-      expect(telemetryUploadMock).toHaveBeenCalledTimes(1);
-    },
-  );
-
-  it("uses the cache when use-cache is not set", async () => {
-    const { handler: telemetryUploadHandler } = MSW_MOCKS.telemetryUpload()
-      .addSuccessfulResponse()
-      .build();
-    server.use([telemetryUploadHandler]);
-    core.getInput.mockImplementation(
-      (name) =>
-        ({
-          "junit-paths": "junit.xml",
-          "org-slug": "org",
-          token: "token",
-          "cli-version": "0.0.0",
-        })[name] ?? "",
-    );
-    fs_mock.existsSync.mockReturnValue(true);
-    const parentPath = "/made/up/path";
-    const expectedCacheKey = `trunk-analytics-cli-${getExpectedBin()}-0.0.0`;
-    cache.restoreCache.mockResolvedValue(expectedCacheKey);
-
-    await main(parentPath);
-
-    expect(cache.restoreCache).toHaveBeenCalledWith(
-      [path.join(parentPath, "trunk-analytics-cli")],
-      expectedCacheKey,
+    expect(cache.saveCache).toHaveBeenCalledWith(
+      [ANALYTICS_CLI_DIR],
+      ANALYTICS_CLI_KEY,
     );
   });
 
-  it("handles cache restore failure gracefully and saves to cache", async () => {
-    const cliVersion = "0.0.0";
-    const { handler: artifactDownloadHandler, mock: artifactDownloadMock } =
-      MSW_MOCKS.releasesArtifactDownload(cliVersion)
-        .addSuccessfulResponse()
-        .build();
-    const { handler: telemetryUploadHandler, mock: telemetryUploadMock } =
-      MSW_MOCKS.telemetryUpload().addSuccessfulResponse().build();
-    server.use([
-      releasesManifestHandler(cliVersion),
-      artifactDownloadHandler,
-      telemetryUploadHandler,
-    ]);
-    core.getInput.mockImplementation(
-      (name) =>
-        ({
-          "junit-paths": "junit.xml",
-          "org-slug": "org",
-          token: "token",
-          "cli-version": cliVersion,
-          "use-cache": "true",
-        })[name] ?? "",
+  it("saves the analytics-cli even when the run fails", async () => {
+    server.use(trunkCliInstallHandlers("0.0.14"));
+    mockBinaries({ restored: [] });
+    const succeed = child_process.execFileSync.getMockImplementation();
+    child_process.execFileSync.mockImplementation(((
+      file: string,
+      args: readonly string[],
+      options: object,
+    ) => {
+      succeed?.(file, args, options);
+      if (args[0] === "flakytests") {
+        throw Object.assign(new Error("Command failed"), { status: 1 });
+      }
+      return "";
+    }) as typeof import("node:child_process").execFileSync);
+    mockInputs("true");
+
+    await main("/made/up/path");
+
+    expect(core.setFailed).toHaveBeenCalled();
+    expect(cache.saveCache).toHaveBeenCalledWith(
+      [ANALYTICS_CLI_DIR],
+      ANALYTICS_CLI_KEY,
     );
-    fs_mock.existsSync.mockReturnValueOnce(false).mockReturnValueOnce(true);
-    cache.restoreCache.mockRejectedValue(new Error("Cache restore failed"));
-    cache.saveCache.mockResolvedValue(0);
+  });
 
-    const parentPath = "/made/up/path";
-    await main(parentPath);
+  it("does not touch the cache when use-cache is false", async () => {
+    server.use(trunkCliInstallHandlers("0.0.14"));
+    mockBinaries({ restored: [] });
+    mockInputs("false");
 
-    expect(cache.restoreCache).toHaveBeenCalledTimes(1);
-    expect(cache.saveCache).toHaveBeenCalledTimes(1);
+    await main("/made/up/path");
+
+    expect(core.setFailed).not.toHaveBeenCalled();
+    expect(cache.restoreCache).not.toHaveBeenCalled();
+    expect(cache.saveCache).not.toHaveBeenCalled();
+  });
+
+  it("keeps going when the cache cannot be restored or saved", async () => {
+    server.use(trunkCliInstallHandlers("0.0.14"));
+    mockBinaries({ restored: [] });
+    cache.restoreCache.mockRejectedValue(new Error("restore broke"));
+    cache.saveCache.mockRejectedValue(new Error("save broke"));
+    mockInputs("true");
+
+    await main("/made/up/path");
+
+    expect(core.setFailed).not.toHaveBeenCalled();
     expect(core.warning).toHaveBeenCalledWith(
-      expect.stringContaining("Cache restore failed"),
+      "Cache restore failed: restore broke",
     );
-    expect(child_process.execSync).toHaveBeenCalledTimes(3);
-    expect(child_process.execSync.mock.calls[2][0]).toMatch(
-      `${parentPath}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token"`,
-    );
-    expect(artifactDownloadMock).toHaveBeenCalledTimes(1);
-    expect(telemetryUploadMock).toHaveBeenCalledTimes(1);
+    expect(core.warning).toHaveBeenCalledWith("Cache save failed: save broke");
   });
 
-  it("handles cache save failure gracefully", async () => {
-    const cliVersion = "0.0.0";
-    const { handler: artifactDownloadHandler, mock: artifactDownloadMock } =
-      MSW_MOCKS.releasesArtifactDownload(cliVersion)
-        .addSuccessfulResponse()
-        .build();
-    const { handler: telemetryUploadHandler, mock: telemetryUploadMock } =
-      MSW_MOCKS.telemetryUpload().addSuccessfulResponse().build();
+  it("downloads the trunk CLI when a restored entry lacks it", async () => {
+    const { handler: downloadHandler, mock: downloadMock } =
+      MSW_MOCKS.trunkCliDownload("0.0.14").addSuccessfulResponse().build();
     server.use([
-      releasesManifestHandler(cliVersion),
-      artifactDownloadHandler,
-      telemetryUploadHandler,
+      MSW_MOCKS.trunkCliManifest("0.0.14").addSuccessfulResponse().build()
+        .handler,
+      downloadHandler,
     ]);
-    core.getInput.mockImplementation(
-      (name) =>
-        ({
-          "junit-paths": "junit.xml",
-          "org-slug": "org",
-          token: "token",
-          "cli-version": cliVersion,
-          "use-cache": "true",
-        })[name] ?? "",
+    mockBinaries({ restored: [] });
+    cache.restoreCache.mockImplementation((_paths, key) =>
+      Promise.resolve(key),
     );
-    fs_mock.existsSync.mockReturnValueOnce(false).mockReturnValueOnce(true);
-    cache.restoreCache.mockResolvedValue(undefined);
-    cache.saveCache.mockRejectedValue(new Error("Cache save failed"));
+    mockInputs("true");
 
-    const parentPath = "/made/up/path";
-    await main(parentPath);
+    await main("/made/up/path");
 
-    expect(cache.restoreCache).toHaveBeenCalledTimes(1);
-    expect(cache.saveCache).toHaveBeenCalledTimes(1);
     expect(core.warning).toHaveBeenCalledWith(
-      expect.stringContaining("Cache save failed"),
+      expect.stringContaining(`Cache ${TRUNK_CLI_KEY} restored but`),
     );
-    expect(child_process.execSync).toHaveBeenCalledTimes(3);
-    expect(child_process.execSync.mock.calls[2][0]).toMatch(
-      `${parentPath}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token"`,
-    );
-    expect(artifactDownloadMock).toHaveBeenCalledTimes(1);
-    expect(telemetryUploadMock).toHaveBeenCalledTimes(1);
-  });
-
-  it("retries fetching latest CLI version when cli-version is `latest`", async () => {
-    const cliVersion = "0.0.0";
-    const builder = [
-      ...Array<undefined>(FETCH_WITH_BACK_OFF_CONFIG.numOfAttempts - 1),
-    ].reduce(
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      (acc, _) => acc.addErrorResponse(),
-      MSW_MOCKS.releasesChannel(),
-    );
-    const { handler: channelHandler, mock: channelMock } = builder
-      .addSuccessfulResponse(cliVersion)
-      .build();
-    const { handler: telemetryUploadHandler, mock: telemetryUploadMock } =
-      MSW_MOCKS.telemetryUpload().addSuccessfulResponse().build();
-    server.use([channelHandler, telemetryUploadHandler]);
-    core.getInput.mockImplementation(
-      (name) =>
-        ({
-          "junit-paths": "junit.xml",
-          "org-slug": "org",
-          token: "token",
-          "cli-version": "latest",
-          "use-cache": "true",
-        })[name] ?? "",
-    );
-    fs_mock.existsSync.mockReturnValue(true);
-    cache.restoreCache.mockResolvedValue(undefined);
-
-    const parentPath = "/made/up/path";
-    jest.useFakeTimers();
-    try {
-      const promise = main(parentPath);
-      await jest.runAllTimersAsync();
-      await promise;
-    } finally {
-      jest.useRealTimers();
-    }
-
-    expect(cache.restoreCache).toHaveBeenCalledTimes(1);
-    expect(cache.saveCache).toHaveBeenCalledTimes(0);
-    expect(child_process.execSync).toHaveBeenCalledTimes(2);
-    expect(child_process.execSync.mock.calls[1][0]).toMatch(
-      `${parentPath}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token"`,
-    );
-    expect(channelMock).toHaveBeenCalledTimes(
-      FETCH_WITH_BACK_OFF_CONFIG.numOfAttempts,
-    );
-    expect(cache.restoreCache).toHaveBeenCalledWith(
-      [path.join(parentPath, "trunk-analytics-cli")],
-      `trunk-analytics-cli-${getExpectedBin()}-${cliVersion}`,
-    );
-    expect(telemetryUploadMock).toHaveBeenCalledTimes(1);
+    expect(downloadMock).toHaveBeenCalledTimes(1);
   });
 });

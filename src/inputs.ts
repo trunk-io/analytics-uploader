@@ -1,6 +1,10 @@
 import * as core from "@actions/core";
 
-import { LATEST_TAG, SWIFT_TEST_XUNIT_PATHS_ENV } from "./constants";
+import {
+  LATEST_TAG,
+  SWIFT_TEST_XUNIT_PATHS_ENV,
+  V2_API_KEY_PREFIX,
+} from "./constants";
 
 const parseTriState = (input: string): boolean | null => {
   switch (input.toLowerCase()) {
@@ -20,7 +24,6 @@ export const getInputs = () =>
     junitPaths: core.getInput("junit-paths"),
     orgSlug: core.getInput("org-slug"),
     token: core.getInput("token"),
-    publicRepoId: core.getInput("public-repo-id"),
     allowForkedPrUploads: parseBoolean(
       core.getInput("allow-forked-pr-uploads"),
     ),
@@ -29,6 +32,7 @@ export const getInputs = () =>
     run: core.getInput("run"),
     repoRoot: core.getInput("repo-root"),
     cliVersion: core.getInput("cli-version") || LATEST_TAG,
+    trunkCliVersion: core.getInput("trunk-cli-version") || LATEST_TAG,
     xcresultPath: core.getInput("xcresult-path"),
     bazelBepPath: core.getInput("bazel-bep-path"),
     // The CLI reads this env var itself, so callers were setting it directly
@@ -41,7 +45,6 @@ export const getInputs = () =>
     allowMissingJunitFiles: parseTriState(
       core.getInput("allow-missing-junit-files"),
     ),
-    hideBanner: parseTriState(core.getInput("hide-banner")),
     variant: core.getInput("variant"),
     testCollectionShortId: core.getInput("test-collection-id"),
     useBazelTargetForCodeowners: parseBoolean(
@@ -57,7 +60,6 @@ export const getInputs = () =>
     ghRepoHeadBranch: core.getInput("gh-repo-head-branch"),
     ghRepoHeadCommitEpoch: core.getInput("gh-repo-head-commit-epoch"),
     ghRepoHeadAuthorName: core.getInput("gh-repo-head-author-name"),
-    ghActionRef: core.getInput("gh-action-ref"),
     verbose: parseBoolean(core.getInput("verbose")),
     showFailureMessages: parseBoolean(core.getInput("show-failure-messages")),
     dryRun: parseBoolean(core.getInput("dry-run")),
@@ -75,8 +77,9 @@ export const validateInputs = (
     | "swiftTestXunitPaths"
     | "orgSlug"
     | "token"
-    | "publicRepoId"
     | "allowForkedPrUploads"
+    | "testCollectionShortId"
+    | "run"
   >,
 ) => {
   if (
@@ -90,9 +93,21 @@ export const validateInputs = (
   if (!inputs.orgSlug) {
     throw new Error("Missing organization url slug");
   }
-  if (!inputs.token && !inputs.publicRepoId && !inputs.allowForkedPrUploads) {
+  if (!inputs.testCollectionShortId) {
+    throw new Error("Missing test-collection-id");
+  }
+  if (!inputs.token && !inputs.allowForkedPrUploads) {
+    throw new Error("Missing token or allow-forked-pr-uploads");
+  }
+  // The trunk CLI hands `test` the stored key itself, and analytics-cli 1.x refuses a legacy
+  // organization token; `upload` gets a JWT, which works for either.
+  if (
+    inputs.run &&
+    inputs.token &&
+    !inputs.token.startsWith(V2_API_KEY_PREFIX)
+  ) {
     throw new Error(
-      "Missing organization token, public repo id, or allow-forked-pr-uploads",
+      `The run input needs a v2 API key (${V2_API_KEY_PREFIX}...) as token. Create one with the Upload test results permission in Trunk under Settings → Developer → API Keys.`,
     );
   }
 };
