@@ -1,27 +1,5 @@
-import * as path from "node:path";
-import { afterAll, jest } from "@jest/globals";
-
-import * as child_process from "../__fixtures__/child_process.js";
-import * as fs_mock from "../__fixtures__/fs.js";
-import * as core from "../__fixtures__/core.js";
-import * as github from "../__fixtures__/github.js";
-import * as cache from "../__fixtures__/cache.js";
-import {
-  createMswServer,
-  MSW_MOCKS,
-  releasesManifestHandler,
-} from "../__fixtures__/msw.js";
-import { FETCH_WITH_BACK_OFF_CONFIG } from "../src/constants.js";
-
-jest.unstable_mockModule("@actions/core", () => core);
-jest.unstable_mockModule("@actions/github", () => github);
-jest.unstable_mockModule("@actions/cache", () => cache);
-jest.unstable_mockModule("node:child_process", () => child_process);
-jest.unstable_mockModule("node:fs", () => fs_mock);
-
-const { main } = await import("../src/lib.js");
-const { getArgs, getEnvVars } = await import("../src/args.js");
-const { validateInputs } = await import("../src/inputs.js");
+import { getArgs, getEnvVars, getTrunkCliEnv, wrapInShell } from "../src/args";
+import { validateInputs } from "../src/inputs";
 
 const DEFAULT_ARG_INPUTS: Parameters<typeof getArgs>[0] = {
   run: "",
@@ -30,13 +8,10 @@ const DEFAULT_ARG_INPUTS: Parameters<typeof getArgs>[0] = {
   bazelBepPath: "",
   swiftTestXunitPaths: "",
   orgSlug: "",
-  token: "",
-  publicRepoId: "",
   allowForkedPrUploads: false,
   repoHeadBranch: "",
   repoRoot: "",
   allowMissingJunitFiles: null,
-  hideBanner: null,
   quarantine: null,
   variant: "",
   testCollectionShortId: "",
@@ -59,25 +34,22 @@ const DEFAULT_VALIDATE_INPUTS = {
   bazelBepPath: "",
   swiftTestXunitPaths: "",
   orgSlug: "org",
-  token: "",
-  publicRepoId: "",
+  token: "trunk_v2_key",
   allowForkedPrUploads: false,
+  testCollectionShortId: "abcd1234",
+  run: "",
 };
 
 describe("validateInputs", () => {
-  it("accepts token only", () => {
+  it("accepts a token and a test collection", () => {
     expect(() => {
-      validateInputs({ ...DEFAULT_VALIDATE_INPUTS, token: "tok" });
+      validateInputs(DEFAULT_VALIDATE_INPUTS);
     }).not.toThrow();
   });
 
   it("throws when no report source is provided", () => {
     expect(() => {
-      validateInputs({
-        ...DEFAULT_VALIDATE_INPUTS,
-        junitPaths: "",
-        token: "tok",
-      });
+      validateInputs({ ...DEFAULT_VALIDATE_INPUTS, junitPaths: "" });
     }).toThrow("Missing input files");
   });
 
@@ -91,36 +63,102 @@ describe("validateInputs", () => {
         ...DEFAULT_VALIDATE_INPUTS,
         junitPaths: "",
         swiftTestXunitPaths: "out-swift-testing.xml",
-        token: "tok",
       });
     }).not.toThrow();
   });
 
-  it("accepts publicRepoId only", () => {
+  it("throws when no test collection is named", () => {
     expect(() => {
-      validateInputs({ ...DEFAULT_VALIDATE_INPUTS, publicRepoId: "repo123" });
-    }).not.toThrow();
+      validateInputs({ ...DEFAULT_VALIDATE_INPUTS, testCollectionShortId: "" });
+    }).toThrow("Missing test-collection-id");
   });
 
-  it("accepts allowForkedPrUploads only", () => {
+  it("accepts allowForkedPrUploads with no token", () => {
     expect(() => {
       validateInputs({
         ...DEFAULT_VALIDATE_INPUTS,
+        token: "",
         allowForkedPrUploads: true,
       });
     }).not.toThrow();
   });
 
-  it("throws when no token, publicRepoId, or allowForkedPrUploads is provided", () => {
+  it("throws when there is neither a token nor allowForkedPrUploads", () => {
     expect(() => {
-      validateInputs(DEFAULT_VALIDATE_INPUTS);
-    }).toThrow(
-      "Missing organization token, public repo id, or allow-forked-pr-uploads",
-    );
+      validateInputs({ ...DEFAULT_VALIDATE_INPUTS, token: "" });
+    }).toThrow("Missing token or allow-forked-pr-uploads");
+  });
+
+  it("accepts a legacy organization token for an upload", () => {
+    expect(() => {
+      validateInputs({ ...DEFAULT_VALIDATE_INPUTS, token: "legacy-token" });
+    }).not.toThrow();
+  });
+
+  it("refuses a legacy organization token with run", () => {
+    expect(() => {
+      validateInputs({
+        ...DEFAULT_VALIDATE_INPUTS,
+        token: "legacy-token",
+        run: "npm test",
+      });
+    }).toThrow("The run input needs a v2 API key");
+  });
+
+  it("accepts run on a fork pull request with no token", () => {
+    expect(() => {
+      validateInputs({
+        ...DEFAULT_VALIDATE_INPUTS,
+        token: "",
+        allowForkedPrUploads: true,
+        run: "npm test",
+      });
+    }).not.toThrow();
+  });
+});
+
+describe("getTrunkCliEnv", () => {
+  const env = { ...process.env };
+
+  afterEach(() => {
+    process.env = { ...env };
+  });
+
+  const trunkCliEnv = () =>
+    getTrunkCliEnv({
+      cacheDir: "/runner/temp/cache",
+      credentialsFile: "/runner/temp/credentials/credentials.json",
+      analyticsCliVersion: "1.0.0",
+    });
+
+  it("isolates the trunk CLI's cache and credentials and pins analytics-cli", () => {
+    expect(trunkCliEnv()).toMatchObject({
+      TRUNK_NO_AUTO_UPDATE: "1",
+      TRUNK_CACHE: "/runner/temp/cache",
+      TRUNK_CREDENTIALS_FILE: "/runner/temp/credentials/credentials.json",
+      TRUNK_ANALYTICS_CLI_VERSION: "1.0.0",
+    });
+  });
+
+  it("drops an inherited TRUNK_API_TOKEN and TRUNK_ORG_API_KEY", () => {
+    process.env.TRUNK_API_TOKEN = "inherited-token";
+    process.env.TRUNK_ORG_API_KEY = "inherited-key";
+    const result = trunkCliEnv();
+    expect(result).not.toHaveProperty("TRUNK_API_TOKEN");
+    expect(result).not.toHaveProperty("TRUNK_ORG_API_KEY");
+  });
+
+  it("keeps the rest of the environment", () => {
+    process.env.TRUNK_PUBLIC_API_ADDRESS = "https://api.trunk-staging.io";
+    expect(trunkCliEnv()).toMatchObject({
+      TRUNK_PUBLIC_API_ADDRESS: "https://api.trunk-staging.io",
+    });
   });
 });
 
 describe("getEnvVars", () => {
+  const BASE = { TRUNK_CACHE: "/cache" };
+
   it("exports the fork repo URL as TRUNK_FORK_REPO_URL", () => {
     expect(
       getEnvVars(
@@ -130,10 +168,12 @@ describe("getEnvVars", () => {
           githubToken: "",
         },
         "/tmp/summary.json",
+        BASE,
       ),
     ).toMatchObject({
       PR_TITLE: "title",
       TRUNK_FORK_REPO_URL: "https://github.com/someone/fork",
+      TRUNK_CACHE: "/cache",
     });
   });
 
@@ -142,6 +182,7 @@ describe("getEnvVars", () => {
       getEnvVars(
         { prTitle: "title", ghForkRepoUrl: "", githubToken: "" },
         "/tmp/summary.json",
+        BASE,
       ),
     ).not.toHaveProperty("TRUNK_FORK_REPO_URL");
   });
@@ -151,6 +192,7 @@ describe("getEnvVars", () => {
       getEnvVars(
         { prTitle: "title", ghForkRepoUrl: "", githubToken: "" },
         "/tmp/summary.json",
+        BASE,
       ),
     ).toMatchObject({ TRUNK_SUMMARY_OUTPUT_FILE: "/tmp/summary.json" });
   });
@@ -160,96 +202,134 @@ describe("getEnvVars", () => {
       getEnvVars(
         { prTitle: "title", ghForkRepoUrl: "", githubToken: "ghs_job" },
         "/tmp/summary.json",
+        BASE,
       ),
     ).toMatchObject({ GITHUB_TOKEN: "ghs_job" });
   });
 
   it("leaves an inherited GITHUB_TOKEN alone when the input is empty", () => {
-    process.env.GITHUB_TOKEN = "ghs_ambient";
-    try {
-      expect(
-        getEnvVars(
-          { prTitle: "title", ghForkRepoUrl: "", githubToken: "" },
-          "/tmp/summary.json",
-        ),
-      ).toMatchObject({ GITHUB_TOKEN: "ghs_ambient" });
-    } finally {
-      delete process.env.GITHUB_TOKEN;
-    }
+    expect(
+      getEnvVars(
+        { prTitle: "title", ghForkRepoUrl: "", githubToken: "" },
+        "/tmp/summary.json",
+        { ...BASE, GITHUB_TOKEN: "ghs_ambient" },
+      ),
+    ).toMatchObject({ GITHUB_TOKEN: "ghs_ambient" });
   });
 });
 
-describe("allowForkedPrUploads", () => {
-  it("emits the bare flag when set", () => {
+describe("getArgs", () => {
+  it("uploads with no flags for empty inputs", () => {
+    expect(getArgs(DEFAULT_ARG_INPUTS)).toEqual(["upload"]);
+  });
+
+  it("gives each value its own argument, joined to its flag", () => {
+    expect(
+      getArgs({
+        ...DEFAULT_ARG_INPUTS,
+        junitPaths: "a b.xml,c.xml",
+        orgSlug: "org",
+        testCollectionShortId: "abcd1234",
+        variant: "-leading-dash",
+      }),
+    ).toEqual([
+      "upload",
+      "--junit-paths=a b.xml,c.xml",
+      "--org-url-slug=org",
+      "--test-collection-id=abcd1234",
+      "--variant=-leading-dash",
+    ]);
+  });
+
+  it("never passes a token", () => {
+    const args = getArgs({
+      ...DEFAULT_ARG_INPUTS,
+      orgSlug: "org",
+      testCollectionShortId: "abcd1234",
+    });
+    expect(args.some((arg) => arg.startsWith("--token"))).toBe(false);
+  });
+
+  it("emits the bare fork flag when allowForkedPrUploads is set", () => {
     expect(
       getArgs({ ...DEFAULT_ARG_INPUTS, allowForkedPrUploads: true }),
     ).toEqual(["upload", "--allow-forked-pr-uploads"]);
   });
 
-  it("emits nothing when unset", () => {
-    expect(getArgs(DEFAULT_ARG_INPUTS)).toEqual(["upload"]);
-  });
-});
-
-describe("parseBoolIntoFlag", () => {
-  it("returns empty string for undefined input", () => {
-    expect(getArgs(DEFAULT_ARG_INPUTS)).toEqual(["upload"]);
-  });
-
-  it("returns flag with true for 'true'", () => {
-    expect(getArgs({ ...DEFAULT_ARG_INPUTS, hideBanner: true })).toEqual([
+  it("forwards the bare boolean flags", () => {
+    expect(
+      getArgs({
+        ...DEFAULT_ARG_INPUTS,
+        useBazelTargetForCodeowners: true,
+        useUnclonedRepo: true,
+        verbose: true,
+        showFailureMessages: true,
+        dryRun: true,
+      }),
+    ).toEqual([
       "upload",
-      "--hide-banner=true",
+      "--use-bazel-target-for-codeowners",
+      "--use-uncloned-repo",
+      "-v",
+      "--show-failure-messages",
+      "--dry-run",
     ]);
   });
 
-  it("returns flag with false for 'false'", () => {
-    expect(getArgs({ ...DEFAULT_ARG_INPUTS, hideBanner: false })).toEqual([
-      "upload",
-      "--hide-banner=false",
-    ]);
+  describe("allowMissingJunitFiles", () => {
+    it.each([
+      [true, ["upload", "--allow-missing-junit-files=true"]],
+      [false, ["upload", "--allow-missing-junit-files=false"]],
+      [null, ["upload"]],
+    ])("given %p", (allowMissingJunitFiles, expected) => {
+      expect(
+        getArgs({ ...DEFAULT_ARG_INPUTS, allowMissingJunitFiles }),
+      ).toEqual(expected);
+    });
   });
 
-  it("returns empty string for non-boolean input", () => {
-    expect(getArgs({ ...DEFAULT_ARG_INPUTS, hideBanner: null })).toEqual([
-      "upload",
-    ]);
-  });
-});
+  describe("quarantine", () => {
+    it("turns quarantining off for false", () => {
+      expect(getArgs({ ...DEFAULT_ARG_INPUTS, quarantine: false })).toEqual([
+        "upload",
+        "--disable-quarantining",
+      ]);
+    });
 
-describe("parsePreviousStepOutcome", () => {
-  it("returns 0 for 'success'", () => {
-    expect(
-      getArgs({ ...DEFAULT_ARG_INPUTS, previousStepOutcome: "success" }),
-    ).toEqual(["upload", '--test-process-exit-code "0"']);
-  });
+    it("passes nothing for true, which is the default", () => {
+      expect(getArgs({ ...DEFAULT_ARG_INPUTS, quarantine: true })).toEqual([
+        "upload",
+      ]);
+    });
 
-  it("returns 0 for 'skipped'", () => {
-    expect(
-      getArgs({ ...DEFAULT_ARG_INPUTS, previousStepOutcome: "skipped" }),
-    ).toEqual(["upload", '--test-process-exit-code "0"']);
-  });
-
-  it("returns 1 for 'failure'", () => {
-    expect(
-      getArgs({ ...DEFAULT_ARG_INPUTS, previousStepOutcome: "failure" }),
-    ).toEqual(["upload", '--test-process-exit-code "1"']);
+    it("passes nothing when unset", () => {
+      expect(getArgs({ ...DEFAULT_ARG_INPUTS, quarantine: null })).toEqual([
+        "upload",
+      ]);
+    });
   });
 
-  it("returns 1 for 'cancelled'", () => {
-    expect(
-      getArgs({ ...DEFAULT_ARG_INPUTS, previousStepOutcome: "cancelled" }),
-    ).toEqual(["upload", '--test-process-exit-code "1"']);
+  describe("previousStepOutcome", () => {
+    it.each([
+      ["success", "0"],
+      ["skipped", "0"],
+      ["failure", "1"],
+      ["cancelled", "1"],
+      ["FAILURE", "1"],
+    ])("maps %s to exit code %s", (previousStepOutcome, exitCode) => {
+      expect(getArgs({ ...DEFAULT_ARG_INPUTS, previousStepOutcome })).toEqual([
+        "upload",
+        `--test-process-exit-code=${exitCode}`,
+      ]);
+    });
+
+    it("throws for an invalid value", () => {
+      expect(() =>
+        getArgs({ ...DEFAULT_ARG_INPUTS, previousStepOutcome: "not-a-status" }),
+      ).toThrow("Invalid previous step outcome: not-a-status");
+    });
   });
 
-  it("throws for invalid value", () => {
-    expect(() =>
-      getArgs({ ...DEFAULT_ARG_INPUTS, previousStepOutcome: "not-a-status" }),
-    ).toThrow();
-  });
-});
-
-describe("swift test xunit paths", () => {
   it("forwards swiftTestXunitPaths as a CLI flag", () => {
     expect(
       getArgs({
@@ -258,395 +338,104 @@ describe("swift test xunit paths", () => {
       }),
     ).toEqual([
       "upload",
-      '--swift-test-xunit-paths "out-swift-testing.xml,out.xml"',
-    ]);
-  });
-});
-
-describe("PR head metadata flags", () => {
-  // Regression test: on `pull_request` events `actions/checkout` produces a
-  // merge commit, so the CLI's `git HEAD` fallback returned the wrong SHA.
-  // The action must forward github.event.pull_request.head.* as CLI flags.
-  it("forwards PR head metadata as --repo-* CLI flags", () => {
-    expect(
-      getArgs({
-        ...DEFAULT_ARG_INPUTS,
-        ghRepoUrl: "https://github.com/o/r",
-        ghRepoHeadSha: "abc123def456",
-        ghRepoHeadBranch: "feature-branch",
-        ghRepoHeadCommitEpoch: "1717171717",
-        ghRepoHeadAuthorName: "octocat",
-      }),
-    ).toEqual([
-      "upload",
-      '--repo-head-branch "feature-branch"',
-      '--repo-url "https://github.com/o/r"',
-      '--repo-head-sha "abc123def456"',
-      '--repo-head-commit-epoch "1717171717"',
-      '--repo-head-author-name "octocat"',
+      "--swift-test-xunit-paths=out-swift-testing.xml,out.xml",
     ]);
   });
 
-  it("omits --repo-* flags when PR inputs are empty (push event)", () => {
-    expect(getArgs(DEFAULT_ARG_INPUTS)).toEqual(["upload"]);
+  describe("PR head metadata flags", () => {
+    // Regression test: on `pull_request` events `actions/checkout` produces a
+    // merge commit, so the CLI's `git HEAD` fallback returned the wrong SHA.
+    // The action must forward github.event.pull_request.head.* as CLI flags.
+    it("forwards PR head metadata as --repo-* CLI flags", () => {
+      expect(
+        getArgs({
+          ...DEFAULT_ARG_INPUTS,
+          ghRepoUrl: "https://github.com/o/r",
+          ghRepoHeadSha: "abc123def456",
+          ghRepoHeadBranch: "feature-branch",
+          ghRepoHeadCommitEpoch: "1717171717",
+          ghRepoHeadAuthorName: "octocat",
+        }),
+      ).toEqual([
+        "upload",
+        "--repo-head-branch=feature-branch",
+        "--repo-url=https://github.com/o/r",
+        "--repo-head-sha=abc123def456",
+        "--repo-head-commit-epoch=1717171717",
+        "--repo-head-author-name=octocat",
+      ]);
+    });
+
+    it("prefers user repoHeadBranch override over gh PR branch", () => {
+      expect(
+        getArgs({
+          ...DEFAULT_ARG_INPUTS,
+          repoHeadBranch: "manual-override",
+          ghRepoHeadBranch: "from-pr",
+        }),
+      ).toContain("--repo-head-branch=manual-override");
+    });
   });
 
-  it("prefers user repoHeadBranch override over gh PR branch", () => {
-    expect(
-      getArgs({
-        ...DEFAULT_ARG_INPUTS,
-        repoHeadBranch: "manual-override",
-        ghRepoHeadBranch: "from-pr",
-      }),
-    ).toContain('--repo-head-branch "manual-override"');
+  describe("run", () => {
+    it("tests the command under /bin/sh on unix", () => {
+      expect(
+        getArgs(
+          {
+            ...DEFAULT_ARG_INPUTS,
+            orgSlug: "org",
+            run: 'npm test -- --grep "a b" && echo $HOME',
+          },
+          "linux",
+        ),
+      ).toEqual([
+        "test",
+        "--org-url-slug=org",
+        "--",
+        "/bin/sh",
+        "-c",
+        'npm test -- --grep "a b" && echo $HOME',
+      ]);
+    });
+
+    it("puts the command after every flag", () => {
+      const args = getArgs(
+        { ...DEFAULT_ARG_INPUTS, run: "exit 0", dryRun: true },
+        "darwin",
+      );
+      expect(args.indexOf("--dry-run")).toBeLessThan(args.indexOf("--"));
+    });
   });
 });
 
-describe("Arguments", () => {
-  let server: ReturnType<typeof createMswServer>;
-
-  beforeAll(() => {
-    server = createMswServer([]);
-  });
-
-  beforeEach(() => {
-    jest.resetModules();
-  });
+describe("wrapInShell", () => {
+  const env = { ...process.env };
 
   afterEach(() => {
-    jest.resetAllMocks();
-    server.resetHandlers();
+    process.env = { ...env };
   });
 
-  afterAll(() => {
-    server.close();
-  });
-
-  it("Forwards inputs - upload", async () => {
-    const cliVersion = "0.0.0";
-    const { handler: artifactDownloadHandler, mock: artifactDownloadMock } =
-      MSW_MOCKS.releasesArtifactDownload(cliVersion)
-        .addSuccessfulResponse()
-        .build();
-    const { handler: telemetryUploadHandler, mock: telemetryUploadMock } =
-      MSW_MOCKS.telemetryUpload().addSuccessfulResponse().build();
-    server.use([
-      releasesManifestHandler(cliVersion),
-      artifactDownloadHandler,
-      telemetryUploadHandler,
+  it("uses /bin/sh -c off Windows", () => {
+    expect(wrapInShell("exit 0", "darwin")).toEqual([
+      "/bin/sh",
+      "-c",
+      "exit 0",
     ]);
-    core.getInput.mockImplementation(
-      (name) =>
-        ({
-          "junit-paths": "junit.xml",
-          "org-slug": "org",
-          token: "token",
-          "cli-version": cliVersion,
-          "show-failure-messages": "true",
-        })[name] ?? "",
-    );
-    const parentPath = "/made/up/path";
-    await main(parentPath);
-    expect(child_process.execSync).toHaveBeenCalledTimes(3);
-    expect(child_process.execSync.mock.calls[2][0]).toMatch(
-      `${parentPath}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token" --show-failure-messages`,
-    );
-    expect(artifactDownloadMock).toHaveBeenCalledTimes(1);
-    expect(telemetryUploadMock).toHaveBeenCalledTimes(1);
   });
 
-  it("Passes the github token through env, masked and off the command line", async () => {
-    const cliVersion = "0.0.0";
-    const { handler: artifactDownloadHandler } =
-      MSW_MOCKS.releasesArtifactDownload(cliVersion)
-        .addSuccessfulResponse()
-        .build();
-    const { handler: telemetryUploadHandler } = MSW_MOCKS.telemetryUpload()
-      .addSuccessfulResponse()
-      .build();
-    server.use([
-      releasesManifestHandler(cliVersion),
-      artifactDownloadHandler,
-      telemetryUploadHandler,
+  it("uses ComSpec on Windows", () => {
+    process.env.ComSpec = "C:\\Windows\\system32\\cmd.exe";
+    expect(wrapInShell("npm test", "win32")).toEqual([
+      "C:\\Windows\\system32\\cmd.exe",
+      "/d",
+      "/s",
+      "/c",
+      "npm test",
     ]);
-    core.getInput.mockImplementation(
-      (name) =>
-        ({
-          "junit-paths": "junit.xml",
-          "org-slug": "org",
-          "allow-forked-pr-uploads": "true",
-          "test-collection-id": "abcd1234",
-          "github-token": "ghs_job",
-          "cli-version": cliVersion,
-        })[name] ?? "",
-    );
-    const parentPath = "/made/up/path";
-    await main(parentPath);
-    expect(core.setSecret).toHaveBeenCalledWith("ghs_job");
-    expect(child_process.execSync).toHaveBeenCalledTimes(3);
-    const [command, options] = child_process.execSync.mock.calls[2];
-    expect(command).not.toContain("ghs_job");
-    expect(options?.env).toMatchObject({ GITHUB_TOKEN: "ghs_job" });
   });
 
-  // The CLI reads TRUNK_SWIFT_TEST_XUNIT_PATHS itself, so callers set it as an
-  // env var before the input existed. Validation has to see it, or the upload
-  // is rejected for having no report source while the env var names one.
-  it("Accepts swift test xunit paths from the env var alone", async () => {
-    const cliVersion = "0.0.0";
-    const { handler: artifactDownloadHandler, mock: artifactDownloadMock } =
-      MSW_MOCKS.releasesArtifactDownload(cliVersion)
-        .addSuccessfulResponse()
-        .build();
-    const { handler: telemetryUploadHandler, mock: telemetryUploadMock } =
-      MSW_MOCKS.telemetryUpload().addSuccessfulResponse().build();
-    server.use([
-      releasesManifestHandler(cliVersion),
-      artifactDownloadHandler,
-      telemetryUploadHandler,
-    ]);
-    core.getInput.mockImplementation(
-      (name) =>
-        ({
-          "org-slug": "org",
-          token: "token",
-          "cli-version": cliVersion,
-        })[name] ?? "",
-    );
-    process.env.TRUNK_SWIFT_TEST_XUNIT_PATHS = "out-swift-testing.xml";
-    try {
-      const parentPath = "/made/up/path";
-      await main(parentPath);
-      expect(child_process.execSync).toHaveBeenCalledTimes(3);
-      expect(child_process.execSync.mock.calls[2][0]).toMatch(
-        `${parentPath}/trunk-analytics-cli upload --swift-test-xunit-paths "out-swift-testing.xml" --org-url-slug "org" --token "token"`,
-      );
-    } finally {
-      delete process.env.TRUNK_SWIFT_TEST_XUNIT_PATHS;
-    }
-    expect(artifactDownloadMock).toHaveBeenCalledTimes(1);
-    expect(telemetryUploadMock).toHaveBeenCalledTimes(1);
-  });
-
-  it("Forwards inputs with previous step outcome - upload", async () => {
-    const cliVersion = "0.0.0";
-    const { handler: artifactDownloadHandler, mock: artifactDownloadMock } =
-      MSW_MOCKS.releasesArtifactDownload(cliVersion)
-        .addSuccessfulResponse()
-        .build();
-    const { handler: telemetryUploadHandler, mock: telemetryUploadMock } =
-      MSW_MOCKS.telemetryUpload().addSuccessfulResponse().build();
-    server.use([
-      releasesManifestHandler(cliVersion),
-      artifactDownloadHandler,
-      telemetryUploadHandler,
-    ]);
-    core.getInput.mockImplementation(
-      (name) =>
-        ({
-          "junit-paths": "junit.xml",
-          "org-slug": "org",
-          token: "token",
-          "cli-version": cliVersion,
-          "previous-step-outcome": "success",
-          verbose: "true",
-        })[name] ?? "",
-    );
-    const parentPath = "/made/up/path";
-    await main(parentPath);
-    expect(child_process.execSync).toHaveBeenCalledTimes(3);
-    expect(child_process.execSync.mock.calls[2][0]).toMatch(
-      `${parentPath}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token" --test-process-exit-code "0" -v`,
-    );
-    expect(artifactDownloadMock).toHaveBeenCalledTimes(1);
-    expect(telemetryUploadMock).toHaveBeenCalledTimes(1);
-  });
-
-  it("Forwards inputs - test", async () => {
-    const cliVersion = "0.0.0";
-    const { handler: artifactDownloadHandler, mock: artifactDownloadMock } =
-      MSW_MOCKS.releasesArtifactDownload(cliVersion)
-        .addSuccessfulResponse()
-        .build();
-    const { handler: telemetryUploadHandler, mock: telemetryUploadMock } =
-      MSW_MOCKS.telemetryUpload().addSuccessfulResponse().build();
-    server.use([
-      releasesManifestHandler(cliVersion),
-      artifactDownloadHandler,
-      telemetryUploadHandler,
-    ]);
-    core.getInput.mockImplementation(
-      (name) =>
-        ({
-          "junit-paths": "junit.xml",
-          "org-slug": "org",
-          token: "token",
-          "cli-version": cliVersion,
-          run: "exit 0",
-        })[name] ?? "",
-    );
-    // The binary is missing, then present for the cache save and for cleanup.
-    fs_mock.existsSync
-      .mockReturnValueOnce(false)
-      .mockReturnValueOnce(true)
-      .mockReturnValueOnce(true);
-    const parentPath = "/made/up/path";
-    await main(parentPath);
-    expect(child_process.execSync).toHaveBeenCalledTimes(3);
-    expect(child_process.execSync.mock.calls[2][0]).toMatch(
-      `${parentPath}/trunk-analytics-cli test --junit-paths "junit.xml" --org-url-slug "org" --token "token" -- exit 0`,
-    );
-    expect(fs_mock.unlinkSync).toHaveBeenCalledWith(
-      path.join(parentPath, "trunk-analytics-cli"),
-    );
-    expect(artifactDownloadMock).toHaveBeenCalledTimes(1);
-    expect(telemetryUploadMock).toHaveBeenCalledTimes(1);
-  });
-
-  it("Forwards dry-run flag and cleans up bundle_upload directory", async () => {
-    const cliVersion = "0.0.0";
-    const { handler: artifactDownloadHandler, mock: artifactDownloadMock } =
-      MSW_MOCKS.releasesArtifactDownload(cliVersion)
-        .addSuccessfulResponse()
-        .build();
-    const { handler: telemetryUploadHandler, mock: telemetryUploadMock } =
-      MSW_MOCKS.telemetryUpload().addSuccessfulResponse().build();
-    server.use([
-      releasesManifestHandler(cliVersion),
-      artifactDownloadHandler,
-      telemetryUploadHandler,
-    ]);
-    core.getInput.mockImplementation(
-      (name) =>
-        ({
-          "junit-paths": "junit.xml",
-          "org-slug": "org",
-          token: "token",
-          "cli-version": cliVersion,
-          "dry-run": "true",
-        })[name] ?? "",
-    );
-    // The binary is missing, then present for the cache save and for cleanup.
-    fs_mock.existsSync
-      .mockReturnValueOnce(false)
-      .mockReturnValueOnce(true)
-      .mockReturnValueOnce(true)
-      .mockReturnValueOnce(false)
-      .mockReturnValueOnce(true);
-    const parentPath = "/made/up/path";
-    await main(parentPath);
-    // Verify dry-run flag is in the command
-    expect(child_process.execSync).toHaveBeenCalledTimes(3);
-    expect(child_process.execSync.mock.calls[2][0]).toMatch(
-      `${parentPath}/trunk-analytics-cli upload --junit-paths "junit.xml" --org-url-slug "org" --token "token" --dry-run`,
-    );
-
-    expect(fs_mock.rmSync).toHaveBeenCalledWith(
-      path.join(parentPath, "bundle_upload"),
-      { recursive: true, force: true },
-    );
-    expect(artifactDownloadMock).toHaveBeenCalledTimes(1);
-    expect(telemetryUploadMock).toHaveBeenCalledTimes(1);
-  });
-
-  it("Forwards PR head metadata from action inputs to the CLI", async () => {
-    const cliVersion = "0.0.0";
-    const { handler: artifactDownloadHandler, mock: artifactDownloadMock } =
-      MSW_MOCKS.releasesArtifactDownload(cliVersion)
-        .addSuccessfulResponse()
-        .build();
-    const { handler: telemetryUploadHandler, mock: telemetryUploadMock } =
-      MSW_MOCKS.telemetryUpload().addSuccessfulResponse().build();
-    server.use([
-      releasesManifestHandler(cliVersion),
-      artifactDownloadHandler,
-      telemetryUploadHandler,
-    ]);
-    core.getInput.mockImplementation(
-      (name) =>
-        ({
-          "junit-paths": "junit.xml",
-          "org-slug": "org",
-          token: "token",
-          "cli-version": cliVersion,
-          "gh-repo-url": "https://github.com/o/r",
-          "gh-repo-head-sha": "abc123def456",
-          "gh-repo-head-branch": "feature-branch",
-          "gh-repo-head-commit-epoch": "1717171717",
-          "gh-repo-head-author-name": "octocat",
-        })[name] ?? "",
-    );
-    const parentPath = "/made/up/path";
-    await main(parentPath);
-    expect(child_process.execSync).toHaveBeenCalledTimes(3);
-    const command = child_process.execSync.mock.calls[2][0];
-    // The CLI consumes these as flags; without them it would fall back to
-    // `git HEAD`, which on a PR event is the synthetic merge commit.
-    expect(command).toMatch('--repo-head-branch "feature-branch"');
-    expect(command).toMatch('--repo-url "https://github.com/o/r"');
-    expect(command).toMatch('--repo-head-sha "abc123def456"');
-    expect(command).toMatch('--repo-head-commit-epoch "1717171717"');
-    expect(command).toMatch('--repo-head-author-name "octocat"');
-    // Old behavior leaked GH_* env vars that the CLI never read; make sure
-    // we didn't regress to that.
-    const env = child_process.execSync.mock.calls[2][1]?.env;
-    expect(env).not.toHaveProperty("GH_REPO_HEAD_SHA");
-    expect(env).not.toHaveProperty("GH_REPO_URL");
-    expect(artifactDownloadMock).toHaveBeenCalledTimes(1);
-    expect(telemetryUploadMock).toHaveBeenCalledTimes(1);
-  });
-
-  it("Retries latest version fetch when resolving latest", async () => {
-    const cliVersion = "0.18.0";
-    const builder = [
-      ...Array<undefined>(FETCH_WITH_BACK_OFF_CONFIG.numOfAttempts - 1),
-    ].reduce(
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      (acc, _) => acc.addErrorResponse(),
-      MSW_MOCKS.releasesChannel(),
-    );
-    const { handler: channelHandler, mock: channelMock } = builder
-      .addSuccessfulResponse(cliVersion)
-      .build();
-    const { handler: artifactDownloadHandler, mock: artifactDownloadMock } =
-      MSW_MOCKS.releasesArtifactDownload(cliVersion)
-        .addSuccessfulResponse()
-        .build();
-    const { handler: telemetryUploadHandler, mock: telemetryUploadMock } =
-      MSW_MOCKS.telemetryUpload().addSuccessfulResponse().build();
-    server.use([
-      channelHandler,
-      releasesManifestHandler(cliVersion),
-      artifactDownloadHandler,
-      telemetryUploadHandler,
-    ]);
-    core.getInput.mockImplementation(
-      (name) =>
-        ({
-          "junit-paths": "junit.xml",
-          "org-slug": "org",
-          token: "token",
-          "cli-version": "latest",
-        })[name] ?? "",
-    );
-    fs_mock.existsSync
-      .mockReturnValueOnce(false)
-      .mockReturnValueOnce(true)
-      .mockReturnValueOnce(true)
-      .mockReturnValueOnce(true);
-    const parentPath = "/made/up/path";
-    jest.useFakeTimers();
-    try {
-      const promise = main(parentPath);
-      await jest.runAllTimersAsync();
-      await promise;
-    } finally {
-      jest.useRealTimers();
-    }
-    expect(channelMock).toHaveBeenCalledTimes(
-      FETCH_WITH_BACK_OFF_CONFIG.numOfAttempts,
-    );
-    expect(artifactDownloadMock).toHaveBeenCalledTimes(1);
-    expect(telemetryUploadMock).toHaveBeenCalledTimes(1);
+  it("falls back to cmd.exe on Windows", () => {
+    delete process.env.ComSpec;
+    expect(wrapInShell("npm test", "win32")[0]).toBe("cmd.exe");
   });
 });

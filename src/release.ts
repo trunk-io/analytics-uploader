@@ -3,24 +3,24 @@ import { createHash } from "node:crypto";
 import { backOff } from "exponential-backoff";
 
 import {
+  ANALYTICS_CLI_CHANNEL,
+  ANALYTICS_CLI_RELEASES_URL,
   CLI_MAJOR_VERSION,
-  DEFAULT_CLI_VERSION,
   FETCH_WITH_BACK_OFF_CONFIG,
-  GITHUB_RELEASES_URL,
   LATEST_TAG,
-  RELEASES_URL,
+  TRUNK_CLI_RELEASES_URL,
 } from "./constants";
 import { logDetail } from "./log";
 
 export class CliFetchError extends Error {
-  constructor(message: string, cause: Error) {
+  constructor(message: string, cause: unknown) {
     super(message, { cause });
   }
 }
 
 // trunk.io answers a missing object with 403, not 404: CloudFront's origin access has no
 // s3:ListBucket, so S3 cannot tell "absent" from "forbidden". Both are deterministic, so
-// neither is retried before falling back to GitHub.
+// neither is retried.
 class ReleaseNotPublishedError extends Error {}
 
 const errorMessage = (error: unknown) =>
@@ -47,164 +47,102 @@ const fetchFromTrunk = async (url: string): Promise<Response> =>
     },
   );
 
-const fetchFromGitHub = async (url: string): Promise<Response> =>
-  await backOff(async () => {
-    const response = await fetch(url);
-    if (response.ok) {
-      return response;
-    }
-    const cause = new Error(
-      `HTTP ${response.status.toString()}: ${response.statusText}`,
-    );
-    if (response.status === 403 || response.status === 429) {
-      throw new CliFetchError(
-        "Github rate limits prevented fetching analytics-cli release. Hint: You may need to cache the analytics-cli.",
-        cause,
-      );
-    }
-    throw new Error(`Failed to fetch ${url}: ${cause.message}`);
-  }, FETCH_WITH_BACK_OFF_CONFIG);
-
-const fetchLatestFromTrunk = async (channel: string): Promise<string> => {
-  const response = await fetchFromTrunk(`${RELEASES_URL}/${channel}`);
-  const { latest } = (await response.json()) as { latest?: unknown };
+const fetchLatest = async (url: string): Promise<string> => {
+  const { latest } = (await (await fetchFromTrunk(url)).json()) as {
+    latest?: unknown;
+  };
   if (typeof latest !== "string" || latest === "") {
-    throw new Error(`${channel} has no latest version`);
+    throw new Error(`${url} has no latest version`);
   }
   return latest;
 };
 
-// GitHub redirects /releases/latest to /releases/tag/<version>.
-const fetchLatestFromGitHub = async (): Promise<string> => {
-  const response = await fetchFromGitHub(`${GITHUB_RELEASES_URL}/latest`);
-  const version = response.url.split("/").pop();
-  if (!version || version === LATEST_TAG) {
-    throw new Error("Failed to resolve the latest GitHub release");
-  }
-  return version;
-};
-
-export interface ResolvedCliVersion {
-  version: string;
-  // Set when trunk.io could not resolve `latest` and GitHub's latest release stood in, so a
-  // GitHub download takes the same pointer through /latest/download/.
-  fromGitHubLatest: boolean;
-}
-
 const majorVersionOf = (version: string) =>
   Number.parseInt(version.replace(/^v/, ""), 10);
 
-const keepOnSupportedMajor = (
-  resolved: ResolvedCliVersion,
-): ResolvedCliVersion => {
-  const major = majorVersionOf(resolved.version);
-  if (Number.isNaN(major) || major <= CLI_MAJOR_VERSION) {
-    return resolved;
-  }
-  core.info(
-    `The latest analytics-cli is ${resolved.version}, but this version of the action supports only analytics-cli ${CLI_MAJOR_VERSION.toString()}.x. Using ${DEFAULT_CLI_VERSION}.`,
-  );
-  return { version: DEFAULT_CLI_VERSION, fromGitHubLatest: false };
-};
-
-export const resolveCliVersion = async (
-  cliVersion: string,
-): Promise<ResolvedCliVersion> => {
-  if (cliVersion !== LATEST_TAG) {
-    return { version: cliVersion, fromGitHubLatest: false };
-  }
-  const majorChannel = `channel-${CLI_MAJOR_VERSION.toString()}.json`;
-  try {
-    const version = await fetchLatestFromTrunk(majorChannel);
-    core.info(`Resolved "${LATEST_TAG}" to version: ${version}`);
-    return keepOnSupportedMajor({ version, fromGitHubLatest: false });
-  } catch (majorChannelError: unknown) {
-    logDetail(
-      `Could not read ${majorChannel} (${errorMessage(majorChannelError)}); using channel.json.`,
-    );
+export const resolveTrunkCliVersion = async (
+  input: string,
+): Promise<string> => {
+  if (input !== LATEST_TAG) {
+    return input;
   }
   try {
-    const version = await fetchLatestFromTrunk("channel.json");
-    core.info(`Resolved "${LATEST_TAG}" to version: ${version}`);
-    return keepOnSupportedMajor({ version, fromGitHubLatest: false });
-  } catch (trunkError: unknown) {
-    core.warning(
-      `Failed to resolve the latest version from trunk.io: ${errorMessage(trunkError)}. Falling back to GitHub releases.`,
+    const version = await fetchLatest(`${TRUNK_CLI_RELEASES_URL}/channel.json`);
+    core.info(`Resolved trunk CLI "${LATEST_TAG}" to version: ${version}`);
+    return version;
+  } catch (error: unknown) {
+    throw new CliFetchError(
+      `Could not resolve the latest trunk CLI: ${errorMessage(error)}`,
+      error,
     );
   }
+};
+
+// The trunk CLI would resolve `latest` from channel.json, which can name a 0.x release, and
+// it hands a 0.x analytics-cli no credential.
+export const resolveAnalyticsCliVersion = async (
+  input: string,
+): Promise<string> => {
+  if (input !== LATEST_TAG) {
+    return input;
+  }
+  const url = `${ANALYTICS_CLI_RELEASES_URL}/${ANALYTICS_CLI_CHANNEL}`;
+  let version: string;
   try {
-    const version = await fetchLatestFromGitHub();
-    core.info(`Resolved "${LATEST_TAG}" to version: ${version} (GitHub)`);
-    return keepOnSupportedMajor({ version, fromGitHubLatest: true });
-  } catch (githubError: unknown) {
-    core.warning(
-      `Failed to resolve latest version: ${errorMessage(githubError)}. Falling back to version ${DEFAULT_CLI_VERSION}.`,
-    );
-    return { version: DEFAULT_CLI_VERSION, fromGitHubLatest: false };
-  }
-};
-
-const downloadFromTrunk = async (
-  version: string,
-  releaseArtifactName: string,
-): Promise<Buffer> => {
-  const versionUrl = `${RELEASES_URL}/${version}`;
-  const downloadUrl = `${versionUrl}/${releaseArtifactName}`;
-  logDetail(`Downloading trunk-analytics-cli from ${downloadUrl}...`);
-
-  const manifest = (await (
-    await fetchFromTrunk(`${versionUrl}/manifest.json`)
-  ).json()) as {
-    artifacts?: Record<string, { sha256?: string } | undefined>;
-  };
-  const expectedSha256 = manifest.artifacts?.[releaseArtifactName]?.sha256;
-  if (!expectedSha256) {
-    throw new Error(
-      `The manifest for ${version} lists no ${releaseArtifactName}`,
+    version = await fetchLatest(url);
+  } catch (error: unknown) {
+    throw new CliFetchError(
+      `Could not resolve the latest analytics-cli ${CLI_MAJOR_VERSION.toString()}.x from ${url}: ${errorMessage(error)}. Set cli-version to a ${CLI_MAJOR_VERSION.toString()}.x release to pin one.`,
+      error,
     );
   }
-
-  const buffer = Buffer.from(
-    await (await fetchFromTrunk(downloadUrl)).arrayBuffer(),
-  );
-  const actualSha256 = createHash("sha256").update(buffer).digest("hex");
-  if (actualSha256 !== expectedSha256) {
-    throw new Error(
-      `sha256 mismatch for ${downloadUrl}: expected ${expectedSha256}, got ${actualSha256}`,
+  if (majorVersionOf(version) !== CLI_MAJOR_VERSION) {
+    throw new CliFetchError(
+      `${url} names analytics-cli ${version}, but this version of the action needs ${CLI_MAJOR_VERSION.toString()}.x.`,
+      new Error(version),
     );
   }
-  return buffer;
+  core.info(`Resolved analytics-cli "${LATEST_TAG}" to version: ${version}`);
+  return version;
 };
 
-const downloadFromGitHub = async (
-  { version, fromGitHubLatest }: ResolvedCliVersion,
-  releaseArtifactName: string,
-): Promise<Buffer> => {
-  const downloadUrl = fromGitHubLatest
-    ? `${GITHUB_RELEASES_URL}/latest/download/${releaseArtifactName}`
-    : `${GITHUB_RELEASES_URL}/download/${version}/${releaseArtifactName}`;
-  logDetail(`Downloading trunk-analytics-cli from ${downloadUrl}...`);
-  return Buffer.from(await (await fetchFromGitHub(downloadUrl)).arrayBuffer());
-};
-
-export const downloadRelease = async ({
-  cliVersion,
-  releaseArtifactName,
+export const downloadTrunkCli = async ({
+  version,
+  platform,
+  assetName,
 }: {
-  cliVersion: ResolvedCliVersion;
-  releaseArtifactName: string;
+  version: string;
+  platform: string;
+  assetName: string;
 }): Promise<Buffer> => {
-  let buffer: Buffer;
+  const versionUrl = `${TRUNK_CLI_RELEASES_URL}/${version}`;
+  const downloadUrl = `${versionUrl}/${assetName}`;
   try {
-    buffer = await downloadFromTrunk(cliVersion.version, releaseArtifactName);
-  } catch (trunkError: unknown) {
-    core.warning(
-      `Failed to download trunk-analytics-cli from trunk.io: ${errorMessage(trunkError)}. Falling back to GitHub releases.`,
+    const manifest = (await (
+      await fetchFromTrunk(`${versionUrl}/manifest.json`)
+    ).json()) as {
+      platforms?: Record<string, { sha256?: string } | undefined>;
+    };
+    const expectedSha256 = manifest.platforms?.[platform]?.sha256;
+    if (!expectedSha256) {
+      throw new Error(`trunk CLI ${version} has no ${platform} build`);
+    }
+    logDetail(`Downloading the trunk CLI from ${downloadUrl}...`);
+    const buffer = Buffer.from(
+      await (await fetchFromTrunk(downloadUrl)).arrayBuffer(),
     );
-    buffer = await downloadFromGitHub(cliVersion, releaseArtifactName);
+    const actualSha256 = createHash("sha256").update(buffer).digest("hex");
+    if (actualSha256 !== expectedSha256) {
+      throw new Error(
+        `sha256 mismatch for ${downloadUrl}: expected ${expectedSha256}, got ${actualSha256}`,
+      );
+    }
+    logDetail(`Downloaded ${assetName}`);
+    return buffer;
+  } catch (error: unknown) {
+    throw new CliFetchError(
+      `Could not download the trunk CLI ${version}: ${errorMessage(error)}`,
+      error,
+    );
   }
-  logDetail(
-    `Downloaded ${releaseArtifactName} from release ${cliVersion.version}`,
-  );
-  return buffer;
 };
