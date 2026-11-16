@@ -43,7 +43,7 @@ jobs:
           junit-paths: "target/path/**/*_test.xml"
           # Provide your Trunk organization url slug.
           # To find your org slug, log into app.trunk.io and you should be redirected to a URL like:
-          # https://app.trunk.io/my-trunk-org-slug/repo-owner/repo-name/ci-analytics
+          # https://app.trunk.io/my-trunk-org-slug/flaky-tests
           org-slug: my-trunk-org-slug
           # Provide the ID of the Trunk test collection to upload to.
           # Find it on the collection's page in app.trunk.io → Flaky Tests → Collections.
@@ -72,7 +72,7 @@ jobs:
 | Parameter                 | Description                                                                                                                                                                                |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `org-slug`                | Organization slug.                                                                                                                                                                         |
-| `test-collection-id`      | 8 character alphanumeric ID of the test collection to upload to. Required unless your organization is still migrating from legacy repo uploads.                                            |
+| `test-collection-id`      | 8 character alphanumeric ID of the test collection to upload to. Every upload goes to a test collection.                                                                                   |
 | `token`                   | Organization token. Must be explicitly passed in or defined as an environment variable named `TRUNK_API_TOKEN`. Defaults to the `TRUNK_API_TOKEN` when left empty.                         |
 | `allow-forked-pr-uploads` | Upload from a forked pull request, which cannot read repository secrets and so has no `token`. Requires `test-collection-id`; the collection must have forked-PR uploads enabled in Trunk. |
 
