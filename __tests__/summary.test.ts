@@ -21,7 +21,7 @@ describe("annotateFromCli", () => {
 
   // A stand-in cli that logs its arguments, prints `output` and exits with `status`.
   const fakeCli = (output: string, status: number) => {
-    const cliPath = path.join(dir, "trunk-analytics-cli");
+    const cliPath = path.join(dir, "trunk");
     fs.writeFileSync(
       cliPath,
       `#!/bin/sh\necho "$@" > "${dir}/args"\nprintf '%s' '${output}'\necho "unrecognized subcommand" >&2\nexit ${status.toString()}\n`,
@@ -36,7 +36,7 @@ describe("annotateFromCli", () => {
     expect(annotateFromCli(cliPath, "/tmp/summary.json")).toBe(true);
     expect(stdout).toHaveBeenCalledWith("::error::No tests ran\n");
     expect(fs.readFileSync(path.join(dir, "args"), "utf8")).toBe(
-      "github-annotations --summary-file /tmp/summary.json\n",
+      "flakytests github-annotations --summary-file /tmp/summary.json\n",
     );
   });
 
